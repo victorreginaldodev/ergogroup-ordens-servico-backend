@@ -93,7 +93,7 @@
 
                                 <div class="col-md-4">
                                     <label class="form-label">Data de recebimento:</label>
-                                    <p>{{ servico.ordem_servico.cliente.data_criacao|date:"d/m/Y" }}</p>
+                                    <p>{{ servico.ordem_servico.data_criacao|date:"d/m/Y" }}</p>
                                 </div>
 
                                 <!-- Formulário de atualização de serviço -->
@@ -234,7 +234,7 @@
                             <div class="row mb-4 mb-2">
                                 <div class="col-md-4">
                                     <label class="form-label">Data de recebimento:</label>
-                                    <p>{{ servico.ordem_servico.cliente.data_criacao|date:"d/m/Y" }}</p>
+                                    <p>{{ servico.ordem_servico.data_criacao|date:"d/m/Y" }}</p>
                                 </div>
                             </div>
 
@@ -347,7 +347,7 @@
 
                                 <div class="col-md-4">
                                     <label class="form-label">Data de recebimento:</label>
-                                    <p>{{ servico.ordem_servico.cliente.data_criacao|date:"d/m/Y" }}</p>
+                                    <p>{{ servico.ordem_servico.data_criacao|date:"d/m/Y" }}</p>
                                 </div>
 
                                 <!-- Formulário de atualização de serviço -->
@@ -358,7 +358,7 @@
                                     <!-- Campo de status -->
                                     <div class="form-group me-2">
                                         <label for="{{ formUpdate.status.id_for_label }}" class="mb-2">Status:</label>
-                                        <select name="status" id="id_status" class="form-select w-75">
+                                        <select name="status" id="id_status" class="form-select w-100">
                                             <option value="nao_iniciado" {% if servico.status == 'nao_iniciado' %}selected{% endif %}>NÃO INICIADO</option>
                                             <option value="em_andamento" {% if servico.status == 'em_andamento' %}selected{% endif %}>EM ANDAMENTO</option>
                                             <option value="concluida" {% if servico.status == 'concluida' %}selected{% endif %}>CONCLUÍDA</option>
@@ -404,7 +404,8 @@
                                             <th scope="col" style="padding: 8px; border-right: 1px solid var(--cinza);">
                                                 Descrição da Tarefa
                                             </th>
-                                            <th scope="col" style="padding: 8px; width: 15%;">Status</th>
+                                            <th scope="col" style="padding: 8px; width: 15%; border-right: 1px solid var(--cinza);">Status</th>
+                                            <th scope="col" style="padding: 8px; width: 15%;">Data da conclusão</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -418,8 +419,11 @@
                                                 style="padding: 8px; font-size: 14px; border-right: 1px solid var(--cinza);">
                                                 {{ tarefa.descricao }}
                                             </td>
-                                            <td style="padding: 8px; font-size: 14px;">
+                                            <td style="padding: 8px; font-size: 14px; border-right: 1px solid var(--cinza);">
                                                 {{ tarefa.get_status_display }}
+                                            </td>
+                                            <td style="padding: 8px; font-size: 14px;">
+                                                {{ tarefa.data_termino|date:"d/m/Y"}}
                                             </td>
                                         </tr>
                                         {% empty %}
@@ -492,7 +496,7 @@
                             <div class="row mb-4 mb-2">
                                 <div class="col-md-4">
                                     <label class="form-label">Data de recebimento:</label>
-                                    <p>{{ servico.ordem_servico.cliente.data_criacao|date:"d/m/Y" }}</p>
+                                    <p>{{ servico.ordem_servico.data_criacao|date:"d/m/Y" }}</p>
                                 </div>
 
                                 <div class="col-md-4">
