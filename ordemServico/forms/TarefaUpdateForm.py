@@ -13,11 +13,9 @@ class TarefaUpdateForm(forms.ModelForm):
 
             'data_inicio': forms.DateInput(attrs={
                 'type': 'date',
-                'class': 'form-control w-100'
             }),
 
             'data_termino': forms.DateInput(attrs={
                 'type': 'date',
-                'class': 'form-control w-100'
             }),
         }

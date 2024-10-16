@@ -4,51 +4,6 @@
 {% block content %}
 
 <div class="content page-title">
-    <!-- <div class="filters mb-5 mt-1">
-
-        <div class="card" style="border: none;">
-            <div class="card-body">
-                <h5 class="card-title">Não iniciado</h5>
-                <p class="card-text">
-                    Quantidade: <strong>{{ qtd_os_rapidas_nao_iniciadas }}</strong>
-                </p>
-                <button class="btn button px-3 py-1 mt-2 visualizar-btn" id="nao_iniciado">Visualizar</button>
-            </div>
-        </div>
-
-        <div class="card" style="border: none;">
-            <div class="card-body">
-                <h5 class="card-title">Tarefas em andamento</h5>
-                <p class="card-text">
-                    Quantidade: <strong>{{ qtd_os_rapidas_em_andamento }}</strong>
-                </p>
-                <button class="btn button px-3 py-1 mt-2 visualizar-btn" id="em_andamento">Visualizar</button>
-            </div>
-        </div>
-
-
-        <div class="card" style="border: none;">
-            <div class="card-body">
-                <h5 class="card-title">Tarefas finalizadas</h5>
-                <p class="card-text">
-                    Quantidade: <strong>{{ qtd_os_rapidas_finalizadas }}</strong>
-                </p>
-                <button class="btn button px-3 py-1 mt-2 visualizar-btn" id="concluido">Visualizar</button>
-            </div>
-        </div>
-
-    </div>-->
-
-    <!-- <div class="pesquisar px-5">
-        <form action="{% url 'financeiro' %}" method="get">
-            <div class="input-group mb-1">
-                <input type="text" id="searchInput" name="nome_empresa" class="form-control"
-                    placeholder="Pesquisar pelo nome da empresa..." value="{{ nome_empresa }}">
-                <button class="btn button" type="submit" id="searchButton">Pesquisar</button>
-            </div>
-        </form>
-    </div>  -->
-
     <h3 class="fs-5 ms-5 mb-3">
         <i class="bi bi-lightning" style="margin-right: 4px;"></i>
         OS Rápida
@@ -261,7 +216,7 @@
                                     </select>
                                 </div>
 
-                                <div class="form-group style="margin-left: -60px;">
+                                <div class="form-group" style="margin-left: -60px;">
                                     <label for="{{ formUpdate_naoIniciado.data_inicio.id_for_label }}">Data de início:</label>
                                     <p
                                         style="border: 1px solid #767171; padding: 10px 54px 10px 10px; border-radius: 8px; text-align: left;">

@@ -66,19 +66,19 @@
                                     <p>{{ tarefa.servico.ordem_servico.cliente.nome|truncatechars:30 }}</p>
                                 </div>
                                 <div class="col-md-3 mb-3">
-                                    <label class="form-label">Número da inscrição:</label><span class="badge bg-primary ms-1" style="font-size: 10px;">Novo</span> 
+                                    <label class="form-label">Número da inscrição:</label> 
                                     <p>{{ tarefa.servico.ordem_servico.cliente.numero_inscricao }}</p>
                                 </div>
                                 <div class="col-md-3 mb-3">
-                                    <label class="form-label">Nome do Representante:</label><span class="badge bg-primary ms-1" style="font-size: 10px;">Novo</span> 
+                                    <label class="form-label">Nome do Representante:</label> 
                                     <p>{{ tarefa.servico.ordem_servico.cliente.nome_representante|default_if_none:"Não cadastrado" }}</p>
                                 </div>
                                 <div class="col-md-3 mb-3">
-                                    <label class="form-label">E-mail do Representante:</label><span class="badge bg-primary ms-1" style="font-size: 10px;">Novo</span>
+                                    <label class="form-label">E-mail do Representante:</label>
                                     <p>{{ tarefa.servico.ordem_servico.cliente.email_representante|default_if_none:"Não cadastrado" }}</p>
                                 </div>
                                 <div class="col-md-3 mb-3">
-                                    <label class="form-label">Telefone do Representante:</label><span class="badge bg-primary ms-1" style="font-size: 10px;">Novo</span>
+                                    <label class="form-label">Telefone do Representante:</label>
                                     <p>{{ tarefa.servico.ordem_servico.cliente.contato_representante|default_if_none:"Não cadastrado" }}</p>
                                 </div>
                                 <div class="col-md-3 mb-3">
@@ -89,7 +89,7 @@
 
                             <div class="row mb-4">
                                 <div class="col-md-6">
-                                    <label class="form-label">Descrição da ordem de serviço:</label><span class="badge bg-primary ms-1" style="font-size: 10px;">Novo</span>
+                                    <label class="form-label">Descrição da ordem de serviço:</label>
                                     <p class="accordion-observacao">{{ tarefa.servico.descricao }}</p>
                                 </div>
                                 <div class="col-md-6">
@@ -99,53 +99,42 @@
                             </div>
                         </div>
 
-                        <form method="post" class="w-100">
+                        <form method="POST">
                             {% csrf_token %}
-
-                            <!-- Linha para os campos do formulário -->
-                            <div class="row gap-3">
-                                <!-- Campo de Atualizar Tarefa -->
-                                <div class="col-md-3">
-                                    <div class="form-group">
-                                        <label for="{{ formUpdate.status.id_for_label }}" class="form-label">
-                                            Atualizar tarefa:
-                                        </label>
-                                        {{ formUpdate.status }}
+                            
+                            <div class="row">
+                                <!-- Status -->
+                                <div class="col-3">
+                                    <div class="mb-3">
+                                        <label for="{{ formUpdate.status.id_for_label }}" class="form-label">Atualizar status</label>
+                                        <select name="status" id="{{ formUpdate.status.id_for_label }}" class="form-select">
+                                            <option value="nao_iniciada" {% if tarefa.status == 'nao_iniciada' %}selected{% endif %}>Não Iniciada</option>
+                                            <option value="em_andamento" {% if tarefa.status == 'em_andamento' %}selected{% endif %}>Em Andamento</option>
+                                            <option value="concluida" {% if tarefa.status == 'concluida' %}selected{% endif %}>Concluída</option>
+                                        </select>
                                     </div>
                                 </div>
-
-                                <!-- Campo de Data de Início -->
-                                <div class="col-md-3">
-                                    <div class="form-group">
-                                        <label for="{{ formUpdate.data_inicio.id_for_label }}" class="form-label">
-                                            Data de início:
-                                        </label>
-                                        {{ formUpdate.data_inicio }}
+                            
+                                <!-- Data de Início -->
+                                <div class="col-3">
+                                    <div class="mb-3">
+                                        <label for="data_inicio" class="form-label">Data de início</label>
+                                        <input type="date" class="form-control w-100" id="data_inicio" name="data_inicio" value="{{ tarefa.data_inicio|date:'Y-m-d' }}">
                                     </div>
                                 </div>
-
-                                <!-- Campo de Data de Término -->
-                                <div class="col-md-3">
-                                    <div class="form-group">
-                                        <label for="{{ formUpdate.data_termino.id_for_label }}" class="form-label">
-                                            Data de término:
-                                        </label>
-                                        {{ formUpdate.data_termino }}
+                            
+                                <!-- Data de Término -->
+                                <div class="col-3">
+                                    <div class="mb-3">
+                                        <label for="data_termino" class="form-label">Data de término</label>
+                                        <input type="date" class="form-control w-100" id="data_termino" name="data_termino" value="{{ tarefa.data_termino|date:'Y-m-d' }}">
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Linha separada para o botão de atualizar -->
-                            <div class="row mt-3">
-                                <div class="col">
-                                    <button class="btn btn-success" type="submit" name="formUpdate">Atualizar</button>
-                                </div>
-                            </div>
-
-                            <!-- Campo oculto para Tarefa ID -->
+                            <button type="submit" class="btn button p-2">Atualizar Tarefa</button>
                             <input type="hidden" name="tarefa_id" value="{{ tarefa.id }}">
-                        </form>
-
+                        </form>  
 
                     </div>
                 </div>
@@ -191,19 +180,19 @@
                                     <p>{{ tarefa.servico.ordem_servico.cliente.nome|truncatechars:30 }}</p>
                                 </div>
                                 <div class="col-md-3 mb-3">
-                                    <label class="form-label">Número da inscrição:</label><span class="badge bg-primary ms-1" style="font-size: 10px;">Novo</span> 
+                                    <label class="form-label">Número da inscrição:</label> 
                                     <p>{{ tarefa.servico.ordem_servico.cliente.numero_inscricao }}</p>
                                 </div>
                                 <div class="col-md-3 mb-3">
-                                    <label class="form-label">Nome do Representante:</label><span class="badge bg-primary ms-1" style="font-size: 10px;">Novo</span> 
+                                    <label class="form-label">Nome do Representante:</label> 
                                     <p>{{ tarefa.servico.ordem_servico.cliente.nome_representante|default_if_none:"Não cadastrado" }}</p>
                                 </div>
                                 <div class="col-md-3 mb-3">
-                                    <label class="form-label">E-mail do Representante:</label><span class="badge bg-primary ms-1" style="font-size: 10px;">Novo</span>
+                                    <label class="form-label">E-mail do Representante:</label>
                                     <p>{{ tarefa.servico.ordem_servico.cliente.email_representante|default_if_none:"Não cadastrado" }}</p>
                                 </div>
                                 <div class="col-md-3 mb-3">
-                                    <label class="form-label">Telefone do Representante:</label><span class="badge bg-primary ms-1" style="font-size: 10px;">Novo</span>
+                                    <label class="form-label">Telefone do Representante:</label>
                                     <p>{{ tarefa.servico.ordem_servico.cliente.contato_representante|default_if_none:"Não cadastrado" }}</p>
                                 </div>
                                 <div class="col-md-3 mb-3">
@@ -214,7 +203,7 @@
 
                             <div class="row mb-4">
                                 <div class="col-md-6">
-                                    <label class="form-label">Descrição da ordem de serviço:</label><span class="badge bg-primary ms-1" style="font-size: 10px;">Novo</span>
+                                    <label class="form-label">Descrição da ordem de serviço:</label>
                                     <p class="accordion-observacao">{{ tarefa.servico.descricao }}</p>
                                 </div>
                                 <div class="col-md-6">
@@ -224,54 +213,43 @@
                             </div>
                         </div>
 
-                        <form method="post" class="w-100">
+                        <!-- Formulário de atualização da tarefa -->
+                        <form method="POST">
                             {% csrf_token %}
-
-                            <!-- Linha para os campos do formulário -->
-                            <div class="row gap-3">
-                                <!-- Campo de Atualizar Tarefa -->
-                                <div class="col-md-3">
-                                    <div class="form-group">
-                                        <label for="{{ formUpdate.status.id_for_label }}" class="form-label">
-                                            Atualizar tarefa:
-                                        </label>
-                                        {{ formUpdate.status }}
+                            
+                            <div class="row">
+                                <!-- Status -->
+                                <div class="col-3">
+                                    <div class="mb-3">
+                                        <label for="{{ formUpdate.status.id_for_label }}" class="form-label">Atualizar status</label>
+                                        <select name="status" id="{{ formUpdate.status.id_for_label }}" class="form-select">
+                                            <option value="nao_iniciada" {% if tarefa.status == 'nao_iniciada' %}selected{% endif %}>Não Iniciada</option>
+                                            <option value="em_andamento" {% if tarefa.status == 'em_andamento' %}selected{% endif %}>Em Andamento</option>
+                                            <option value="concluida" {% if tarefa.status == 'concluida' %}selected{% endif %}>Concluída</option>
+                                        </select>
                                     </div>
                                 </div>
-
-                                <!-- Campo de Data de Início -->
-                                <div class="col-md-3">
-                                    <div class="form-group">
-                                        <label for="{{ formUpdate.data_inicio.id_for_label }}" class="form-label">
-                                            Data de início:
-                                        </label>
-                                        {{ formUpdate.data_inicio }}
+                            
+                                <!-- Data de Início -->
+                                <div class="col-3">
+                                    <div class="mb-3">
+                                        <label for="data_inicio" class="form-label">Data de início</label>
+                                        <input type="date" class="form-control w-100" id="data_inicio" name="data_inicio" value="{{ tarefa.data_inicio|date:'Y-m-d' }}">
                                     </div>
                                 </div>
-
-                                <!-- Campo de Data de Término -->
-                                <div class="col-md-3">
-                                    <div class="form-group">
-                                        <label for="{{ formUpdate.data_termino.id_for_label }}" class="form-label">
-                                            Data de término:
-                                        </label>
-                                        {{ formUpdate.data_termino }}
+                            
+                                <!-- Data de Término -->
+                                <div class="col-3">
+                                    <div class="mb-3">
+                                        <label for="data_termino" class="form-label">Data de término</label>
+                                        <input type="date" class="form-control w-100" id="data_termino" name="data_termino" value="{{ tarefa.data_termino|date:'Y-m-d' }}">
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Linha separada para o botão de atualizar -->
-                            <div class="row mt-3">
-                                <div class="col">
-                                    <button class="btn btn-success" type="submit" name="formUpdate">Atualizar</button>
-                                </div>
-                            </div>
-
-                            <!-- Campo oculto para Tarefa ID -->
+                            <button type="submit" class="btn button p-2">Atualizar Tarefa</button>
                             <input type="hidden" name="tarefa_id" value="{{ tarefa.id }}">
-                        </form>
-
-
+                        </form>                      
                     </div>
                 </div>
             </div>
@@ -316,19 +294,19 @@
                                     <p>{{ tarefa.servico.ordem_servico.cliente.nome|truncatechars:30 }}</p>
                                 </div>
                                 <div class="col-md-3 mb-3">
-                                    <label class="form-label">Número da inscrição:</label><span class="badge bg-primary ms-1" style="font-size: 10px;">Novo</span> 
+                                    <label class="form-label">Número da inscrição:</label> 
                                     <p>{{ tarefa.servico.ordem_servico.cliente.numero_inscricao }}</p>
                                 </div>
                                 <div class="col-md-3 mb-3">
-                                    <label class="form-label">Nome do Representante:</label><span class="badge bg-primary ms-1" style="font-size: 10px;">Novo</span> 
+                                    <label class="form-label">Nome do Representante:</label> 
                                     <p>{{ tarefa.servico.ordem_servico.cliente.nome_representante|default_if_none:"Não cadastrado" }}</p>
                                 </div>
                                 <div class="col-md-3 mb-3">
-                                    <label class="form-label">E-mail do Representante:</label><span class="badge bg-primary ms-1" style="font-size: 10px;">Novo</span>
+                                    <label class="form-label">E-mail do Representante:</label>
                                     <p>{{ tarefa.servico.ordem_servico.cliente.email_representante|default_if_none:"Não cadastrado" }}</p>
                                 </div>
                                 <div class="col-md-3 mb-3">
-                                    <label class="form-label">Telefone do Representante:</label><span class="badge bg-primary ms-1" style="font-size: 10px;">Novo</span>
+                                    <label class="form-label">Telefone do Representante:</label>
                                     <p>{{ tarefa.servico.ordem_servico.cliente.contato_representante|default_if_none:"Não cadastrado" }}</p>
                                 </div>
                                 <div class="col-md-3 mb-3">
@@ -339,7 +317,7 @@
 
                             <div class="row mb-4">
                                 <div class="col-md-6">
-                                    <label class="form-label">Descrição da ordem de serviço:</label><span class="badge bg-primary ms-1" style="font-size: 10px;">Novo</span>
+                                    <label class="form-label">Descrição da ordem de serviço:</label>
                                     <p class="accordion-observacao">{{ tarefa.servico.descricao }}</p>
                                 </div>
                                 <div class="col-md-6">
@@ -348,24 +326,42 @@
                                 </div>
                             </div>
 
-                            <div class="row mb-4 mb-2">
-                                <div class="col-md-4">
-                                    <label class="form-label">Status:</label>
-                                    <p>{{ tarefa.status }}</p>
+                            <form method="POST">
+                                {% csrf_token %}
+                                
+                                <div class="row">
+                                    <!-- Status -->
+                                    <div class="col-3">
+                                        <div class="mb-3">
+                                            <label for="{{ formUpdate.status.id_for_label }}" class="form-label">Atualizar status</label>
+                                            <select name="status" id="{{ formUpdate.status.id_for_label }}" class="form-select">
+                                                <option value="nao_iniciada" {% if tarefa.status == 'nao_iniciada' %}selected{% endif %}>Não Iniciada</option>
+                                                <option value="em_andamento" {% if tarefa.status == 'em_andamento' %}selected{% endif %}>Em Andamento</option>
+                                                <option value="concluida" {% if tarefa.status == 'concluida' %}selected{% endif %}>Concluída</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                
+                                    <!-- Data de Início -->
+                                    <div class="col-3">
+                                        <div class="mb-3">
+                                            <label for="data_inicio" class="form-label">Data de início</label>
+                                            <input type="date" class="form-control w-100" id="data_inicio" name="data_inicio" value="{{ tarefa.data_inicio|date:'Y-m-d' }}">
+                                        </div>
+                                    </div>
+                                
+                                    <!-- Data de Término -->
+                                    <div class="col-3">
+                                        <div class="mb-3">
+                                            <label for="data_termino" class="form-label">Data de término</label>
+                                            <input type="date" class="form-control w-100" id="data_termino" name="data_termino" value="{{ tarefa.data_termino|date:'Y-m-d' }}">
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="col-md-2">
-                                    <label class="form-label">
-                                        Data de início:
-                                    </label>
-                                    <p>{{ tarefa.data_inicio|date:"d/m/Y" }}</p>
-                                </div>
-                                <div class="col-md-2">
-                                    <label class="form-label">
-                                        Data de término:
-                                    </label>
-                                    <p>{{ tarefa.data_termino|date:"d/m/Y" }}</p>
-                                </div>
-                            </div>
+    
+                                <button type="submit" class="btn button p-2">Atualizar Tarefa</button>
+                                <input type="hidden" name="tarefa_id" value="{{ tarefa.id }}">
+                            </form>  
                         </div>
                     </div>
                 </div>
