@@ -31,15 +31,12 @@ def lider_tecnico(request):
     qtd_novos_servicos = novos_servicos.count()
 
     servicos_em_andamento = Servico.objects.annotate(
-        total_tarefas=Count('tarefas'),  
-        tarefas_nao_concluidas=Count('tarefas', filter=~Q(tarefas__status='concluida')), 
-        tarefas_nao_iniciadas=Count('tarefas', filter=Q(tarefas__status='nao_iniciada')),
-        tarefas_em_andamento=Count('tarefas', filter=Q(tarefas__status='em_andamento')) 
+        total_tarefas=Count('tarefas'),
+        tarefas_concluidas=Count('tarefas', filter=Q(tarefas__status='concluida'))
     ).filter(
-        Q(tarefas_nao_iniciadas__gt=0) | Q(tarefas_em_andamento__gt=0),  
-        total_tarefas__gt=0, 
-        tarefas_nao_concluidas=F('total_tarefas'),  
-        status='em_andamento'  
+        total_tarefas__gt=0,  # Certifica-se de que o serviço tenha tarefas
+        tarefas_concluidas__lt=F('total_tarefas'),  # Verifica se nem todas as tarefas estão concluídas
+        status='em_andamento'  # O status do serviço é 'em andamento'
     )
     qtd_servicos_em_andamento = servicos_em_andamento.count()
 
@@ -48,12 +45,12 @@ def lider_tecnico(request):
     qtd_servicos_finalizados = servicos_finalizados.count()
 
     servicos_para_finalizar = Servico.objects.annotate(
-        total_tarefas=Count('tarefas'),  
-        tarefas_concluidas=Count('tarefas', filter=Q(tarefas__status='concluida'))  
+        total_tarefas=Count('tarefas'),
+        tarefas_concluidas=Count('tarefas', filter=Q(tarefas__status='concluida'))
     ).filter(
-        total_tarefas__gt=0, 
-        total_tarefas=F('tarefas_concluidas'),  
-        status='em_andamento' 
+        total_tarefas__gt=0,
+        total_tarefas=F('tarefas_concluidas'),
+        status='em_andamento'
     )
     qtd_servicos_para_finalizar = servicos_para_finalizar.count()
 
