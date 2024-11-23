@@ -60,10 +60,15 @@ WSGI_APPLICATION = 'config.wsgi.application'
 '''
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR / 'db.sqlite3'),
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'ergoapp',  # Substitua pelo nome do banco local
+        'USER': 'root',       # Substitua pelo usuário local
+        'PASSWORD': '101508',     # Substitua pela senha local
+        'HOST': 'localhost',           # Ou 127.0.0.1 para conexão local
+        'PORT': '3306',                # Porta padrão do MySQL
     }
 }
+
 
 '''
     BANDO DE DADOS DE PRODUÇÃO
@@ -73,7 +78,7 @@ DATABASES = {
 #         'ENGINE': 'django.db.backends.mysql',
 #         'NAME': 'ErgoGroup$ErgoGroupApp',
 #         'USER': 'ErgoGroup',
-#         'PASSWORD': 'Ergo#%2024',
+#         'PASSWORD': 'Ergo@2025',
 #         'HOST': 'ErgoGroup.mysql.pythonanywhere-services.com',
 #         'PORT': '3306',
 #     }
