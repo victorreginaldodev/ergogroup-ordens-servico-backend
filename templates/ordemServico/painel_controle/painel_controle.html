@@ -169,12 +169,9 @@
         </div>
 
         <div class="tabela-painel-controle p-1" style="max-height: 50vh; overflow-y: auto;">
-            
             <table class="table table-hover" id="data-table">
                 <thead>
-                    <tr 
-                        style="font-size: 12px; text-align: center;">
-
+                    <tr style="font-size: 12px; text-align: center;">
                         <th scope="col" style="background-color: var(--azul-principal); color: var(--cinza-claro); padding: 0.75rem; border-top-left-radius: 12px; border-bottom-left-radius: 12px;">CLIENTE</th>
                         <th scope="col" style="background-color: var(--azul-principal); color: var(--cinza-claro); padding: 0.75rem;">SERVIÇO</th>
                         <th scope="col" style="background-color: var(--azul-principal); color: var(--cinza-claro); padding: 0.75rem;">RECEBIMENTO</th>
@@ -183,14 +180,13 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for servico in servicos %}
+                    <!-- Renderiza os dados iniciais da primeira página -->
+                    {% for servico in page_obj %}
                     <tr id="servico-{{ servico.id }}"
                         style="font-size: 12px; text-align: center; border-bottom: 3px solid var(--cinza-claro); cursor: pointer;"
-                        data-status="{{ servico.get_status_display|lower }}" 
+                        data-status="{{ servico.get_status_display|lower }}"
                         data-id="{{ servico.id }}"
-
                         onclick="openServiceModal(this)">
-                    
                         <td style="padding: 0.75rem;">{{ servico.ordem_servico.cliente.nome|truncatechars:40|upper }}</td>
                         <td>{{ servico.repositorio.nome|truncatechars:20|upper }}</td>
                         <td>{{ servico.ordem_servico.data_criacao|date:"d/m/Y" }}</td>
@@ -240,6 +236,18 @@
                 </tbody>
             </table>
         </div>
+        
+        <!-- Controles de Paginação -->
+        <div class="pagination d-flex justify-content-center align-items-center mt-3">
+            {% if page_obj.has_previous %}
+                <button class="button" onclick="loadTableData('/painel/dados/?page={{ page_obj.previous_page_number }}')">Anterior</button>
+            {% endif %}
+            <span class="mx-3">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+            {% if page_obj.has_next %}
+                <button class="button" onclick="loadTableData('/painel/dados/?page={{ page_obj.next_page_number }}')">Próxima</button>
+            {% endif %}
+        </div>
+           
     </div>
 </div>
 
@@ -329,47 +337,159 @@
 
 {% block scripts %}
 
-<!-- FILTRA A TABELA PELO NOME DO CLIENTE -->
-<script>
-    function filterTable() {
-        // Obtém o valor digitado no campo de pesquisa
-        let input = document.getElementById('search-input');
-        let filter = input.value.toLowerCase();
-        let table = document.getElementById('data-table');
-        let tr = table.getElementsByTagName('tr');
 
-        // Loop através das linhas da tabela (ignorando o cabeçalho)
-        for (let i = 1; i < tr.length; i++) { // Ignora o cabeçalho
-            let tdCliente = tr[i].getElementsByTagName('td')[0]; // Coluna CLIENTE
-            if (tdCliente) {
-                let txtValue = tdCliente.textContent || tdCliente.innerText;
-                // Verifica se o texto do cliente inclui o filtro
-                if (txtValue.toLowerCase().indexOf(filter) > -1) {
-                    tr[i].style.display = ''; // Mostra a linha
-                } else {
-                    tr[i].style.display = 'none'; // Oculta a linha
+<script>
+
+    /**
+     * Função para carregar dinamicamente os dados da tabela com paginação e filtros.
+     * Utiliza requisições AJAX para evitar o recarregamento completo da página.
+     *
+     * @param {string} url - URL para carregar os dados (inclui parâmetros GET).
+    */
+
+    function loadTableData(url) {
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                const tbody = document.querySelector('#data-table tbody');
+                tbody.innerHTML = ''; // Limpa a tabela existente
+
+                // Adiciona os novos dados
+                data.servicos.forEach(servico => {
+                    const row = `
+                        <tr id="servico-${servico.id}"
+                            style="font-size: 12px; text-align: center; border-bottom: 3px solid var(--cinza-claro); cursor: pointer;"
+                            data-id="${servico.id}"
+                            onclick="openServiceModal(this)">
+                            <td style="padding: 0.75rem;">${servico.ordem_servico__cliente__nome.toUpperCase()}</td>
+                            <td>${servico.repositorio__nome.toUpperCase()}</td>
+                            <td>${new Date(servico.ordem_servico__data_criacao).toLocaleDateString('pt-BR')}</td>
+                            <td>${servico.data_conclusao ? new Date(servico.data_conclusao).toLocaleDateString('pt-BR') : 'NÃO CONCLUÍDO'}</td>
+                            <td style="text-align: center;">
+                                <span style="
+                                    display: inline-flex;
+                                    align-items: center;
+                                    padding: 4px 8px;
+                                    border-radius: 16px;
+                                    border: 1px solid ${servico.status.toLowerCase() === 'concluída' ? '#28a745' : servico.status.toLowerCase() === 'em andamento' ? '#ffc107' : '#dc3545'};
+                                    background-color: ${servico.status.toLowerCase() === 'concluída' ? '#f0fdf4' : servico.status.toLowerCase() === 'em andamento' ? '#fff8e1' : '#fde2e4'};
+                                    color: ${servico.status.toLowerCase() === 'concluída' ? '#155724' : servico.status.toLowerCase() === 'em andamento' ? '#856404' : '#721c24'};
+                                ">
+                                    <span style="
+                                        display: inline-block;
+                                        width: 10px;
+                                        height: 10px;
+                                        border-radius: 50%;
+                                        margin-right: 8px;
+                                        background-color: ${servico.status.toLowerCase() === 'concluída' ? '#28a745' : servico.status.toLowerCase() === 'em andamento' ? '#ffc107' : '#dc3545'};
+                                    ">
+                                    </span>
+                                    ${servico.status.toUpperCase()}
+                                </span>
+                            </td>
+                        </tr>
+                    `;
+                    tbody.insertAdjacentHTML('beforeend', row);
+                });
+
+                // Atualiza os controles de paginação
+                const pagination = document.querySelector('.pagination');
+                pagination.innerHTML = ''; // Limpa os controles existentes
+
+                if (!data.filtro_aplicado) {
+                    if (data.has_previous) {
+                        pagination.innerHTML += `<button class="button" onclick="loadTableData('/painel/dados/?page=${data.previous_page}')">Anterior</button>`;
+                    }
+                    pagination.innerHTML += `<span class="mx-3">Página ${data.current_page} de ${data.total_pages}</span>`;
+                    if (data.has_next) {
+                        pagination.innerHTML += `<button class="button" onclick="loadTableData('/painel/dados/?page=${data.next_page}')">Próxima</button>`;
+                    }
                 }
-            }
-        }
+            })
+            .catch(error => console.error('Erro ao carregar os dados:', error));
     }
 
-    // Adiciona um evento para filtrar enquanto o usuário digita
-    document.getElementById('search-input').addEventListener('keyup', filterTable);
+
 </script>
 
-<!-- FILTRA A TABELA PELO STATUS DO SERVIÇO -->
 <script>
-    function filterTable(status) {
-        const rows = document.querySelectorAll('#data-table tbody tr');
-        rows.forEach(row => {
-            const rowStatus = row.getAttribute('data-status');
-            if (status === '' || rowStatus === status) {
-                row.style.display = '';
-            } else {
-                row.style.display = 'none';
-            }
-        });
+
+    /**
+     * Função para filtrar os dados da tabela com base em status e busca por nome.
+     * Constrói a URL apropriada e chama a função de carregamento.
+     *
+     * @param {string} status - Status para filtrar (opcional, ex.: "concluída", "em andamento").
+    */
+
+    function filterTable(status = '') {
+        const search = document.getElementById('search-input').value; // Obtém o valor do campo de busca
+        const url = `/painel/dados/?search=${encodeURIComponent(search)}&status=${status}`;
+        loadTableData(url); // Carrega os dados filtrados
     }
+
+    // Evento para ativar o filtro em tempo real enquanto o usuário digita no campo de busca
+    document.getElementById('search-input').addEventListener('keyup', () => filterTable());
+
+</script>
+
+<script>
+
+    /**
+     * Função para abrir a modal e carregar os detalhes do serviço.
+     * @param {HTMLElement} row - Linha da tabela que foi clicada.
+    */
+
+    function openServiceModal(row) {
+        const serviceId = row.getAttribute('data-id'); // Obtém o ID do serviço da linha
+        const modal = new bootstrap.Modal(document.getElementById('serviceDetailsModal')); // Inicializa a modal
+
+        // Faz uma requisição AJAX para buscar os detalhes do serviço
+        fetch(`/servico/${serviceId}/`)
+            .then(response => response.json())
+            .then(data => {
+                // Preenche os campos da modal com os dados do serviço
+                document.getElementById('cliente-nome').textContent = data.cliente || 'Não informado';
+                document.getElementById('servico-nome').textContent = data.servico || 'Não informado';
+                document.getElementById('data-recebimento').textContent = data.data_recebimento || 'Não informado';
+                document.getElementById('data-conclusao').textContent = data.data_conclusao || 'Não informado';
+                document.getElementById('descricao').textContent = data.descricao || 'Não informado';
+
+                // Atualiza o status com cores e texto apropriados
+                const statusSpan = document.getElementById('status');
+                const statusIndicator = document.getElementById('status-indicator');
+                const statusText = document.getElementById('status-text');
+
+                statusText.textContent = data.status || 'Desconhecido';
+
+                // Define cores para o status
+                if (data.status === 'Concluída') {
+                    statusSpan.style.backgroundColor = '#f0fdf4';
+                    statusSpan.style.color = '#155724';
+                    statusIndicator.style.backgroundColor = '#28a745';
+                } else if (data.status === 'Em andamento') {
+                    statusSpan.style.backgroundColor = '#fff8e1';
+                    statusSpan.style.color = '#856404';
+                    statusIndicator.style.backgroundColor = '#ffc107';
+                } else if (data.status === 'Em espera') {
+                    statusSpan.style.backgroundColor = '#fde2e4';
+                    statusSpan.style.color = '#721c24';
+                    statusIndicator.style.backgroundColor = '#dc3545';
+                } else {
+                    // Cor padrão para status desconhecido
+                    statusSpan.style.backgroundColor = '#f8f9fa';
+                    statusSpan.style.color = '#6c757d';
+                    statusIndicator.style.backgroundColor = '#6c757d';
+                }
+
+                // Abre a modal
+                modal.show();
+            })
+            .catch(error => {
+                console.error('Erro ao carregar os detalhes do serviço:', error);
+                alert('Não foi possível carregar os detalhes do serviço. Tente novamente.');
+            });
+    }
+
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>

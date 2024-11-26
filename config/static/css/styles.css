@@ -11,7 +11,7 @@
 
 body {
     font-family: var(--fonte);
-    /* background-color: var(--cinza-claro); */
+    overflow-x: hidden;
 }
 
 /* SIDE BAR */

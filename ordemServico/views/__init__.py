@@ -1,5 +1,5 @@
 from .FinanceiroView import *
-from .LiderTecnicoView import *
+from .area_tecnica.ServicosView import *
 from .LoginView import *
 from .OrdemServicoView import *
 from .OsRapidaView import *

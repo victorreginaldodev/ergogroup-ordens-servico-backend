@@ -123,9 +123,11 @@
                         </div>
                         <div class="col-2">
                             <p id="faturamento-status-{{ item.os_rapida.id }}"
-                                style="background-color: {% if item.os_rapida.faturamento == 'sim' %}#D4EDDA{% else %}#F8D7DA{% endif %}; 
-                                       color: {% if item.os_rapida.faturamento == 'sim' %}#155724{% else %}#721C24{% endif %}; 
-                                       font-weight: bold; text-align: center; padding: 0.3rem; font-size: 12px; border-radius: 5px;">
+                                style="
+                                    background-color: {% if item.os_rapida.faturamento == 'sim' %}#D4EDDA{% else %}#F8D7DA{% endif %}; 
+                                    color: {% if item.os_rapida.faturamento == 'sim' %}#155724{% else %}#721C24{% endif %}; 
+                                    font-weight: bold; text-align: center; padding: 0.3rem; font-size: 12px; border-radius: 5px;
+                                ">
                                 {% if item.os_rapida.faturamento == "sim" %} Faturada {% else %} Não faturada {% endif %}
                             </p>
                         </div>
