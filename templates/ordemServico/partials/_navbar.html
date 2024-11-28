@@ -1,0 +1,207 @@
+{% load static %}
+
+<header>
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid container p-1">
+            <!-- Logo -->
+            <a class="navbar-brand" href="#">
+                <img src="{% static 'assets/logo.png' %}" alt="Logo da empresa" style="width: 7vw;">
+            </a>
+
+            <!-- Botão de colapso para telas pequenas -->
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <!-- Itens do menu -->
+            <div class="collapse navbar-collapse justify-content-end" id="navbarNavDropdown">
+                <ul class="navbar-nav">
+                    <!-- Painel de Controle -->
+                    {% if request.user.profile.role == 1 or request.user.profile.role == 2 or request.user.profile.role == 3 %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'painel_de_controle' %}">
+                            <i class="bi bi-bar-chart-fill"></i>
+                            Painel de Controle
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    <!-- Ordens de Serviço -->
+                    {% if request.user.profile.role == 1 or request.user.profile.role == 2 or request.user.profile.role == 3 %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-file-text-fill"></i>
+                            Ordens de Serviço
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a class="dropdown-item"
+                                    href="{% url 'criar_ordem_servico' %}"
+                                    {% if request.user.profile.role == 4 or request.user.profile.role == 5 %}
+                                        onclick="showTechPermissionAlert(); return false;"
+                                    {% endif %}>
+                                    <i class="bi bi-plus-circle"></i>
+                                    Criar ordem de serviço
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="#">
+                                    <i class="bi bi-list"></i>
+                                    Listar ordens de serviço
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    {% endif %}
+
+                    <!-- Área Técnica -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-shield-fill-check"></i>
+                            Área Técnica
+                        </a>
+                        <ul class="dropdown-menu">
+                            {% if request.user.profile.role == 1 or request.user.profile.role == 2 or request.user.profile.role == 3 %}
+                            <li>
+                                <a class="dropdown-item" href="{% url 'lista_servicos' %}">
+                                    <i class="bi bi-briefcase"></i>
+                                    Serviços
+                                </a>
+                            </li>
+                            {% endif %}
+                            {% if request.user.profile.role == 4 or request.user.profile.role == 5 %}
+                            <li>
+                                <a class="dropdown-item" href="{% if request.user.profile.role == 4 or request.user.profile.role == 5 %}{% url 'tecnico' %}{% endif %}"
+                                    {% if request.user.profile.role == 1 or request.user.profile.role == 2 or request.user.profile.role == 3 %}
+                                        onclick="showLeaderPermissionAlert(); return false;"
+                                    {% endif %}>
+                                    <i class="bi bi-check-square"></i>
+                                    Tarefas
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{% if request.user.profile.role == 4 or request.user.profile.role == 5 %}{% url 'os_rapida' %}{% endif %}"
+                                    {% if request.user.profile.role == 1 or request.user.profile.role == 2 or request.user.profile.role == 3 %}
+                                        onclick="showLeaderPermissionAlert(); return false;"
+                                    {% endif %}>
+                                    <i class="bi bi-lightning-charge"></i>
+                                    OS rápida
+                                </a>
+                            </li>
+                            {% endif %}
+                            <li>
+                                <a class="dropdown-item" href="{% url 'criar_os_rapida' %}">
+                                    <i class="bi bi-plus-circle"></i>
+                                    Criar OS rápida
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+
+                    <!-- Financeiro -->
+                    {% if request.user.profile.role == 1 or request.user.profile.role == 2 or request.user.profile.role == 3 %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-cash-coin"></i>
+                            Financeiro
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a class="dropdown-item" href="{% if request.user.profile.role != 4 and request.user.profile.role != 5 %}{% url 'financeiro' %}{% else %}#%{% endif %}"
+                                    {% if request.user.profile.role == 4 or request.user.profile.role == 5 %}
+                                        onclick="showTechPermissionAlert(); return false;"
+                                    {% endif %}>
+                                    <i class="bi bi-currency-dollar"></i>
+                                    Faturamento
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{% if request.user.profile.role != 4 and request.user.profile.role != 5 %}{% url 'faturar_os_rapida' %}{% else %}#%{% endif %}"
+                                    {% if request.user.profile.role == 4 or request.user.profile.role == 5 %}
+                                        onclick="showTechPermissionAlert(); return false;"
+                                    {% endif %}>
+                                    <i class="bi bi-cash-coin"></i>
+                                    Faturamento de OS rápidas
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    {% endif %}
+
+                    <!-- Clientes -->
+                    {% if request.user.profile.role == 1 or request.user.profile.role == 2 or request.user.profile.role == 3 %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-buildings-fill"></i>
+                            Clientes
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a class="dropdown-item" href="{% url 'listar_clientes' %}"
+                                    {% if request.user.profile.role == 4 or request.user.profile.role == 5 %}
+                                        onclick="showTechPermissionAlert(); return false;"
+                                    {% endif %}>
+                                    <i class="bi bi-building"></i>
+                                    Listar de clientes
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'criar_cliente' %}"
+                                    {% if request.user.profile.role == 4 or request.user.profile.role == 5 %}
+                                        onclick="showTechPermissionAlert(); return false;"
+                                    {% endif %}>
+                                    <i class="bi bi-building-add"></i>
+                                    Criar novo cliente
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    {% endif %}
+
+                    <!-- Configurações -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-person-fill-gear"></i>
+                            Configurações
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a class="dropdown-item" href="{% url 'usuario' %}">
+                                    <i class="bi bi-person-circle"></i>
+                                    Perfil de usuário
+                                </a>
+                            </li>
+                            {% if request.user.profile.role == 1 or request.user.profile.role == 2 or request.user.profile.role == 3 %}
+                            <li>
+                                <a class="dropdown-item" href="{% url 'repositorio' %}"
+                                    {% if request.user.profile.role == 4 or request.user.profile.role == 5 %}
+                                        onclick="showTechPermissionAlert(); return false;"
+                                    {% endif %}>
+                                    <i class="bi bi-plus-square"></i>
+                                    Novo serviço comum
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'repositorio' %}"
+                                    {% if request.user.profile.role == 4 or request.user.profile.role == 5 %}
+                                        onclick="showTechPermissionAlert(); return false;"
+                                    {% endif %}>
+                                    <i class="bi bi-plus-square"></i>
+                                    Novo serviço rápido
+                                </a>
+                            </li>
+                            {% endif %}
+                            <li>
+                                <a class="dropdown-item" href="{% url 'logout' %}">
+                                    <i class="bi bi-box-arrow-right"></i>
+                                    Sair do sistema
+                                </a>
+                            </li>
+                        </ul>
+                    </li> 
+                </ul>
+
+            </div>
+        </div>
+    </nav>
+</header>

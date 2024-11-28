@@ -3,14 +3,14 @@
 {% block title %} Técnico {% endblock %}
 {% block content %}
 
-<div class="content page-title">
+<div class="content page-title container mb-5">
 
-    <h3 class="fs-5 ms-5 mb-3">
+    <h3 class="titulo-pagina">
         <i class="fa-solid fa-helmet-safety" style="margin-right: 4px;"></i>
         Página do Engenheiro e do Técnico
     </h3>
 
-    <div class="pesquisar px-5" style="display: flex; align-items: center;">
+    <div class="pesquisar" style="display: flex; align-items: center;">
         <form action="{% url 'financeiro' %}" method="get" style="flex: 1;">
             <div class="input-group mb-1">
                 <input type="text" id="searchInput" name="nome_empresa" class="form-control" placeholder="Pesquise pelo nome da empresa..." value="{{ nome_empresa }}">
@@ -31,7 +31,7 @@
     </div>
 
     {% for tarefa in tarefas_nao_iniciadas %}
-    <div class="px-5 nao_iniciado" style="display: block;">
+    <div class="nao_iniciado" style="display: block;">
 
         <div class="accordion mb-1" id="accordion-{{ tarefa.servico.id }}">
 

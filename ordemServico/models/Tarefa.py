@@ -19,10 +19,13 @@ class Tarefa(models.Model):
     data_termino = models.DateField(null=True, blank=True)
     status = models.CharField(max_length=15, null=True, blank=True, choices=STATUS, default='nao_iniciada')
 
+    updated_at = models.DateTimeField(auto_now=True)
+
 
     def __str__(self):
         return f"Tarefa para {self.profile} em {self.servico}"
     
+
     def save(self, *args, **kwargs):
         # Chama o save original para salvar a tarefa
         super().save(*args, **kwargs)

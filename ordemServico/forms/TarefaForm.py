@@ -7,10 +7,6 @@ class TarefaForm(ModelForm):
         model = Tarefa
         fields = ['profile', 'descricao']
         widgets = {
-            'servico': Select(attrs={
-                'class': 'form-select', 
-                'disabled': True
-            }),
             'profile': Select(attrs={
                 'class': 'form-select', 
                 'aria-label': 'Selecione um colaborador'
@@ -18,7 +14,7 @@ class TarefaForm(ModelForm):
             'descricao': Textarea(attrs={
                 'class': 'form-control textarea-control w-100',
                 'style': 'height: 150px',
-                'placeholder': 'Descrição',
+                'placeholder': 'Descrição da tarefa',
                 'rows': 3,  
             }),
         }

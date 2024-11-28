@@ -14,55 +14,6 @@ body {
     overflow-x: hidden;
 }
 
-/* SIDE BAR */
-.sidebar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    height: 100%;
-    width: 220px;
-    background: linear-gradient(135deg, var(--azul-secundario) 10%, var(--azul-principal) 90%);
-    padding-top: 30px;
-    padding-left: 10px;
-    z-index: 999;
-}
-
-.logo {
-    padding-left: 15px;
-    margin-bottom: 2.1rem;
-}
-
-.logo img {
-    width: 2vw;
-}
-
-.dropdown-sidebar button,
-.dropdown-sidebar button:hover,
-.dropdown-sidebar button:focus,
-.dropdown-sidebar button:active {
-    color: var(--cinza-claro);
-    font-weight: 500;
-    outline: none;
-    box-shadow: none;
-    background-color: inherit;
-    font-size: 16px;
-}
-
-.sidebar a {
-    color: var(--cinza-claro);
-    font-weight: 500;
-    text-decoration: none;
-    display: block;
-    padding: 12px;
-    font-size: 1rem;
-    margin-bottom: 10px;
-}
-
-/* CONTENT */
-.content {
-    margin-left: 220px;
-}
-
 .form-control {
     width: 30vw;
 }
@@ -82,6 +33,16 @@ label {
     color: var(--cinza);
     font-weight: 400;
     margin-left: 5px;
+}
+
+.botao {
+    border: none;
+    background: linear-gradient(135deg, var(--azul-secundario) 0%, var(--azul-principal) 100%);
+    font-size: 14px;
+    padding: 0.5rem 1rem !important;
+    font-weight: 400;
+    color: var(--branco);
+    border-radius: 8px;
 }
 
 .button {
@@ -127,8 +88,7 @@ label {
 }
 
 .titulo-pagina {
-    margin-top: 2.5rem;
-    margin-bottom: 1rem;
+    margin: 2rem 0;
 
     color: var(--cinza);
     font-size: 1.25rem;

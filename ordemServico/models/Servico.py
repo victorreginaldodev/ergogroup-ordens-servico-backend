@@ -20,6 +20,7 @@ class Servico(models.Model):
     def __str__(self):
         return f'Ordem de serviço: {self.ordem_servico.id} | Cliente: {self.ordem_servico.cliente.nome}'
 
+
     def concluir_servico(self):
         # Verifica se todas as tarefas associadas estão concluídas
         if all(tarefa.status == 'concluida' for tarefa in self.tarefas.all()):
