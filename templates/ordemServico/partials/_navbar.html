@@ -104,19 +104,13 @@
                         </a>
                         <ul class="dropdown-menu">
                             <li>
-                                <a class="dropdown-item" href="{% if request.user.profile.role != 4 and request.user.profile.role != 5 %}{% url 'financeiro' %}{% else %}#%{% endif %}"
-                                    {% if request.user.profile.role == 4 or request.user.profile.role == 5 %}
-                                        onclick="showTechPermissionAlert(); return false;"
-                                    {% endif %}>
+                                <a class="dropdown-item" href="{% url 'financeiro' %}">
                                     <i class="bi bi-currency-dollar"></i>
                                     Faturamento
                                 </a>
                             </li>
                             <li>
-                                <a class="dropdown-item" href="{% if request.user.profile.role != 4 and request.user.profile.role != 5 %}{% url 'faturar_os_rapida' %}{% else %}#%{% endif %}"
-                                    {% if request.user.profile.role == 4 or request.user.profile.role == 5 %}
-                                        onclick="showTechPermissionAlert(); return false;"
-                                    {% endif %}>
+                                <a class="dropdown-item" href="{% url 'faturar_os_rapida' %}">
                                     <i class="bi bi-cash-coin"></i>
                                     Faturamento de OS rápidas
                                 </a>
@@ -170,21 +164,9 @@
                             </li>
                             {% if request.user.profile.role == 1 or request.user.profile.role == 2 or request.user.profile.role == 3 %}
                             <li>
-                                <a class="dropdown-item" href="{% url 'repositorio' %}"
-                                    {% if request.user.profile.role == 4 or request.user.profile.role == 5 %}
-                                        onclick="showTechPermissionAlert(); return false;"
-                                    {% endif %}>
+                                <a class="dropdown-item" href="{% url 'repositorio' %}">
                                     <i class="bi bi-plus-square"></i>
-                                    Novo serviço comum
-                                </a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item" href="{% url 'repositorio' %}"
-                                    {% if request.user.profile.role == 4 or request.user.profile.role == 5 %}
-                                        onclick="showTechPermissionAlert(); return false;"
-                                    {% endif %}>
-                                    <i class="bi bi-plus-square"></i>
-                                    Novo serviço rápido
+                                    Novo serviço (OS comum)
                                 </a>
                             </li>
                             {% endif %}

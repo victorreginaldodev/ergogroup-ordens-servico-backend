@@ -20,7 +20,7 @@ def user_login(request):
             elif user_profile.role == 3:  # Líder Técnico
                 return redirect('servicos')  # Redireciona para a página 'lider_tecnico'
             elif user_profile.role in [4, 5]:  # Sub-Líder Técnico ou Técnico
-                return redirect('tecnico')  # Redireciona para a página 'tecnico'
+                return redirect('tarefas')  # Redireciona para a página 'tecnico'
         
         else:
            messages.error(request, "Usuário ou senha inválidos!")
