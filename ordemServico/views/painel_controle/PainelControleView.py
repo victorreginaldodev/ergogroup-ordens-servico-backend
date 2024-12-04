@@ -51,10 +51,10 @@ def painel_controle_template(request):
 @login_required
 @user_passes_test(verificar_tipo_usuario)
 def servicos_graficos(request):
-    # Obtém a data de 6 meses atrás
-    data_limite = datetime.now() - timedelta(days=180)
 
-    # 1. Quantidade de serviços criados por mês nos últimos 12 meses
+    data_limite = (datetime.now() - timedelta(days=180)).replace(day=1)
+
+    # 1. Quantidade de serviços criados por mês (sem limite de tempo)
     servicos_por_mes = (
         Servico.objects.filter(ordem_servico__data_criacao__gte=data_limite)
         .annotate(mes=TruncMonth('ordem_servico__data_criacao'))
@@ -63,14 +63,14 @@ def servicos_graficos(request):
         .order_by('mes')
     )
 
-    # 2. Quantidade de serviços por status (mantido sem filtro de 12 meses)
+    # 2. Quantidade de serviços por status (sem filtro de data)
     servicos_por_status = (
         Servico.objects.values('status')
         .annotate(total=Count('id'))
         .order_by('status')
     )
 
-    # 3. Valor de vendas por mês nos últimos 12 meses
+    # 3. Valor de vendas por mês (sem limite de tempo)
     vendas_por_mes = (
         OrdemServico.objects.filter(data_criacao__gte=data_limite)
         .annotate(mes=TruncMonth('data_criacao'))
@@ -79,7 +79,7 @@ def servicos_graficos(request):
         .order_by('mes')
     )
 
-    # Converte os dados para listas para serem enviados como JSON
+    # Converte os dados para listas para enviar como JSON
     servicos_por_mes = list(servicos_por_mes)
     servicos_por_status = list(servicos_por_status)
     vendas_por_mes = list(vendas_por_mes)
@@ -90,4 +90,3 @@ def servicos_graficos(request):
         'servicos_por_status': servicos_por_status,
         'vendas_por_mes': vendas_por_mes,
     })
-
