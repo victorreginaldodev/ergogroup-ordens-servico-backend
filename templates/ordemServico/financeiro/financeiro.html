@@ -239,6 +239,10 @@
                                 <td>{{ item.ordem.get_cobranca_imediata_display }}</td>
                             </tr>
                             <tr>
+                                <th>Data do 1º faturamento</th>
+                                <td>{{ item.ordem.faturamento_1|date:'d/m/Y' }}</td>
+                            </tr>
+                            <tr>
                                 <th>Nome Contato NF</th>
                                 <td>{{ item.ordem.nome_contato_envio_nf|title }}</td>
                             </tr>

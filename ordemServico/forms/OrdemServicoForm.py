@@ -40,7 +40,8 @@ class OrdemServicoForm(ModelForm):
                 'id': 'faturamento_1', 
                 'placeholder': 'Selecione a data', 
                 'type': 'date',
-            }),
+            }, format='%Y-%m-%d'
+            ),
             'nome_contato_envio_nf': TextInput(attrs={
                 'class': 'form-control',
                 'id': 'floatingInput',
@@ -59,7 +60,8 @@ class OrdemServicoForm(ModelForm):
             'data_criacao': DateInput(attrs={
                 'class': 'form-control w-100', 
                 'type': 'date',
-            }),
+            }, format='%Y-%m-%d'
+            ),
         }
 
     def __init__(self, *args, **kwargs):
