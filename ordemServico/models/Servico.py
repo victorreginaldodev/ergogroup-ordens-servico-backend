@@ -13,7 +13,7 @@ class Servico(models.Model):
     )
     ordem_servico = models.ForeignKey(OrdemServico, on_delete=models.CASCADE, null=True, blank=True, related_name='servicos')
     repositorio = models.ForeignKey(Repositorio, on_delete=models.CASCADE, null=True, blank=True)
-    descricao = models.TextField(blank=True)
+    descricao = models.TextField(null=False, blank=False)
     status = models.CharField(max_length=15, null=True, blank=True, choices=STATUS, default='em_espera')
     data_conclusao = models.DateField(null=True, blank=True)
 

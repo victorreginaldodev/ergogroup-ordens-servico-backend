@@ -14,15 +14,23 @@ def verificar_tipo_usuario(user):
         Função que verifica se o usuário é 'Diretor', 'Administrativo' ou 'Líder Técnico
     '''
     try:
-        return user.profile.role in [1, 2, 3]
+        return user.profile.role in [1, 2, 3, 4]
     except Profile.DoesNotExist:
         return False
 
 @user_passes_test(verificar_tipo_usuario)
 @login_required
 def listar_ordens_servicos(request):
-    # Ordena por data de criação (mais recente primeiro)
-    ordens_servicos = OrdemServico.objects.all().order_by('-data_criacao')
+    # Obtém o parâmetro de busca da URL (se existir)
+    busca = request.GET.get('busca', '')
+
+    # Filtra as ordens de serviço pelo nome do cliente (se houver busca)
+    if busca:
+        ordens_servicos = OrdemServico.objects.filter(
+            cliente__nome__icontains=busca
+        ).order_by('-data_criacao')
+    else:
+        ordens_servicos = OrdemServico.objects.all().order_by('-data_criacao')
 
     # Quantidade de itens por página
     itens_por_pagina = 10
@@ -33,7 +41,8 @@ def listar_ordens_servicos(request):
     ordens_paginadas = paginator.get_page(pagina)
 
     return render(request, 'ordemServico/ordem_servico/listar_ordens_servicos.html', {
-        "ordens_servicos": ordens_paginadas
+        "ordens_servicos": ordens_paginadas,
+        "busca": busca  # Passa o termo de busca para o template
     })
 
 @login_required

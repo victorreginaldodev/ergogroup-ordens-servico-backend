@@ -17,6 +17,7 @@ class ServicoForm(forms.ModelForm):
                 'id': 'floatingTextarea2',
                 'placeholder': 'Digite aqui a descrição...',
                 'rows': 8,
+                'required': 'required',
             }),
         }
     

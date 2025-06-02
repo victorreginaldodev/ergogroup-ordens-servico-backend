@@ -66,7 +66,8 @@ def lista_servicos(request):
     # Resposta AJAX para carregamento dinâmico
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
         data = [
-            {
+            {   
+                "ordem_servico_id": servico.ordem_servico.id if servico.ordem_servico else None,
                 "id": servico.id,
                 "cliente_nome": servico.ordem_servico.cliente.nome.upper() if servico.ordem_servico and servico.ordem_servico.cliente else "N/A",
                 "tipo_inscricao": servico.ordem_servico.cliente.tipo_inscricao if servico.ordem_servico and servico.ordem_servico.cliente else None,

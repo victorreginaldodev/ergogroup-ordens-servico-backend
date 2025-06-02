@@ -38,7 +38,30 @@
 {% endblock %}
 
 {% block content %}
-<div class="container">
+<div class="container mb-5">
+    <!-- Barra de pesquisa -->
+    <div class="mb-3 px-3" style="margin-top: 20px;">
+        <form method="get" action="." class="search-form">
+            <div class="input-group">
+                <input 
+                    type="text" name="busca" class="form-control" 
+                    placeholder="Digite o nome do cliente..." 
+                    value="{{ request.GET.busca }}"
+                    style="border-radius: 8px !important;"
+                >
+                <div class="input-group-append ms-3">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i> Pesquisar
+                    </button>
+                    {% if request.GET.busca %}
+                        <a href="{% url 'listar_ordens_servicos' %}" class="btn btn-danger">
+                            <i class="fas fa-times"></i> Limpar
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </div>
 
     <div class="tabela-ordens-servico">
         <table class="table">
@@ -56,9 +79,19 @@
                 <tr class="clickable-row" data-href="{% url 'editar_ordem_servico' ordem.id %}">
                     <td style="font-weight: 600;">{{ ordem.id }}</td>
                     <td>{{ ordem.cliente.nome }}</td>
-                    <td>{{ ordem.valor }}</td>
+                    <td>R$ {{ ordem.valor }}</td>
                     <td>{{ ordem.get_faturamento_display }}</td>
                     <td>{{ ordem.data_criacao|date:"d/m/Y" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center">
+                        {% if request.GET.busca %}
+                            Nenhuma ordem de serviço encontrada para "{{ request.GET.busca }}"
+                        {% else %}
+                            Nenhuma ordem de serviço cadastrada
+                        {% endif %}
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -66,20 +99,21 @@
     </div>
 
     <!-- Controles de paginação -->
-    <div class="pagination mt-5" style="display: flex;  justify-content: center;">
+    <div class="pagination mt-5" style="display: flex; justify-content: center;">
         <span class="step-links">
             {% if ordens_servicos.has_previous %}
-            <a href="?page={{ ordens_servicos.previous_page_number }}" class="botao" style="text-decoration: none;">Anterior</a>
+                <a href="?page={{ ordens_servicos.previous_page_number }}{% if request.GET.busca %}&busca={{ request.GET.busca }}{% endif %}" 
+                   class="botao" style="text-decoration: none;">Anterior</a>
             {% endif %}
 
             <span style="color: var(--cinza);">Página {{ ordens_servicos.number }} de {{ ordens_servicos.paginator.num_pages }}</span>
 
             {% if ordens_servicos.has_next %}
-            <a href="?page={{ ordens_servicos.next_page_number }}" class="botao" style="text-decoration: none;">Próxima</a>
+                <a href="?page={{ ordens_servicos.next_page_number }}{% if request.GET.busca %}&busca={{ request.GET.busca }}{% endif %}" 
+                   class="botao" style="text-decoration: none;">Próxima</a>
             {% endif %}
         </span>
     </div>
-
 </div>
 {% endblock %}
 

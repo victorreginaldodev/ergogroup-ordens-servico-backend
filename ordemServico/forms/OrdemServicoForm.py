@@ -43,7 +43,11 @@ class OrdemServicoForm(ModelForm):
             }, format='%Y-%m-%d'
             ),
             'nome_contato_envio_nf': TextInput(attrs={
+<<<<<<< HEAD
                 'class': 'form-control',
+=======
+                'class': 'form-control w-100',
+>>>>>>> master
                 'id': 'floatingInput',
             }),
             'contato_envio_nf': EmailInput(attrs={
