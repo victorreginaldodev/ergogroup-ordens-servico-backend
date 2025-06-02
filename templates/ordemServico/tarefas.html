@@ -1,0 +1,82 @@
+{% extends 'ordemServico/base.html' %}
+{% load static %}
+{% block title %} Tarefas {% endblock %}
+{% block content %}
+
+<div class="content page-title">
+
+    <div class="px-5">
+        <h3 class="fs-5 mb-3">
+            <i class="bi bi-person-gear" style="margin-right: 4px;"></i>
+            Tarefas
+        </h3>
+
+        <form method="post" class="mb-4">
+            {% csrf_token %}
+
+            <div class="row">
+                <!-- Campo Seleção de Colaborador -->
+                <div class="form-group mb-3 col-md-4">
+                    <label for="{{ form.profile.id_for_label }}">Selecione um colaborador:</label>
+                    {{ form.profile }}
+                </div>
+
+                <!-- Campo Descrição da Tarefa -->
+                <div class="form-group mb-3 col-md-12">
+                    <label for="{{ form.descricao.id_for_label }}">Descrição da tarefa:</label>
+                    {{ form.descricao }}
+                </div>
+
+                <!-- Botões de Ação -->
+                <div class="form-group mb-3 col-md-12">
+                    <button type="submit" class="btn button px-4 py-2">Salvar Tarefa</button>
+                    <a href="{% url 'lider_tecnico' %}" class="btn btn-danger">Voltar ao serviço</a>
+                </div>
+            </div>
+        </form>
+
+        <!-- Tabela de tarefas relacionadas -->
+        <div class="mb-4">
+            <label class="form-label">Tarefas relacionadas:</label>
+            <table class="table" style="border-collapse: collapse; border: 1px solid var(--cinza); border-radius: 12px; width: 100%; overflow: hidden;">
+                <thead style="background-color: var(--cinza-clarinho); border-radius: 12px;">
+                    <tr style="border: 1px solid var(--cinza); font-size: 12px; text-transform: uppercase; text-align: left; font-weight: 700;">
+                        <th scope="col" style="padding: 8px; border-right: 1px solid var(--cinza);">
+                            Nome do Colaborador
+                        </th>
+                        <th scope="col" style="padding: 8px; border-right: 1px solid var(--cinza);">
+                            Descrição da Tarefa
+                        </th>
+                        <th scope="col" style="padding: 8px; width: 15%;">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tarefa in servico.tarefas.all %}
+                    <tr style="border-bottom: 1px solid var(--cinza);">
+                        <td
+                            style="padding: 8px; border-right: 1px solid var(--cinza); width: 25%; font-size: 14px;">
+                            {{ tarefa.profile }}
+                        </td>
+                        <td
+                            style="padding: 8px; font-size: 14px; border-right: 1px solid var(--cinza);">
+                            {{ tarefa.descricao }}
+                        </td>
+                        <td style="padding: 8px; font-size: 14px;">
+                            {{ tarefa.get_status_display }}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="3" style="padding: 8px; text-align: center;">
+                            Nenhuma tarefa relacionada.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+</div>
+{% endblock %}

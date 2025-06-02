@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nova Ordem de Serviço Criada</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333333;
+        }
+        h1 {
+            color: #2A6CB2;
+        }
+        p {
+            font-size: 16px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid #dddddd;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+            color: #333333;
+            width: 15vw;
+        }
+        td {
+            background-color: #ffffff;
+        }
+        .footer {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #666666;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Olá,</h1>
+    <p>Uma nova ordem de serviço foi criada em nosso sistema para o cliente <strong>{{ ordem_servico.cliente.nome }}</strong>.</p>
+
+    <h2>Detalhes da Ordem de Serviço</h2>
+    <table>
+        <tr>
+            <th>Cliente</th>
+            <td>{{ ordem_servico.cliente.nome }}</td>
+        </tr>
+        <tr>
+            <th>Dara de recebimento:</th>
+            <td>{{ ordem_servico.data_criacao|date:"d/m/Y" }}</td>
+        </tr>
+        <tr>
+            <th>Valor</th>
+            <td>R$ {{ ordem_servico.valor }}</td>
+        </tr>
+        <tr>
+            <th>Cobrar imediatamente o cliente?</th>
+            <td>{{ ordem_servico.get_cobranca_imediata_display }}</td>
+        </tr>
+        <tr>
+            <th>Forma de Pagamento</th>
+            <td>{{ ordem_servico.get_forma_pagamento_display }}</td>
+        </tr>
+        <tr>
+            <th>Quantidade de parcelas</th>
+            <td>{{ ordem_servico.get_quantidade_parcelas_display }}</td>
+        </tr>
+        <tr>
+            <th>Data do primeiro faturamento</th>
+            <td>{{ ordem_servico.data_faturamento_1|date:"d/m/Y" }}</td>
+        </tr>
+        <tr>
+            <th>Observações</th>
+            <td>{{ ordem_servico.observacao }}</td>
+        </tr>
+        <tr>
+            <th>Contato de envio da nota fiscal</th>
+            <td>{{ ordem_servico.nome_contato_envio_nf }}</td>
+        </tr>
+        <tr>
+            <th>E-mail de envio da nota fiscal</th>
+            <td>{{ ordem_servico.contato_envio_nf }}</td>
+        </tr>
+        
+    </table>
+
+    <p style="color: red; font-size: 14px;">
+        ***Cada serviço vinculado a esta ordem de serviço será notificado separadamente, incluindo todas as informações relevantes.
+    </p>
+
+    <p class="footer">
+        Atenciosamente,<br>
+        Equipe de Desenvolvimento da ErgoGroup
+    </p>
+
+</body>
+</html>

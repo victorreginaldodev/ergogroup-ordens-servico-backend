@@ -1,0 +1,264 @@
+{% extends 'ordemServico/base.html' %}
+{% load static %}
+{% block title %} Listar clientes {% endblock %}
+
+{% block styles %}
+
+<style>
+    .container-tabela th,
+    .container-tabela td {
+        font-size: 14px !important;
+        text-align: center;
+        padding: 0.75rem;
+    }
+
+    .container-tabela th {
+        background-color: var(--azul-principal);
+
+        color: #fff;
+        font-weight: 500;
+    }
+
+    .container-tabela td {
+        color: var(--cinza);
+        border-bottom: 3px solid var(--cinza-claro);
+    }
+
+    /* Estilo geral para o texto */
+    .status {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.5rem;
+        font-size: 12px;
+        color: #ffffff;
+    }
+
+    /* Bolinha antes do texto */
+    .status-dot {
+        width: 0.5rem;
+        height: 0.5rem;
+        border-radius: 50%;
+        margin-right: 0.5rem;
+    }
+
+    /* Cor para "ativo" (verdadeiro ou "sim") */
+    .status.ativo {
+        background-color: #d4edda;
+        /* Verde pastel */
+        color: #155724;
+        /* Verde escuro */
+    }
+
+    .status.ativo .status-dot {
+        background-color: #28a745;
+        /* Verde sólido */
+    }
+
+    /* Cor para "inativo" (falso ou "não") */
+    .status.inativo {
+        background-color: #f8d7da;
+        /* Vermelho pastel */
+        color: #721c24;
+        /* Vermelho escuro */
+    }
+
+    .status.inativo .status-dot {
+        background-color: #dc3545;
+        /* Vermelho sólido */
+    }
+
+    button.status {
+        border: none;
+        cursor: pointer;
+        outline: none;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        display: inline-flex;
+        align-items: center;
+        font-size: 0.9rem;
+        color: #ffffff;
+        background-color: #d4edda;
+        /* Verde pastel */
+        transition: background-color 0.3s;
+    }
+
+    button.status.inativo {
+        background-color: #f8d7da;
+        /* Vermelho pastel */
+    }
+
+    button.status.active {
+        border: 2px solid #000000;
+        /* Destaque para botão ativo */
+    }
+</style>
+
+{% endblock %}
+
+{% block content %}
+
+<div class="content page-title px-5 mb-5">
+
+    <div class="container">
+
+        <h3 class="titulo-pagina">
+            <i class="bi bi-buildings-fill"></i>
+            Todos os clientes
+        </h3>
+
+        <div class="d-flex  mb-1 px-1 mt-4" style="display: flex; flex-direction: column;">
+
+            <!-- Filtros -->
+            <div class="d-flex justify-content-left align-items-center gap-2 w-100 mb-2">
+                <!-- Filtro por cliente ativo/inativo -->
+                <button class="btn btn-secondary" id="filterAll"
+                    style="font-size: 12px; min-width: 7vw; max-height: 1.85rem;">
+                    Todos
+                </button>
+                <button class="filter-buttom status ativo" id="filterActive">
+                    <span class="status-dot"></span> Ativos
+                </button>
+                <button class="filter-buttom status inativo" id="filterInactive">
+                    <span class="status-dot"></span> Inativos
+                </button>
+
+                <!-- Filtro por renovação automática -->
+                <button class="filter-buttom status ativo" id="filterRenovation">
+                    <span class="filter-buttom status-dot"></span> Renovação
+                </button>
+                <button class="filter-buttom status inativo" id="filterNoRenovation">
+                    <span class="status-dot"></span> Sem Renovação
+                </button>
+
+                <!-- Filtro por cobrança de revisão/alteração -->
+                <button class="filter-buttom status ativo" id="filterBilling">
+                    <span class="status-dot"></span> Cobrança
+                </button>
+                <button class="filter-buttom status inativo" id="filterNoBilling">
+                    <span class="status-dot"></span> Sem Cobrança
+                </button>
+            </div>
+            <!-- Input de busca -->
+            <div class="input-group w-100">
+                <input type="text" id="searchInput" class="form-control" placeholder="Buscar por nome"
+                    style="background-color: var(--cinza-claro);">
+            </div>
+        </div>
+
+        <div class="container-tabela" style="max-height: 80vh; overflow-y: auto;">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th style="border-top-left-radius: 12px; border-bottom-left-radius: 12px;">NOME</th>
+                        <th>TIPO</th>
+                        <th>CLIENTE ATIVO</th>
+                        <th>RENOVÇÃO AUTOMÁTICA</th>
+                        <th style="border-top-right-radius: 12px; border-bottom-right-radius: 12px;">COBRANÇA
+                            ALTER./REV.</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cliente in clientes %}
+                    <tr style="cursor: pointer;" onclick="window.location='{% url 'editar_cliente' cliente.id %}'">
+                        <td>{{ cliente.nome|truncatechars:45 }}</td>
+                        <td>{{ cliente.get_tipo_cliente_display }}</td>
+                        <td>
+                            <span
+                                class="status {% if cliente.cliente_ativo == 'sim' %}ativo{% else %}inativo{% endif %}">
+                                <span class="status-dot"></span>
+                                {{ cliente.get_cliente_ativo_display|title }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="status {% if cliente.renovacao_automatica %}ativo{% else %}inativo{% endif %}">
+                                <span class="status-dot"></span>
+                                {{ cliente.renovacao_automatica|yesno:"Sim,Não" }}
+                            </span>
+                        </td>
+                        <td>
+                            <span
+                                class="status {% if cliente.cobranca_revisao_alteracao %}ativo{% else %}inativo{% endif %}">
+                                <span class="status-dot"></span>
+                                {{ cliente.cobranca_revisao_alteracao|yesno:"Sim,Não" }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const searchInput = document.getElementById('searchInput');
+        const rows = document.querySelectorAll('tbody tr');
+
+        const filterButtons = {
+            all: document.getElementById('filterAll'),
+            active: document.getElementById('filterActive'),
+            inactive: document.getElementById('filterInactive'),
+            renovation: document.getElementById('filterRenovation'),
+            noRenovation: document.getElementById('filterNoRenovation'),
+            billing: document.getElementById('filterBilling'),
+            noBilling: document.getElementById('filterNoBilling'),
+        };
+
+        // Função para aplicar os filtros
+        const applyFilters = () => {
+            const query = searchInput.value.toLowerCase();
+
+            rows.forEach(row => {
+                const name = row.cells[0].textContent.toLowerCase();
+                const active = row.querySelector('.status').classList.contains('ativo');
+                const renovation = row.cells[3].querySelector('.status').classList.contains('ativo');
+                const billing = row.cells[4].querySelector('.status').classList.contains('ativo');
+
+                let show = true;
+
+                if (query && !name.includes(query)) show = false;
+                if (filterButtons.active.classList.contains('active') && !active) show = false;
+                if (filterButtons.inactive.classList.contains('active') && active) show = false;
+                if (filterButtons.renovation.classList.contains('active') && !renovation) show = false;
+                if (filterButtons.noRenovation.classList.contains('active') && renovation) show = false;
+                if (filterButtons.billing.classList.contains('active') && !billing) show = false;
+                if (filterButtons.noBilling.classList.contains('active') && billing) show = false;
+
+                row.style.display = show ? '' : 'none';
+            });
+        };
+
+        // Limpa todos os filtros
+        const clearFilters = () => {
+            Object.values(filterButtons).forEach(button => button.classList.remove('active'));
+        };
+
+        // Listener para a busca
+        searchInput.addEventListener('input', applyFilters);
+
+        // Listener para o botão "Todos"
+        filterButtons.all.addEventListener('click', () => {
+            clearFilters();
+            applyFilters();
+        });
+
+        // Listener para os botões de filtro
+        Object.entries(filterButtons).forEach(([key, button]) => {
+            if (key !== 'all') {
+                button.addEventListener('click', () => {
+                    clearFilters(); // Limpa os outros filtros
+                    button.classList.add('active'); // Ativa o botão atual
+                    applyFilters();
+                });
+            }
+        });
+    });
+
+</script>
+{% endblock %}

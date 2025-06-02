@@ -1,0 +1,212 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap');
+
+:root {
+    --azul-principal: #2A6CB2;
+    --azul-secundario: #0BB4ED;
+    --cinza: #78828B;
+    --cinza-claro: #f4f4f4;
+    --branco: #fff;
+    --fonte: "Roboto", sans-serif;
+}
+
+body {
+    font-family: var(--fonte);
+    overflow-x: hidden;
+}
+
+.form-control {
+    width: 30vw;
+}
+
+textarea {
+    resize: none;
+    width: 100%;
+}
+
+textarea::placeholder {
+    font-size: 12px;
+    color: var(--cinza);
+}
+
+label {
+    font-size: 14px;
+    color: var(--cinza);
+    font-weight: 400;
+    margin-left: 5px;
+}
+
+.botao {
+    border: none;
+    background: linear-gradient(135deg, var(--azul-secundario) 0%, var(--azul-principal) 100%);
+    font-size: 14px;
+    padding: 0.5rem 1rem !important;
+    font-weight: 400;
+    color: var(--branco);
+    border-radius: 8px;
+}
+
+.button {
+    border: none;
+    background: linear-gradient(135deg, var(--azul-secundario) 0%, var(--azul-principal) 100%);
+    font-size: 14px;
+    padding: 0.5rem 1rem !important;
+    font-weight: 500;
+    color: var(--branco);
+    border-radius: 8px;
+    box-shadow: 1px 1px 2px black;
+}
+
+.button:hover {
+    border: none;
+    background: linear-gradient(135deg, var(--azul-secundario) 0%, var(--azul-principal) 100%);
+    font-size: 14px;
+    padding: 0 1rem;
+    font-weight: 500;
+    color: var(--branco);
+    transform: scale(1.05);
+}
+
+.botao-acao-rapida {
+    font-size: 14px !important;
+    background: linear-gradient(135deg, var(--azul-secundario) 0%, var(--azul-principal) 100%) !important;
+    color: #fff;
+    text-decoration: none;
+    padding: 0.3rem 1rem;
+    border-radius: 12px;
+    border: none !important;
+    box-shadow: 0px 0px 5px var(--cinza);
+}
+
+.btn-link i {
+    font-size: 18px;
+    color: var(--cinza);
+}
+
+.btn-link i:hover {
+    font-size: 17px;
+
+}
+
+.titulo-pagina {
+    margin: 2rem 0;
+
+    color: var(--cinza);
+    font-size: 1.25rem;
+    font-weight: 600;
+    
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+
+
+/* 
+    VERIFICAR
+*/
+.secao-os {
+    font-size: 18px;
+    color: var(--cinza);
+    font-weight: 400;
+}
+
+.section-border {
+    border: 1px solid var(--cinza);
+    border-radius: 12px;
+    box-sizing: border-box;
+}
+
+.filters {
+    margin-top: -1.5rem;
+    margin-bottom: 1rem;
+    display: flex;
+    gap: 25px;
+    justify-content: center;
+}
+
+.acordeao {
+    display: flex;
+    align-items: center;
+}
+
+.accordion-header-items {
+    border-right: 1px solid var(--cinza);
+    margin-right: 10px;
+    padding: 0 15px;
+    display: flex;
+    gap: 8px;
+}
+
+.accordion-header-items p {
+    margin: 0;
+    font-weight: bold;
+}
+
+.card {
+    width: 20vw;
+    box-shadow: 0 0 4px var(--cinza) ;
+    padding: 8px;
+}
+
+.card-body h5 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--cinza);
+    margin-bottom: 15px;
+}
+
+.card-text {
+    font-size: 14px;
+    color: var(--cinza);
+    margin-bottom: 8px;
+}
+
+.accordion-infos p {
+    font-size: 14px;
+    padding: 16px;
+    /* border: 1px solid var(--cinza); */
+    border-radius: 10px;
+    box-shadow: 1px 1px 2px var(--cinza);
+}
+
+.accordion-observacao {
+    height: 15vh;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    max-width: 100%;
+    height: 150px;
+    overflow-y: auto;
+}
+
+.accordion-infos ul {
+    list-style-type: disc;
+    padding-left: 20px;
+}
+
+.accordion-infos ul li {
+    margin-bottom: 5px;
+    font-size: 14px;
+}
+
+.tabela-tarefas {
+    border: 2px solid black;
+    border-collapse: collapse;
+    width: 100%;
+}
+
+.tabela-tarefas th,
+.tabela-tarefas td {
+    border: 2px solid black;
+    padding: 8px;
+    text-align: left;
+}
+
+.tabela-tarefas thead th {
+    background-color: #f2f2f2;
+}
+
+.dropdown-menu {
+    z-index: 1050; /* Certifique-se de que o valor é maior do que outros elementos que possam estar sobrepondo */
+    position: relative; /* Garante que o z-index funcione adequadamente */
+}

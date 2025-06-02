@@ -1,0 +1,375 @@
+{% extends 'ordemServico/base.html' %}
+{% load static %}
+{% block title %} Painel de controle {% endblock %}
+{% block style %}
+<style>
+    .status-dot {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        margin-right: 8px;
+    }
+
+    .status-concluido {
+        background-color: #a8d5ba; /* Verde pastel */
+        color: #155724; /* Verde escuro para texto */
+    }
+
+    .status-em-andamento {
+        background-color: #fff3cd; /* Amarelo pastel */
+        color: #856404; /* Amarelo escuro para texto */
+    }
+
+    .status-em-espera {
+        background-color: #f8d7da; /* Vermelho pastel */
+        color: #721c24; /* Vermelho escuro para texto */
+    }
+
+    .status-cell {
+        padding: 8px;
+        text-align: center;
+        border-radius: 4px;
+    }
+
+    .active-filter {
+        border-color: black; /* Destaca a borda */
+        font-weight: bold;   /* Destaca o texto */
+        background-color: #e6e6e6; /* Opção: muda o fundo */
+    }
+
+    .podium-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .podium-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 15px;
+        margin: 10px 0;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: bold;
+        transition: all 0.3s ease;
+        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Estilo para cada posição */
+    .podium-item.gold {
+        background-color: #ffd700; /* Ouro */
+        color: #ffffff;
+        border: 1px solid #e6b800;
+    }
+
+    .podium-item.silver {
+        background-color: #c0c0c0; /* Prata */
+        color: #ffffff;
+        border: 1px solid #a8a8a8;
+    }
+
+    .podium-item.bronze {
+        background-color: #cd7f32; /* Bronze */
+        color: #ffffff;
+        border: 1px solid #a56722;
+    }
+
+    .podium-item:not(.gold):not(.silver):not(.bronze) {
+        background-color: #f7f7f7;
+        color: #333;
+        border: 1px solid #ddd;
+    }
+
+    /* Ícones */
+    .podium-icon {
+        font-size: 18px;
+        margin-right: 10px;
+    }
+
+    /* Nome do cliente */
+    .client-name {
+        flex: 1;
+        text-align: left;
+        margin-left: 10px;
+        font-weight: normal;
+        color: inherit;
+    }
+
+    /* Valor */
+    .valor-faturamento {
+        font-size: 14px;
+        font-weight: bold;
+        color: inherit;
+    }
+
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content page-title mb-5 px-4" style="min-height: 80vh;">
+
+    <div class="container">
+        <h3 class="titulo-pagina">
+            <i class="bi bi-graph-up" style="margin-right: 4px;"></i>
+            Painel de controle
+        </h3>
+
+        <div class="mb-4"
+            style="display: flex; justify-content: space-between; align-items: center; width: 100%; height: 40vh;">
+
+            <!-- Valor de vendas por mês -->
+            <div style="width: 59%; height: 40vh; display: flex; flex-direction: column; justify-content: center; align-items: center; background-color: #F9F9F9; border-radius: 12px;">
+                <h4 style="color: var(--cinza); font-weight: 500; padding: 1rem;">Vendas dos últimos 6 meses</h4>
+                <canvas id="graficoVendasPorMes" style="max-width: 90%; max-height: 90%;"></canvas>
+            </div>
+
+            <div style="width: 39%; height: 40vh; display: flex; flex-direction: column; background-color: #F9F9F9; border-radius: 12px;">
+                <h4 style="color: var(--cinza); font-weight: 500; padding: 1rem; text-align: center;">Top clientes vendas do mês</h4>
+                <div class="px-5 py-2">
+                    <ol class="podium-list">
+                        {% for comprador in top_compradores %}
+                            <li class="podium-item {% if forloop.counter == 1 %}gold{% elif forloop.counter == 2 %}silver{% elif forloop.counter == 3 %}bronze{% endif %}"
+                                style="font-size: 12px; padding: 0.9rem; color: var(--cinza);">
+                                <span class="podium-icon">
+                                    {% if forloop.counter == 1 %}
+                                        🥇
+                                    {% elif forloop.counter == 2 %}
+                                        🥈
+                                    {% elif forloop.counter == 3 %}
+                                        🥉
+                                    {% endif %}
+                                </span>
+                                <strong>Top {{ forloop.counter }}:</strong> 
+                                <span class="client-name">{{ comprador.cliente__nome|title|truncatechars:40 }}</span> 
+                                <span class="valor-faturamento" data-valor="{{ comprador.total_faturamento|floatformat:2 }}">
+                                    R$ {{ comprador.total_faturamento|floatformat:2 }}
+                                </span>
+                            </li>
+                        {% endfor %}
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-4"
+            style="display: flex; justify-content: space-between; align-items: center; width: 100%; height: 40vh;">
+
+            <!-- Quantidade de serviços criados por mês -->
+            <div class="mb-4 P-3 mt-4" style="width: 59%; height: 40vh; display: flex; flex-direction: column; justify-content: center; align-items: center; background-color: #F9F9F9; border-radius: 12px;">
+                <h4 style="color: var(--cinza); font-weight: 500; padding: 1rem;">Quantidade de serviços dos útimos 6 meses</h4>
+                <canvas id="graficoServicosPorMes" style="max-width: 90%; max-height: 90%;"></canvas>
+            </div>
+
+            <!-- Quantidade de serviços por status -->
+            <div style="width: 39%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; background-color: #F9F9F9; border-radius: 12px;">
+                <h4 style="color: var(--cinza); font-weight: 500; padding: 1rem;">Status dos serviços</h4>
+                <canvas id="graficoServicosPorStatus" style="max-width: 80%; max-height: 80%;"></canvas>
+            </div>
+
+        </div>
+           
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+
+<script>
+    // Requisição para obter os dados
+    fetch('/api/servicos-graficos/')
+        .then(response => response.json())
+        .then(data => {
+
+            // Função para criar degradê
+            const criarDegrade = (ctx, cor1, cor2) => {
+                const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+                gradient.addColorStop(0, cor1);
+                gradient.addColorStop(1, cor2);
+                return gradient;
+            };
+
+            // Gráfico de serviços criados por mês
+            const labelsServicosPorMes = data.servicos_por_mes.map(item => {
+                const [year, month] = item.mes.split('-');
+                return `${month}/${year}`;
+            });
+            const dataServicosPorMes = data.servicos_por_mes.map(item => item.total);
+
+            const ctx1 = document.getElementById('graficoServicosPorMes').getContext('2d');
+            const gradient1 = criarDegrade(ctx1, '#2A6CB2', '#0BB4ED');
+            new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: labelsServicosPorMes,
+                    datasets: [{
+                        data: dataServicosPorMes,
+                        backgroundColor: gradient1,
+                        borderColor: '#2A6CB2',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (tooltipItem) {
+                                    return `Total: ${tooltipItem.raw}`;
+                                }
+                            }
+                        },
+                        datalabels: {
+                            color: '#fff',
+                            anchor: 'center',
+                            align: 'center',
+                            formatter: (value) => value
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                },
+                plugins: [ChartDataLabels]
+            });
+
+            // Gráfico de serviços por status (gráfico de pizza)
+            const labelsServicosPorStatus = ['EM ESPERA', 'EM ANDAMENTO', 'CONCLUÍDA'];
+            const coresPastel = ['#ff4c4c', '#ffc107', '#28a745'];
+
+            const dataServicosPorStatus = [0, 0, 0];
+            data.servicos_por_status.forEach(item => {
+                switch (item.status) {
+                    case 'em_espera':
+                        dataServicosPorStatus[0] = item.total;
+                        break;
+                    case 'em_andamento':
+                        dataServicosPorStatus[1] = item.total;
+                        break;
+                    case 'concluida':
+                        dataServicosPorStatus[2] = item.total;
+                        break;
+                }
+            });
+
+            const ctx2 = document.getElementById('graficoServicosPorStatus').getContext('2d');
+            new Chart(ctx2, {
+                type: 'pie',
+                data: {
+                    labels: labelsServicosPorStatus,
+                    datasets: [{
+                        data: dataServicosPorStatus,
+                        backgroundColor: coresPastel,
+                        borderColor: '#FFFFFF',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                usePointStyle: true,
+                                pointStyle: 'circle'
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (tooltipItem) {
+                                    const label = tooltipItem.label || '';
+                                    const value = tooltipItem.raw || 0;
+                                    return `${label}: ${value} serviços`;
+                                }
+                            }
+                        },
+                        datalabels: {
+                            color: '#fff',
+                            anchor: 'end',
+                            align: 'start',
+                            formatter: (value) => `${value}`,
+                            font: {
+                                weight: 'bold',
+                                size: 12
+                            }
+                        }
+                    }
+                },
+                plugins: [ChartDataLabels]
+            });
+
+            // Gráfico de vendas por mês
+            const labelsVendasPorMes = data.vendas_por_mes.map(item => {
+                const [year, month] = item.mes.split('-');
+                return `${month}/${year}`;
+            });
+            const dataVendasPorMes = data.vendas_por_mes.map(item => item.total_vendas);
+
+            const ctx3 = document.getElementById('graficoVendasPorMes').getContext('2d');
+            const gradient3 = criarDegrade(ctx3, '#2A6CB2', '#0BB4ED');
+            new Chart(ctx3, {
+                type: 'bar',
+                data: {
+                    labels: labelsVendasPorMes,
+                    datasets: [{
+                        data: dataVendasPorMes,
+                        backgroundColor: '#FF7043',
+                        borderColor: '#FF7043',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (tooltipItem) {
+                                    return `R$ ${tooltipItem.raw.toLocaleString('pt-BR', {
+                                        style: 'currency',
+                                        currency: 'BRL'
+                                    })}`;
+                                }
+                            }
+                        },
+                        datalabels: {
+                            color: '#212121',
+                            anchor: 'end',
+                            align: 'end',
+                            formatter: (value) => value.toLocaleString('pt-BR', {
+                                style: 'currency',
+                                currency: 'BRL'
+                            }),
+                            font: {
+                                weight: 'bold',
+                                size: 12
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                },
+                plugins: [ChartDataLabels]
+            });
+
+        })
+        .catch(error => console.error('Erro ao carregar os dados dos gráficos:', error));
+</script>
+
+    
+{% endblock %}

@@ -1,0 +1,24 @@
+header {
+    /* background: linear-gradient(135deg, var(--azul-secundario) 10%, var(--azul-principal) 90%) !important;; */
+    box-shadow: 2px 2px 6px var(--cinza);
+    position: fixed !important; 
+    top: 0 !important; 
+    left: 0 !important; 
+    width: 100% !important; 
+    z-index: 1000 !important;
+    background-color: #fff;
+}
+
+.dropdown-menu {
+    z-index: 1050; /* Certifique-se de que o menu dropdown aparece acima do header */
+}
+
+.navbar-nav .nav-item .nav-link {
+    color:  var(--cinza) !important;
+    font-weight: 500;
+}
+
+.dropdown-menu .dropdown-item {
+    color: var(--cinza);
+    padding: 0.4rem 1rem;
+}

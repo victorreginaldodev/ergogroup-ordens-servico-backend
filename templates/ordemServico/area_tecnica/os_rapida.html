@@ -1,0 +1,502 @@
+{% extends 'ordemServico/base.html' %}
+{% load static %}
+{% block title %}Os rápida {% endblock %}
+{% block content %}
+
+{% block styles %}
+<style>
+    .tabela-dados-servicos th,
+    td {
+        text-align: left !important;
+        font-size: 12px !important;
+        padding: 0.75rem;
+    }
+
+    .tabela-dados-servicos th {
+        width: 15vw;
+        background-color: var(--azul-principal);
+        border-bottom: 1px solid var(--cinza-claro);
+
+        color: var(--cinza-claro) !important;
+        font-weight: 600;
+    }
+
+    .tabela-dados-servicos td {
+        color: var(--cinza) !important;
+        font-weight: 400;
+        background-color: var(--cinza-claro);
+        border-bottom: 1px solid var(--cinza);
+    }
+</style>
+{% endblock %}
+
+<div class="container mb-5">
+    <h3 class="titulo-pagina">
+        <i class="bi bi-lightning" style="margin-right: 4px;"></i>
+        OS Rápida
+    </h3>
+    <div id="filtros-container"  class="row" style="display: flex; align-items: center; margin-bottom: 0.5rem;">
+        <!-- Campo de Pesquisa -->
+        <div class="col-6">
+            <label for="pesquisa" class="form-label" style="font-weight: 500; font-size: 0.875rem; color: var(--cinza);">
+                Pesquisar por cliente ou serviço:
+            </label>
+            <input 
+                type="text" 
+                id="pesquisa" 
+                class="form-control w-100" 
+                placeholder="Digite para pesquisar..."
+                style="background-color: #F4F4F4; border: 1px solid #d1d1d1; border-radius: 8px;"
+            >
+        </div>
+    
+        <!-- Filtro de Status -->
+        <div class="col-3">
+            <label for="status" class="form-label" style="font-weight: 500; font-size: 0.875rem; color: var(--cinza);">
+                Filtrar por status:
+            </label>
+            <select 
+                id="status" 
+                class="form-select"
+                style="background-color: #F4F4F4; border: 1px solid #d1d1d1; border-radius: 8px; font-size: 12px; color:var(--cinza); padding: 0.6rem;">
+                <option value="todos">Todos</option>
+                <option value="nao_iniciado">Não iniciado</option>
+                <option value="em_andamento">Em andamento</option>
+                <option value="finalizada">Finalizada</option>
+            </select>
+        </div>
+    
+        <!-- Filtro de Colaboradores -->
+        
+        <div class="col-3">
+            <label for="colaborador" class="form-label" style="font-weight: 500; font-size: 0.875rem; color: var(--cinza);">
+                Filtrar por colaborador:
+            </label>
+            <select 
+                id="colaborador" 
+                class="form-select"
+                style="background-color: #F4F4F4; border: 1px solid #d1d1d1; border-radius: 8px; font-size: 12px; color:var(--cinza); padding: 0.6rem;"">
+                <option value="">Todos os colaboradores</option>
+                {% for profile in profiles %}
+                    <option value="{{ profile.id }}">{{ profile.user.username }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+    </div>
+    
+    <div id="minios-container"></div>
+    <div class="text-center mt-5" id="pagination-controls"></div>
+
+</div>
+
+
+{% endblock %}
+
+{% block scripts %}
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const miniOSContainer = document.getElementById('minios-container');
+        const paginationControls = document.getElementById('pagination-controls');
+        const pesquisaInput = document.getElementById('pesquisa');
+        const statusSelect = document.getElementById('status');
+        const colaboradorSelect = document.getElementById('colaborador');
+
+        // Função para carregar MiniOS com filtros e paginação
+        async function carregarMiniOS(page = 1) {
+            try {
+                const params = new URLSearchParams({
+                    page,
+                    pesquisa: pesquisaInput.value.trim(),
+                    status: statusSelect.value,
+                    colaborador: colaboradorSelect.value,
+                });
+
+                const response = await fetch(`?${params.toString()}`, {
+                    headers: { "X-Requested-With": "XMLHttpRequest" },
+                });
+
+                if (!response.ok) {
+                    console.error('Erro ao carregar as MiniOS:', response.statusText);
+                    return;
+                }
+
+            const data = await response.json();
+
+            const editarOSRapidaUrlBase = "{% url 'editar_os_rapida' 0 %}".replace('/0/', '/');
+
+                // Renderiza as MiniOS
+                miniOSContainer.innerHTML = '';
+                data.mini_os.forEach(miniOS => {
+
+                    const editarOSRapidaUrl = `${editarOSRapidaUrlBase}${miniOS.id}/`;
+
+                    const acordeaoItem = `
+                        <div class="accordion mb-1" id="accordionMiniOS">
+                            <div class="accordion-item" style="border-bottom: 3px solid var(--cinza-claro);">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed w-100 text-start" type="button" 
+                                        data-bs-toggle="collapse"
+                                        data-bs-target="#miniOS-collapse-${miniOS.id}" 
+                                        aria-expanded="false" 
+                                        aria-controls="miniOS-collapse-${miniOS.id}">
+                                        <div class="row w-100 d-flex align-items-center">
+                                            <div class="col-6 text-center">
+                                                <p style="font-size: 12px; color: var(--cinza)">${truncateText(miniOS.cliente_nome, 60)}</p>
+                                            </div>
+                                            <div class="col-3 text-center">
+                                                <p style="font-size: 12px; color: var(--cinza)">${truncateText(miniOS.servico_nome, 40)}</p>
+                                            </div>
+                                            <div class="col-3 text-center">
+                                                <p id="status-miniOS-button-${miniOS.id}" style="font-size: 10px; font-weight: bold;">
+                                                    <span style="
+                                                        display: inline-block;
+                                                        padding: 5px 10px;
+                                                        border-radius: 10px;
+                                                        text-transform: uppercase;
+                                                        color: ${miniOS.status === 'NÃO INICIADO' ? '#d32f2f' : 
+                                                                miniOS.status === 'EM ANDAMENTO' ? '#f9a825' : 
+                                                                miniOS.status === 'FINALIZADA' ? '#388e3c' : '#616161'};
+                                                        background-color: ${miniOS.status === 'NÃO INICIADO' ? 'rgba(211, 47, 47, 0.2)' : 
+                                                                        miniOS.status === 'EM ANDAMENTO' ? 'rgba(249, 168, 37, 0.2)' : 
+                                                                        miniOS.status === 'FINALIZADA' ? 'rgba(56, 142, 60, 0.2)' : 'transparent'};
+                                                        box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+                                                    ">
+                                                        ${miniOS.status || "N/A"}
+                                                    </span>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </button>
+                                </h2>
+                                <div 
+                                    id="miniOS-collapse-${miniOS.id}" 
+                                    class="accordion-collapse collapse" 
+                                    data-bs-parent="#accordionMiniOS">
+                                    <div class="accordion-body" style="border: 2px solid var(--cinza-claro); padding: 2rem 4rem;">
+                                        
+                                        <div class="container-os-rapida">
+                                            <div class="cabecalho">
+                                                <table class="w-100">
+                                                    <tr>
+                                                        <td class="text-center align-middle" style="border-bottom: 1px solid var(--cinza); border-right: 1px solid var(--cinza); color: var(--cinza)">
+                                                            ${miniOS.cliente_nome}
+                                                        </td>
+                                                        <td class="text-center align-middle" style="border-bottom: 1px solid var(--cinza); border-right: 1px solid var(--cinza); color: var(--cinza)">
+                                                            ${miniOS.tipo_inscricao_display}
+                                                        </td>
+                                                        <td class="text-center align-middle" style="border-bottom: 1px solid var(--cinza); border-right: 1px solid var(--cinza); color: var(--cinza)">
+                                                            ${miniOS.numero_inscricao}
+                                                        </td>
+                                                        <td class="text-center align-middle" style="border-bottom: 1px solid var(--cinza); color: var(--cinza)">
+                                                            ${miniOS.tipo_cliente_display}
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </div>
+                                        </div>
+
+                                        <div class="contato py-2">
+                                            <h3 class="py-3 text-muted" style="font-size: 14px; font-weight: 600; color: var(--cinza)">
+                                                Dados do representante:
+                                            </h3>
+                                            <div class="py-1">
+                                                <span class="fw-bold text-muted" style="font-size: 14px; color: var(--cinza)">Nome:</span>
+                                                <span class="text-muted" style="font-size: 14px; color: var(--cinza)">${miniOS.nome_representante || "Não cadastrado"}</span>
+                                            </div>
+                                            <div class="py-1">
+                                                <span class="fw-bold text-muted" style="font-size: 14px; color: var(--cinza)">Setor:</span>
+                                                <span class="text-muted" style="font-size: 14px; color: var(--cinza)">${miniOS.setor_representante || "Não cadastrado"}</span>
+                                            </div>
+                                            <div class="py-1">
+                                                <span class="fw-bold text-muted" style="font-size: 14px; color: var(--cinza)">E-mail:</span>
+                                                <span class="text-muted" style="font-size: 14px; color: var(--cinza)">${miniOS.email_representante || "Não cadastrado"}</span>
+                                            </div>
+                                            <div class="py-1">
+                                                <span class="fw-bold text-muted" style="font-size: 14px; color: var(--cinza)">Telefone:</span>
+                                                <span class="text-muted" style="font-size: 14px; color: var(--cinza)">${miniOS.telefone_representante || "Não cadastrado"}</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="dados-servico">
+                                            <h3 class="py-3 text-muted" style="font-size: 14px; font-weight: 600;">
+                                                Dados do serviço:
+                                            </h3>
+
+                                            <table class="w-100">
+                                                <tr style="border-bottom: 2px solid var(--cinza-claro);">
+                                                    <th class="align-middle" 
+                                                        style="font-size: 12px; color: var(--cinza-claro); background-color: var(--azul-principal); padding: 0.5rem; width: 15vw !important;">
+                                                        Número da OS rápida
+                                                    </th>
+                                                    <td class="align-middle" style="color: var(--cinza)">${miniOS.id || "N/A"}</td>
+                                                </tr>
+                                                <tr style="border-bottom: 2px solid var(--cinza-claro);">
+                                                    <th class="align-middle" 
+                                                        style="font-size: 12px; color: var(--cinza-claro); background-color: var(--azul-principal); padding: 0.5rem; width: 15vw !important;">
+                                                        Nome do serviço
+                                                    </th>
+                                                    <td class="align-middle" style="color: var(--cinza)">${miniOS.servico_nome || "N/A"}</td>
+                                                </tr>
+                                                <tr style="border-bottom: 2px solid var(--cinza-claro);">
+                                                    <th class="align-middle" 
+                                                        style="font-size: 12px; color: var(--cinza-claro); background-color: var(--azul-principal); padding: 0.5rem; width: 15vw !important;">
+                                                        Quantidade
+                                                    </th>
+                                                    <td class="align-middle" style="color: var(--cinza)">${miniOS.quantidade || "N/A"}</td>
+                                                </tr>
+                                                <tr style="border-bottom: 2px solid var(--cinza-claro);">
+                                                    <th class="align-middle" 
+                                                        style="font-size: 12px; color: var(--cinza-claro); background-color: var(--azul-principal); padding: 0.5rem; width: 15vw !important;">
+                                                        Descrição
+                                                    </th>
+                                                    <td class="align-middle" style="overflow: auto; white-space: pre-wrap; color: var(--cinza)">${miniOS.descricao || "N/A"}</td>
+                                                </tr>
+                                                <tr style="border-bottom: 2px solid var(--cinza-claro);">
+                                                    <th class="align-middle" 
+                                                        style="font-size: 12px; color: var(--cinza-claro); background-color: var(--azul-principal); padding: 0.5rem; width: 15vw !important;">
+                                                        Data de recebimento
+                                                    </th>
+                                                    <td class="align-middle" style="color: var(--cinza)">${miniOS.data_recebimento || "N/A"}</td>
+                                                </tr>
+                                                <tr style="border-bottom: 2px solid var(--cinza-claro);">
+                                                    <th class="align-middle" 
+                                                        style="font-size: 12px; color: var(--cinza-claro); background-color: var(--azul-principal); padding: 0.5rem; width: 15vw !important;">
+                                                        Status
+                                                    </th>
+                                                    <td id="status-miniOS-table-${miniOS.id}" class="align-middle" style="color: var(--cinza)">${miniOS.status || "N/A"}</td>
+                                                </tr>
+                                                <tr style="border-bottom: 2px solid var(--cinza-claro);">
+                                                    <th class="align-middle" 
+                                                        style="font-size: 12px; color: var(--cinza-claro); background-color: var(--azul-principal); padding: 0.5rem; width: 15vw !important;">
+                                                        Data de término
+                                                    </th>
+                                                    <td id="data-termino-miniOS-${miniOS.id}"  class="align-middle" style="color: var(--cinza)">${miniOS.data_termino || "NÃO CONCLUÍDO"}</td>
+                                                </tr>
+                                                <tr style="border-bottom: 2px solid var(--cinza-claro);">
+                                                    <th class="align-middle" 
+                                                        style="font-size: 12px; color: var(--cinza-claro); background-color: var(--azul-principal); padding: 0.5rem; width: 15vw !important;">
+                                                        Profile
+                                                    </th>
+                                                    <td class="align-middle" style="color: var(--cinza)">${miniOS.profile || "N/A"}</td>
+                                                </tr>
+                                            </table>
+                                        </div>
+
+                                        <h6 class="py-2 mt-4" style="font-size: 12px; font-weight: 600; color: var(--cinza);">Atualizar status e data de conclusão:</h6>
+                                        <form class="form-update" method="POST" action="/atualizar-mini-os/${miniOS.id}/" data-minios-id="${miniOS.id}">
+                                            {% csrf_token %}
+                                            <div class="row d-flex align-items-center">
+                                                <div class="form-group col-3">
+                                                    ${miniOS.form_update.status}
+                                                </div>
+                                                <div class="form-group col-2">
+                                                    ${miniOS.form_update.data_termino}
+                                                </div>
+                                                <div class="col-1">
+                                                    <button type="submit" class="botao">Atualizar</button>
+                                                <div class="col-2">
+                                            </div>
+                                        </form>
+                                        <!-- Botão para abrir a modal -->
+                                    </div>
+                                    <div class="100">
+                                        <div class="w-25 mt-3">
+                                            <a href="${editarOSRapidaUrl}" class="botao" style="text-decoration: none">Editar OS rápida</a>
+                                        <div>
+                                    <div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    miniOSContainer.insertAdjacentHTML('beforeend', acordeaoItem);
+                });
+
+                // Renderiza os controles de paginação
+                paginationControls.innerHTML = ''; // Limpa os controles existentes
+
+                if (data.has_previous) {
+                    paginationControls.insertAdjacentHTML('beforeend', `
+                        <button 
+                            class="button btn-prev" 
+                            data-page="${data.previous_page_number}" 
+                            style="padding: 0.5rem 1rem; margin: 0 0.5rem; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                            Anterior
+                        </button>
+                    `);
+                }
+
+                paginationControls.insertAdjacentHTML('beforeend', `
+                    <span class="pagination-info" style="margin: 0 1rem; font-size: 1rem; color: #555;">
+                        Página ${data.current_page} de ${data.total_pages}
+                    </span>
+                `);
+
+                if (data.has_next) {
+                    paginationControls.insertAdjacentHTML('beforeend', `
+                        <button 
+                            class="button btn-next" 
+                            data-page="${data.next_page_number}" 
+                            style="padding: 0.5rem 1rem; margin: 0 0.5rem; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                            Próxima
+                        </button>
+                    `);
+                }
+
+                // Adiciona eventos aos botões de paginação
+                document.querySelectorAll('#pagination-controls button').forEach(button => {
+                    button.addEventListener('click', event => {
+                        event.preventDefault();
+                        const page = button.getAttribute('data-page');
+                        carregarMiniOS(page);
+                    });
+                });
+            } catch (error) {
+                console.error('Erro ao carregar MiniOS:', error);
+            }
+        }
+
+        // Função para truncar texto
+        function truncateText(text, limit) {
+            if (!text) return "N/A";
+            return text.length > limit ? text.substring(0, limit) + "..." : text;
+        }
+
+        // Eventos para os filtros
+        pesquisaInput.addEventListener('input', () => carregarMiniOS());
+        statusSelect.addEventListener('change', () => carregarMiniOS());
+        colaboradorSelect.addEventListener('change', () => carregarMiniOS());
+
+        // Carrega a primeira página ao iniciar
+        carregarMiniOS();
+    });
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Função para obter o token CSRF
+        function getCSRFToken() {
+            const csrfElement = document.querySelector('[name=csrfmiddlewaretoken]');
+            return csrfElement ? csrfElement.value : '';
+        }
+
+        const miniOSContainer = document.getElementById('minios-container');
+
+        // Função para exibir mensagens de sucesso ou erro
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast align-items-center text-bg-${type} border-0`;
+            toast.style.position = 'fixed';
+            toast.style.top = '20px';
+            toast.style.right = '20px';
+            toast.style.zIndex = 1055;
+
+            toast.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">${message}</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            `;
+            document.body.appendChild(toast);
+            const toastInstance = new bootstrap.Toast(toast);
+            toastInstance.show();
+            toast.addEventListener('hidden.bs.toast', () => toast.remove());
+        }
+
+        // Função para exibir spinner
+        function showSpinner() {
+            const spinner = document.createElement('div');
+            spinner.className = 'spinner-border text-primary';
+            spinner.style.position = 'fixed';
+            spinner.style.top = '20px';
+            spinner.style.right = '20px';
+            spinner.style.zIndex = 1055;
+            spinner.setAttribute('role', 'status');
+            spinner.innerHTML = '<span class="visually-hidden">Carregando...</span>';
+            document.body.appendChild(spinner);
+            return spinner;
+        }
+
+        // Submissão do formulário de atualização de MiniOS
+        miniOSContainer.addEventListener('submit', async (event) => {
+            if (event.target.matches('.form-update')) {
+                event.preventDefault();
+                const form = event.target;
+                const miniOSId = form.dataset.miniosId;
+
+                // Exibir spinner
+                const spinner = showSpinner();
+
+                try {
+                    const response = await fetch(`/atualizar-mini-os/${miniOSId}/`, {
+                        method: 'POST',
+                        body: new FormData(form),
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRFToken': getCSRFToken(),
+                        },
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        showToast('MiniOS atualizada com sucesso!');
+
+                        // Atualiza os campos no frontend
+                        const statusButtonField = document.querySelector(`#status-miniOS-button-${miniOSId}`);
+                        const statusTableField = document.querySelector(`#status-miniOS-table-${miniOSId}`);
+                        const dataTerminoField = document.querySelector(`#data-termino-miniOS-${miniOSId}`);
+
+                        // Atualiza o campo de status no botão
+                        if (statusButtonField) {
+                            const spanElement = statusButtonField.querySelector('span');
+                            spanElement.textContent = data.status || "N/A";
+
+                            // Atualiza os estilos dinamicamente
+                            let color, backgroundColor;
+
+                            if (data.status === 'NÃO INICIADO') {
+                                color = '#d32f2f';
+                                backgroundColor = 'rgba(211, 47, 47, 0.2)';
+                            } else if (data.status === 'EM ANDAMENTO') {
+                                color = '#f9a825';
+                                backgroundColor = 'rgba(249, 168, 37, 0.2)';
+                            } else if (data.status === 'FINALIZADA') {
+                                color = '#388e3c';
+                                backgroundColor = 'rgba(56, 142, 60, 0.2)';
+                            } else {
+                                color = '#616161';
+                                backgroundColor = 'transparent';
+                            }
+
+                            spanElement.style.color = color;
+                            spanElement.style.backgroundColor = backgroundColor;
+                        }
+
+                        // Atualiza o campo de status na tabela
+                        if (statusTableField) {
+                            statusTableField.textContent = data.status || "N/A";
+                        }
+
+                        // Atualiza o campo de data de término
+                        if (dataTerminoField) {
+                            dataTerminoField.textContent = data.data_termino || "NÃO CONCLUÍDO";
+                        }
+                    } else {
+                        showToast('Erro ao atualizar a MiniOS.', 'danger');
+                    }
+                } catch (error) {
+                    console.error('Erro ao enviar o formulário de atualização:', error);
+                    showToast('Erro interno ao atualizar a MiniOS.', 'danger');
+                } finally {
+                    spinner.remove();
+                }
+            }
+        });
+    });
+
+</script>
+
+
+{% endblock %}

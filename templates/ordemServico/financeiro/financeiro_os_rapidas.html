@@ -1,0 +1,408 @@
+{% extends 'ordemServico/base.html' %}
+{% load static %}
+{% block title %}Financeiro OS Rápida{% endblock %}
+{% block content %}
+
+{% block styles %}
+<style>
+    .tabela-accordion th {
+        text-align: left;
+        padding: 8px;
+        border-bottom: 1px solid var(--cinza-claro);
+        background-color: var(--azul-principal);
+        Color: var(--cinza-claro);
+        width: 15vw;
+        text-transform: uppercase;
+        font-size: 12px;
+        font-weight: 500;
+    }
+
+    .tabela-accordion td {
+        padding-left: 1rem;
+        border-bottom: 1px solid var(--cinza-claro);
+        color: var(--cinza);
+        font-size: 14px;
+    }
+
+    #spinner-container {
+        transition: all 0.3s ease;
+        /* Suaviza a exibição */
+        max-width: 300px;
+        color: var(--cinza-escuro);
+        /* Cor do texto */
+    }
+
+    .checkbox-faturamento-osrapida {
+        border: none;
+        box-shadow: 0 0 3px var(--cinza);
+        border-radius: 100% !important;
+        padding: 0.75rem;
+        margin-bottom: 5px;
+    }
+    
+</style>
+{% endblock %}
+
+<div class="container">
+
+    <div id="alert-container" style="position: fixed; top: 10px; right: 10px; z-index: 1055; width: 300px;"></div>
+
+    
+
+
+    <h3 class="titulo-pagina mb-3">
+        <i class="bi bi-currency-dollar"></i>
+        Financeiro - Faturamento de Ordens de Serviços Rápidas
+    </h3>
+
+    <!-- Filtros -->
+    <div class="row g-3 align-items-center mb-3">
+        
+        <div class="col-auto">
+            <button id="limpar_filtros" style="
+                display: inline-block;
+                background-color: var(--cinza-claro); /* Fundo verde claro */
+                color: var(--cinza); 
+                border-radius: 4px;
+                padding: 10px 12px;
+                font-weight: bold;
+                border: none;
+                box-shadow: 1px 1px 2px var(--cinza);">
+                Todos
+            </button>
+        </div>
+
+        <div class="col-auto">
+            <button id="filtro_nao_faturadas" style="
+                display: inline-block;
+                background-color: #F8D7DA; /* Fundo verde claro */
+                color: #721C24; 
+                border-radius: 4px;
+                padding: 10px 12px;
+                font-weight: bold;
+                border: none;
+                box-shadow: 1px 1px 2px #721C24;">
+                Não Faturadas
+            </button>
+        </div>
+        <div class="col-auto">
+            <button id="filtro_faturadas" style="
+                display: inline-block;
+                background-color: #D4EDDA; /* Fundo verde claro */
+                color: #155724; 
+                border-radius: 4px;
+                padding: 10px 12px;
+                font-weight: bold;
+                border: none;
+                box-shadow: 1px 1px 2px #155724;">
+                Faturadas
+            </button>
+        </div>
+        <div class="col-6 w-50">
+            <input type="text" 
+                id="filtro_cliente" class="form-control w-100" 
+                placeholder="Digite o nome do cliente"
+                style="background-color: var(--cinza-claro); border: none; box-shadow: 2px 2px 4px var(--cinza);"
+            >
+        </div>
+    </div>
+
+    <div class="accordion accordion-flush mt-3" id="accordionFlushExample">
+        {% for item in os_rapidas_com_formularios %}
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="heading{{ item.os_rapida.id }}">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#collapse{{ item.os_rapida.id }}" aria-expanded="false"
+                    aria-controls="collapse{{ item.os_rapida.id }}">
+                    <div class="row w-100">
+                        <div class="col-1">
+                            <p style="color: var(--cinza); font-weight: 600;">{{ item.os_rapida.id }}</p>
+                        </div>
+                        <div class="col-6">
+                            <p style="color: var(--cinza);">{{ item.os_rapida.cliente.nome|truncatechars:45 }}</p>
+                        </div>
+                        <div class="col-2">
+                            <p id="faturamento-status-{{ item.os_rapida.id }}"
+                                style="
+                                    background-color: {% if item.os_rapida.faturamento == 'sim' %}#D4EDDA{% else %}#F8D7DA{% endif %}; 
+                                    color: {% if item.os_rapida.faturamento == 'sim' %}#155724{% else %}#721C24{% endif %}; 
+                                    font-weight: bold; text-align: center; padding: 0.3rem; font-size: 12px; border-radius: 5px;
+                                ">
+                                {% if item.os_rapida.faturamento == "sim" %} Faturada {% else %} Não faturada {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </button>
+            </h2>
+            <div id="collapse{{ item.os_rapida.id }}" class="accordion-collapse collapse"
+                aria-labelledby="heading{{ item.os_rapida.id }}" data-bs-parent="#accordionFlushExample">
+                <div class="accordion-body p-4">
+
+                    <h3 style="color: var(--cinza)">Informações da ordem de serviço rápida:</h3>
+                    <table class="tabela-accordion mt-3"
+                        style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                        <tbody>
+                            <tr>
+                                <th>Cliente</th>
+                                <td>{{ item.os_rapida.cliente.nome }}</td>
+                            </tr>
+                            <tr>
+                                <th>Serviço</th>
+                                <td>{{ item.os_rapida.servico.nome }}</td>
+                            </tr>
+                            <tr>
+                                <th>Quantidade</th>
+                                <td>{{ item.os_rapida.quantidade }}</td>
+                            </tr>
+                            <tr>
+                                <th>Status</th>
+                                <td>{{ item.os_rapida.get_status_display }}</td>
+                            </tr>
+                            <tr>
+                                <th>Data Recebimento</th>
+                                <td>{{ item.os_rapida.data_recebimento }}</td>
+                            </tr>
+                            <tr>
+                                <th>Observação</th>
+                                <td style="max-height: 100px; overflow-y: auto; display: block; line-height: 2;">
+                                    {{ item.os_rapida.descricao }}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <!-- Formulário -->
+                    <h4 class="mt-4 mb-3" style="color: var(--cinza)">Atualizar Informações do MiniOS:</h4>
+                    <form method="post" action="#" class="form-os-rapida" data-id="{{ item.os_rapida.id }}">
+                        {% csrf_token %}
+                        <input type="hidden" name="minios_id" value="{{ item.os_rapida.id }}">
+                        <div class="row">
+                            <div class="col-2">
+                                <label for="faturamento-{{ item.os_rapida.id }}" class="form-label">Faturamento</label>
+                                {{ item.form.faturamento }}
+                            </div>
+
+                            <div class="col-3">
+                                <label for="numero_nf-{{ item.ordem.id }}" class="form-label">Número NF</label>
+                                {{ item.form.n_nf }}
+                            </div>
+                        </div>
+                        <button type="submit" class="button mt-2">Atualizar</button>
+                    </form>
+
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+
+<div id="spinner-container" style="
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    z-index: 1055;
+    display: none; /* Escondido por padrão */
+    align-items: center;
+    justify-content: center;
+    background-color: var(--cinza-claro);
+    padding: 10px 15px;
+    border-radius: 8px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+">
+    <div id="spinner" class="spinner-border text-primary" role="status"
+        style="width: 20px; height: 20px; margin-right: 10px;">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+    <span id="spinner-message">Faturando...</span>
+</div>
+
+
+{% endblock %}
+
+{% block scripts %}
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const tabela = document.querySelector("#accordionFlushExample");
+        const filtroClienteInput = document.getElementById("filtro_cliente");
+        const botaoNaoFaturadas = document.getElementById("filtro_nao_faturadas");
+        const botaoFaturadas = document.getElementById("filtro_faturadas");
+        const botaoLimparFiltros = document.getElementById("limpar_filtros");
+
+        // Função para filtrar pelo nome do cliente
+        function filtrarPorCliente(event) {
+            const filtro = event.target.value.trim().toLowerCase();
+            const linhas = tabela.querySelectorAll(".accordion-item");
+
+            linhas.forEach((linha) => {
+                const clienteSpan = linha.querySelector(".col-6 p"); // Coluna Cliente
+                const nomeCliente = clienteSpan ? clienteSpan.textContent.trim().toLowerCase() : "";
+
+                if (nomeCliente.includes(filtro)) {
+                    linha.style.display = ""; // Mostra o item
+                } else {
+                    linha.style.display = "none"; // Esconde o item
+                }
+            });
+        }
+
+        // Função para filtrar não faturadas
+        function filtrarNaoFaturadas() {
+            const linhas = tabela.querySelectorAll(".accordion-item");
+
+            linhas.forEach((linha) => {
+                const faturamentoSpan = linha.querySelector(".col-2 p"); // Coluna Faturamento
+                const faturamento = faturamentoSpan ? faturamentoSpan.textContent.trim().toLowerCase() : "";
+
+                if (faturamento === "não faturada") {
+                    linha.style.display = ""; // Mostra o item
+                } else {
+                    linha.style.display = "none"; // Esconde o item
+                }
+            });
+        }
+
+        // Função para filtrar faturadas
+        function filtrarFaturadas() {
+            const linhas = tabela.querySelectorAll(".accordion-item");
+
+            linhas.forEach((linha) => {
+                const faturamentoSpan = linha.querySelector(".col-2 p"); // Coluna Faturamento
+                const faturamento = faturamentoSpan ? faturamentoSpan.textContent.trim().toLowerCase() : "";
+
+                if (faturamento === "faturada") {
+                    linha.style.display = ""; // Mostra o item
+                } else {
+                    linha.style.display = "none"; // Esconde o item
+                }
+            });
+        }
+
+        // Função para limpar todos os filtros
+        function limparFiltros() {
+            const linhas = tabela.querySelectorAll(".accordion-item");
+            linhas.forEach((linha) => {
+                linha.style.display = ""; // Mostra todas as linhas
+            });
+            filtroClienteInput.value = ""; // Limpa o input de cliente
+        }
+
+        // Adicionando event listeners aos botões e ao campo de filtro
+        filtroClienteInput.addEventListener("input", filtrarPorCliente);
+        botaoNaoFaturadas.addEventListener("click", filtrarNaoFaturadas);
+        botaoFaturadas.addEventListener("click", filtrarFaturadas);
+        botaoLimparFiltros.addEventListener("click", limparFiltros);
+    });
+
+</script>
+
+
+<script>
+    
+    document.addEventListener("DOMContentLoaded", function () {
+        const forms = document.querySelectorAll(".form-os-rapida");
+
+        forms.forEach((form) => {
+            form.addEventListener("submit", function (event) {
+                event.preventDefault();
+
+                const formData = new FormData(form);
+                const csrfToken = form.querySelector("input[name='csrfmiddlewaretoken']").value;
+                const osRapidaId = form.dataset.id; // ID da MiniOS associada ao formulário
+
+                fetch("{% url 'salvar_os_rapida' %}", {
+                    method: "POST",
+                    headers: {
+                        "X-CSRFToken": csrfToken,
+                        "X-Requested-With": "XMLHttpRequest",
+                    },
+                    body: formData,
+                })
+                    .then((response) => {
+                        if (!response.ok) {
+                            return response.json().then((data) => {
+                                throw data;
+                            });
+                        }
+                        return response.json();
+                    })
+                    .then((data) => {
+                        const faturamentoStatus = document.getElementById(`faturamento-status-${osRapidaId}`);
+
+                        // Atualiza o conteúdo e as cores dinamicamente
+                        if (data.faturamento === "sim") {
+                            faturamentoStatus.textContent = "Faturada";
+                            faturamentoStatus.style.backgroundColor = "#D4EDDA";
+                            faturamentoStatus.style.color = "#155724";
+                        } else {
+                            faturamentoStatus.textContent = "Não faturada";
+                            faturamentoStatus.style.backgroundColor = "#F8D7DA";
+                            faturamentoStatus.style.color = "#721C24";
+                        }
+
+                        // Mostra mensagem de sucesso
+                        exibirMensagemSucesso("Faturamento da ordem de serviço rápida feito com sucesso!");
+                    })
+                    .catch((data) => {
+                        const message = data.message || "Erro ao atualizar a ordem de serviço.";
+                        exibirMensagemErro(message);
+                    });
+            });
+        });
+
+        function exibirMensagemSucesso(mensagem) {
+            const alertContainer = document.getElementById("alert-container");
+
+            // Limpa o contêiner antes de adicionar um novo alerta
+            alertContainer.innerHTML = "";
+
+            // Cria o alerta
+            const alert = document.createElement("div");
+            alert.className = "alert alert-success fade show";
+            alert.style.position = "fixed";
+            alert.style.top = "10px";
+            alert.style.right = "10px";
+            alert.style.zIndex = "1055";
+            alert.innerHTML = `${mensagem}`;
+
+            // Adiciona ao contêiner
+            alertContainer.appendChild(alert);
+
+            // Remove o alerta automaticamente após 3 segundos
+            setTimeout(() => {
+                alert.classList.remove("show");
+                alert.addEventListener("transitionend", () => alert.remove());
+            }, 3000);
+        }
+
+        function exibirMensagemErro(mensagem) {
+            const alertContainer = document.getElementById("alert-container");
+
+            // Limpa o contêiner antes de adicionar um novo alerta
+            alertContainer.innerHTML = "";
+
+            // Cria o alerta
+            const alert = document.createElement("div");
+            alert.className = "alert alert-danger fade show";
+            alert.style.position = "fixed";
+            alert.style.top = "10px";
+            alert.style.right = "10px";
+            alert.style.zIndex = "1055";
+            alert.innerHTML = `${mensagem}`;
+
+            // Adiciona ao contêiner
+            alertContainer.appendChild(alert);
+
+            // Remove o alerta automaticamente após 3 segundos
+            setTimeout(() => {
+                alert.classList.remove("show");
+                alert.addEventListener("transitionend", () => alert.remove());
+            }, 3000);
+        }
+    });
+
+</script>
+
+{% endblock %}
