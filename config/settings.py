@@ -9,13 +9,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = 'django-insecure-4v&_#+*bj_o(o#l=(nonu@m9id(z7!i=y$#9@(aa+w+if#edp*'
 
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
-# ALLOWED_HOSTS = [ 'www.ergogroupapp.com']
+# ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
+ALLOWED_HOSTS = [ 'www.ergogroupapp.com']
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8080",
+    "https://app.ergogroupapp.com/"
 ]
 
 INSTALLED_APPS = [
@@ -66,31 +67,31 @@ WSGI_APPLICATION = 'config.wsgi.application'
 '''
     BANCO DE DADOS DE DESENVOLVIMENTO
 '''
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'ergoapp',  # Substitua pelo nome do banco local
-        'USER': 'root',       # Substitua pelo usuário local
-        'PASSWORD': '101508',     # Substitua pela senha local
-        'HOST': 'localhost',           # Ou 127.0.0.1 para conexão local
-        'PORT': '3306',                # Porta padrão do MySQL
-    }
-}
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'ergoapp',  # Substitua pelo nome do banco local
+#         'USER': 'root',       # Substitua pelo usuário local
+#         'PASSWORD': '101508',     # Substitua pela senha local
+#         'HOST': 'localhost',           # Ou 127.0.0.1 para conexão local
+#         'PORT': '3306',                # Porta padrão do MySQL
+#     }
+# }
 
 
 '''
     BANDO DE DADOS DE PRODUÇÃO
 '''
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': 'ErgoGroup$ErgoGroupApp',
-#         'USER': 'ErgoGroup',
-#         'PASSWORD': 'Ergo@2025',
-#         'HOST': 'ErgoGroup.mysql.pythonanywhere-services.com',
-#         'PORT': '3306',
-#     }
-# }
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'ErgoGroup$ErgoGroupApp',
+        'USER': 'ErgoGroup',
+        'PASSWORD': 'Ergo@2025',
+        'HOST': 'ErgoGroup.mysql.pythonanywhere-services.com',
+        'PORT': '3306',
+    }
+}
 
 AUTH_PASSWORD_VALIDATORS = [
     {
