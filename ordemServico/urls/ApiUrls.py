@@ -28,4 +28,5 @@ urlpatterns = [
     path('api/analise-dados/', AnaliseDadosAPIView.as_view(), name='analise-dados'),
     path('api/token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('api/usuarios/login/', CustomTokenObtainPairView.as_view(), name='usuarios_login'),
 ]

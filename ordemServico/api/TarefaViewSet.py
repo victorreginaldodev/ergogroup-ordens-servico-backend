@@ -12,6 +12,9 @@ class TarefaViewSet(viewsets.ModelViewSet):
         if user.is_authenticated and hasattr(user, 'profile'):
             if user.profile.role == 5: # Técnico
                 queryset = queryset.filter(profile__user=user)
+            elif user.profile.role == 6: # Gestor Comercial
+                # Mesma regra do técnico: vê apenas suas próprias tarefas
+                queryset = queryset.filter(profile__user=user)
         
         return queryset
     

@@ -10,7 +10,8 @@ class Profile(models.Model):
         (2, 'Administrativo'),
         (3, 'Líder Técnico'),
         (4, 'Sub-Líder Técnico'),
-        (5, 'Técnico')
+        (5, 'Técnico'),
+        (6, 'Gestor Comercial'),
     )
 
     user = models.OneToOneField(User, on_delete=models.CASCADE)

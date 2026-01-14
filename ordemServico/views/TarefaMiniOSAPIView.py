@@ -18,6 +18,10 @@ class TarefaMiniOSAPIView(APIView):
             if user.profile.role == 5: # Técnico
                 tarefas = tarefas.filter(profile__user=user)
                 minios = minios.filter(profile__user=user)
+            elif user.profile.role == 6: # Gestor Comercial
+                # Mesma regra do técnico: vê apenas suas próprias tarefas e minios
+                tarefas = tarefas.filter(profile__user=user)
+                minios = minios.filter(profile__user=user)
 
         data = list(tarefas) + list(minios) 
 
