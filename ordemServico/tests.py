@@ -97,13 +97,25 @@ class OrdemServicoSerializerUpdateTest(TestCase):
         
         self.assertEqual(response.status_code, 200)
         self.assertTrue(len(response.data) > 0)
-        item = response.data[0]
         
-        # Expected fields: 'id', 'ordem_servico', 'cliente_nome', 'repositorio', 'status'
-        expected_fields = {'id', 'ordem_servico', 'cliente_nome', 'repositorio', 'status'}
+        # Expected fields: 'id', 'ordem_servico', 'cliente_nome', 'repositorio', 'status', 'tem_tarefas'
+        expected_fields = {'id', 'ordem_servico', 'cliente_nome', 'repositorio', 'status', 'tem_tarefas'}
+        
+        # Check first item keys
+        item = response.data[0]
         self.assertEqual(set(item.keys()), expected_fields)
-        self.assertEqual(item['cliente_nome'], "Cliente Teste")
-        self.assertEqual(item['repositorio']['nome'], "Repo 1")
+        
+        # Verify values for specific services
+        item_s1 = next((i for i in response.data if i['id'] == self.servico1.id), None)
+        item_s2 = next((i for i in response.data if i['id'] == self.servico2.id), None)
+        
+        self.assertIsNotNone(item_s1)
+        self.assertEqual(item_s1['cliente_nome'], "Cliente Teste")
+        self.assertEqual(item_s1['repositorio']['nome'], "Repo 1")
+        self.assertTrue(item_s1['tem_tarefas']) # servico1 has task created in setUp
+
+        self.assertIsNotNone(item_s2)
+        self.assertFalse(item_s2['tem_tarefas']) # servico2 has no tasks
 
     def test_list_tarefa_tecnico_filter(self):
         # Create another tech and task
@@ -193,7 +205,7 @@ class OrdemServicoSerializerUpdateTest(TestCase):
         servico = data['servico_info']
         self.assertEqual(servico['descricao'], "Servico 1")
         self.assertEqual(servico['nome_repositorio'], "Repo 1")
-        self.assertEqual(servico['status'], "nao_iniciado")
+        self.assertEqual(servico['status'], "em_espera")
         
         # Verify Tarefa fields
         self.assertEqual(data['descricao'], "Descricao Tarefa Teste")
@@ -238,6 +250,10 @@ class OrdemServicoSerializerUpdateTest(TestCase):
         self.assertIn('descricao', tarefa_item)
 
     def test_list_tarefa_fields(self):
+        # Update tarefa description
+        self.tarefa.descricao = "Tarefa Descricao Teste"
+        self.tarefa.save()
+
         request = self.factory.get('/api/tarefa/')
         force_authenticate(request, user=self.user)
         view = TarefaViewSet.as_view({'get': 'list'})
@@ -247,12 +263,14 @@ class OrdemServicoSerializerUpdateTest(TestCase):
         self.assertTrue(len(response.data) > 0)
         item = response.data[0]
         
-        # Expected fields: 'id', 'cliente_nome', 'repositorio_nome', 'usuario_nome', 'status'
-        expected_fields = {'id', 'cliente_nome', 'repositorio_nome', 'usuario_nome', 'status'}
+        # Expected fields: 'id', 'cliente_nome', 'repositorio_nome', 'usuario_nome', 'status', 'descricao', 'servico_descricao'
+        expected_fields = {'id', 'cliente_nome', 'repositorio_nome', 'usuario_nome', 'status', 'descricao', 'servico_descricao'}
         self.assertEqual(set(item.keys()), expected_fields)
         self.assertEqual(item['cliente_nome'], "Cliente Teste")
         self.assertEqual(item['repositorio_nome'], "Repo 1")
         self.assertEqual(item['usuario_nome'], "testuser")
+        self.assertEqual(item['descricao'], "Tarefa Descricao Teste")
+        self.assertEqual(item['servico_descricao'], "Servico 1")
 
     def test_patch_atualiza_campos_faturamento(self):
         view = OrdemServicoViewSet.as_view({'patch': 'partial_update'})

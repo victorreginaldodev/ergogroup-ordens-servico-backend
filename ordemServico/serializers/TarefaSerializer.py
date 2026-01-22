@@ -6,10 +6,11 @@ class TarefaListSerializer(serializers.ModelSerializer):
     cliente_nome = serializers.CharField(source='servico.ordem_servico.cliente.nome', read_only=True)
     repositorio_nome = serializers.CharField(source='servico.repositorio.nome', read_only=True)
     usuario_nome = serializers.CharField(source='profile.user.username', read_only=True)
+    servico_descricao = serializers.CharField(source='servico.descricao', read_only=True)
 
     class Meta:
         model = Tarefa
-        fields = ['id', 'cliente_nome', 'repositorio_nome', 'usuario_nome', 'status']
+        fields = ['id', 'cliente_nome', 'repositorio_nome', 'usuario_nome', 'status', 'descricao', 'servico_descricao']
 
 class TarefaDetailSerializer(serializers.ModelSerializer):
     cliente = serializers.SerializerMethodField()

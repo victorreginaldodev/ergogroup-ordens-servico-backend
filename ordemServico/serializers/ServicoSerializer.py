@@ -24,10 +24,19 @@ class RepositorioListSerializer(serializers.ModelSerializer):
 class ServicoListSerializer(serializers.ModelSerializer):
     repositorio = RepositorioListSerializer(read_only=True)
     cliente_nome = serializers.CharField(source='ordem_servico.cliente.nome', read_only=True)
+    tem_tarefas = serializers.SerializerMethodField()
 
     class Meta:
         model = Servico
-        fields = ['id', 'ordem_servico', 'cliente_nome', 'repositorio', 'status']
+        fields = ['id', 'ordem_servico', 'cliente_nome', 'repositorio', 'status', 'tem_tarefas']
+
+    def get_tem_tarefas(self, obj):
+        # Optimization: use annotated value if available
+        if hasattr(obj, 'has_tarefas'):
+            return obj.has_tarefas
+        # Fallback: Explicit query to ensure accuracy
+        from ordemServico.models import Tarefa
+        return Tarefa.objects.filter(servico_id=obj.id).exists()
 
 class ClienteDetailSerializer(serializers.ModelSerializer):
     class Meta:
