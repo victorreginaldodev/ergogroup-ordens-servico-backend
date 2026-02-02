@@ -25,10 +25,11 @@ class ServicoListSerializer(serializers.ModelSerializer):
     repositorio = RepositorioListSerializer(read_only=True)
     cliente_nome = serializers.CharField(source='ordem_servico.cliente.nome', read_only=True)
     tem_tarefas = serializers.SerializerMethodField()
+    data_criacao = serializers.DateField(source='ordem_servico.data_criacao', read_only=True)
 
     class Meta:
         model = Servico
-        fields = ['id', 'ordem_servico', 'cliente_nome', 'repositorio', 'status', 'tem_tarefas']
+        fields = ['id', 'ordem_servico', 'cliente_nome', 'repositorio', 'status', 'tem_tarefas', 'data_criacao']
 
     def get_tem_tarefas(self, obj):
         # Optimization: use annotated value if available

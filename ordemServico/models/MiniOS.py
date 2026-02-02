@@ -24,7 +24,8 @@ class MiniOS(models.Model):
     data_inicio = models.DateField(null=True, blank=True)
     data_termino = models.DateField(null=True, blank=True)
     status = models.CharField(null=True, blank=True, choices=STATUS, max_length=15, default='nao_iniciado')
-
+    revisao_cliente = models.BooleanField(null=True, blank=True, default=False)
+    
     faturamento = models.CharField(max_length=3, null=True, blank= True, choices=FATURAMENTO, default="nao")
     n_nf =models.CharField(max_length=10, null=True, blank=True, default="")
 

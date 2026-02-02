@@ -27,20 +27,34 @@ class Servico(models.Model):
     def sincronizar_status(self):
         """Garante que o status do serviço reflita o estado das tarefas relacionadas."""
         tem_tarefas = self.tarefas.exists()
-        todos_concluidos = tem_tarefas and not self.tarefas.exclude(status='concluida').exists()
-
+        
         campos_para_atualizar = {}
 
-        if todos_concluidos:
-            if self.status != 'concluida':
-                campos_para_atualizar['status'] = 'concluida'
-            if self.data_conclusao is None:
-                campos_para_atualizar['data_conclusao'] = timezone.now().date()
+        if tem_tarefas:
+            todos_concluidos = not self.tarefas.exclude(status='concluida').exists()
+
+            if todos_concluidos:
+                if self.status != 'concluida':
+                    campos_para_atualizar['status'] = 'concluida'
+                if self.data_conclusao is None:
+                    campos_para_atualizar['data_conclusao'] = timezone.now().date()
+            else:
+                if self.status == 'concluida':
+                    campos_para_atualizar['status'] = 'em_andamento'
+                if self.data_conclusao is not None:
+                    campos_para_atualizar['data_conclusao'] = None
+        
         else:
+            # Sem tarefas: 
+            # - Permite 'em_andamento' manual.
+            # - Bloqueia 'concluida' manual (reverte para 'em_andamento').
             if self.status == 'concluida':
                 campos_para_atualizar['status'] = 'em_andamento'
-            if self.data_conclusao is not None:
-                campos_para_atualizar['data_conclusao'] = None
+                if self.data_conclusao is not None:
+                    campos_para_atualizar['data_conclusao'] = None
+            elif self.status == 'em_andamento':
+                 if self.data_conclusao is not None:
+                     campos_para_atualizar['data_conclusao'] = None
 
         if campos_para_atualizar:
             Servico.objects.filter(pk=self.pk).update(**campos_para_atualizar)
@@ -50,7 +64,9 @@ class Servico(models.Model):
         if self.ordem_servico_id:
             self.ordem_servico.atualizar_status_conclusao()
 
-        return todos_concluidos
+        if tem_tarefas:
+            return not self.tarefas.exclude(status='concluida').exists()
+        return self.status == 'concluida'
 
     def concluir_servico(self):
         """Mantido por compatibilidade; utiliza o fluxo de sincronização completo."""

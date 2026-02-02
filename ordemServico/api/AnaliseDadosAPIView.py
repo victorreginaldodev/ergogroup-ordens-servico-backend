@@ -128,6 +128,10 @@ class AnaliseDadosAPIView(APIView):
                 }
             )
 
+        minios_queryset = MiniOS.objects.all()
+        minios_total = minios_queryset.count()
+        minios_revisao_cliente_total = minios_queryset.filter(revisao_cliente=True).count()
+
         clientes_top_queryset = (
             OrdemServico.objects.filter(faturamento='sim')
             .values('cliente_id', 'cliente__nome')
@@ -144,11 +148,47 @@ class AnaliseDadosAPIView(APIView):
             if item['cliente_id'] is not None
         ]
 
+        vendas_periodo = OrdemServico.objects.filter(
+            data_criacao__gte=data_inicio
+        )
+        vendas_por_mes_queryset = (
+            vendas_periodo.annotate(mes=TruncMonth('data_criacao'))
+            .values('mes')
+            .annotate(total=Sum('valor'))
+        )
+        vendas_por_mes_map = {item['mes']: item['total'] for item in vendas_por_mes_queryset}
+        vendas_por_mes = []
+        for item_mes in meses:
+            chave_mes = date(item_mes['ano'], item_mes['mes'], 1)
+            vendas_por_mes.append(
+                {
+                    'ano': item_mes['ano'],
+                    'mes': item_mes['mes'],
+                    'total': vendas_por_mes_map.get(chave_mes, 0) or 0,
+                }
+            )
+
+        clientes_vendas_queryset = (
+            OrdemServico.objects.values('cliente_id', 'cliente__nome')
+            .annotate(total=Sum('valor'))
+            .order_by('-total')[:10]
+        )
+        clientes_mais_vendas = [
+            {
+                'cliente_id': item['cliente_id'],
+                'cliente_nome': item['cliente__nome'],
+                'total_valor_vendas': item['total'] or 0,
+            }
+            for item in clientes_vendas_queryset
+            if item['cliente_id'] is not None
+        ]
+
         data = {
             'ordens_servico': {
                 'total': total_ordens,
                 'total_concluidas': total_concluidas,
                 'total_nao_concluidas': total_nao_concluidas,
+                'vendas_por_mes': vendas_por_mes,
             },
             'servicos': {
                 'concluidos_ultimos_12_meses_total': servicos_concluidos_total,
@@ -163,9 +203,12 @@ class AnaliseDadosAPIView(APIView):
             'minios': {
                 'concluidas_ultimos_12_meses_total': minios_concluidas_total,
                 'concluidas_por_mes': minios_concluidas_por_mes,
+                'total': minios_total,
+                'total_revisao_cliente': minios_revisao_cliente_total,
             },
             'clientes': {
                 'mais_faturamento': clientes_mais_faturamento,
+                'mais_vendas': clientes_mais_vendas,
             },
         }
 
