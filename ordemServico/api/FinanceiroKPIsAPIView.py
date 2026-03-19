@@ -36,25 +36,20 @@ class FinanceiroKPIsAPIView(APIView):
             servicos_concluidos=Subquery(servicos_concluidos_subquery),
         )
 
-        base_liberadas = annotated.filter(total_servicos=F('servicos_concluidos')).distinct()
-
-        cobranca_imediata_qs = base_liberadas.filter(
-            cobranca_imediata='sim',
-            faturamento='nao',
-        )
-
-        servicos_concluidos_qs = (
-            base_liberadas.filter(
-                servicos__isnull=False,
-                servicos__status='concluida',
+        liberadas = (
+            annotated.filter(faturamento='nao')
+            .filter(
+                Q(cobranca_imediata='sim') |
+                Q(
+                    servicos__isnull=False,
+                    total_servicos=F('servicos_concluidos'),
+                )
             )
-            .exclude(faturamento='sim')
+            .distinct()
         )
-
-        liberadas = (cobranca_imediata_qs | servicos_concluidos_qs).distinct()
 
         total_faturado = (
-            base_liberadas.filter(faturamento='sim')
+            queryset.filter(faturamento='sim')
             .aggregate(total=Sum('valor'))
             .get('total')
             or 0

@@ -8,6 +8,7 @@ from ordemServico.api.TarefaViewSet import TarefaViewSet
 from ordemServico.api.FinanceiroKPIsAPIView import FinanceiroKPIsAPIView
 from django.utils import timezone
 from rest_framework.test import force_authenticate, APIRequestFactory
+from rest_framework.serializers import ValidationError
 
 class OrdemServicoSerializerUpdateTest(TestCase):
     def setUp(self):
@@ -88,6 +89,59 @@ class OrdemServicoSerializerUpdateTest(TestCase):
         s3 = self.os.servicos.exclude(id=self.servico1.id).first()
         self.assertIsNotNone(s3)
         self.assertEqual(s3.descricao, "Servico 3 New")
+
+    def test_update_os_preserva_tarefas_quando_servico_existente_envia_id(self):
+        data = {
+            'cliente': self.cliente.id,
+            'valor': 200.0,
+            'servicos': [
+                {
+                    'id': self.servico1.id,
+                    'repositorio_id': self.repositorio.id,
+                    'descricao': "Servico 1 Updated"
+                },
+                {
+                    'id': self.servico2.id,
+                    'repositorio_id': self.repositorio.id,
+                    'descricao': "Servico 2 Updated"
+                }
+            ]
+        }
+
+        serializer = OrdemServicoSerializer(instance=self.os, data=data, partial=True)
+
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        serializer.save()
+
+        self.servico1.refresh_from_db()
+        self.servico2.refresh_from_db()
+        self.tarefa.refresh_from_db()
+
+        self.assertEqual(self.servico1.descricao, "Servico 1 Updated")
+        self.assertEqual(self.servico2.descricao, "Servico 2 Updated")
+        self.assertEqual(self.tarefa.servico_id, self.servico1.id)
+
+    def test_update_os_bloqueia_remocao_de_servico_com_tarefa(self):
+        data = {
+            'cliente': self.cliente.id,
+            'valor': 200.0,
+            'servicos': [
+                {
+                    'id': self.servico2.id,
+                    'repositorio_id': self.repositorio.id,
+                    'descricao': "Servico 2 Updated"
+                }
+            ]
+        }
+
+        serializer = OrdemServicoSerializer(instance=self.os, data=data, partial=True)
+
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        with self.assertRaises(ValidationError):
+            serializer.save()
+
+        self.assertTrue(Servico.objects.filter(id=self.servico1.id).exists())
+        self.assertTrue(Tarefa.objects.filter(id=self.tarefa.id).exists())
 
     def test_list_servico_fields(self):
         request = self.factory.get('/api/servico/')
@@ -485,7 +539,7 @@ class OrdemServicoFaturamentoEndpointTest(TestCase):
         ids = {item['id'] for item in response.data}
 
         self.assertIn(self.ordem_concluida.id, ids)
-        self.assertNotIn(self.ordem_cobranca_imediata.id, ids)
+        self.assertIn(self.ordem_cobranca_imediata.id, ids)
         self.assertIn(self.ordem_concluida_e_cobranca.id, ids)
         self.assertNotIn(self.ordem_regular.id, ids)
         self.assertNotIn(self.ordem_faturada.id, ids)
@@ -609,5 +663,5 @@ class FinanceiroKPIsAPIViewTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['total_faturado'], 100.0)
-        self.assertEqual(response.data['total_para_faturar'], 280.0)
+        self.assertEqual(response.data['total_para_faturar'], 430.0)
         self.assertEqual(response.data['total_sem_liberacao'], 60.0)

@@ -39,7 +39,11 @@ def financeiro(request):
         total_servicos=Subquery(total_servicos),
         servicos_concluidos=Subquery(servicos_concluidos)
     ).filter(
-        total_servicos=F('servicos_concluidos')
+        Q(cobranca_imediata='sim') |
+        Q(
+            servicos__isnull=False,
+            total_servicos=F('servicos_concluidos')
+        )
     ).distinct()
 
     ordens_com_formularios = [
@@ -54,10 +58,8 @@ def financeiro(request):
         "ordens_com_formularios": ordens_com_formularios,
         "total_faturadas": ordens_servicos.filter(faturamento="sim").aggregate(Sum("valor"))["valor__sum"] or 0,
         "total_liberadas": (
-            ordens_servicos.filter(cobranca_imediata="sim", faturamento="nao") |
-            ordens_servicos.filter(servicos__isnull=False, servicos__status="concluida")
-            .exclude(faturamento="sim")
-        ).distinct().aggregate(Sum("valor"))["valor__sum"] or 0,
+            ordens_servicos.filter(faturamento="nao")
+        ).aggregate(Sum("valor"))["valor__sum"] or 0,
         "total_nao_liberadas": total_nao_liberadas,
     }
 

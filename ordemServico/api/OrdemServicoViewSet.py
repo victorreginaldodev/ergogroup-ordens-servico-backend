@@ -1,18 +1,42 @@
-from django.db.models import Q, Count, F, OuterRef, Subquery
+from django.db.models import Count, F, OuterRef, Q, Subquery
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
+
 from ordemServico.models import OrdemServico, Servico
 from ordemServico.serializers import (
-    OrdemServicoSerializer,
-    OrdemServicoListSerializer,
     OrdemServicoFaturamentoSerializer,
+    OrdemServicoListSerializer,
+    OrdemServicoSerializer,
 )
 
-class OrdemServicoViewSet(viewsets.ModelViewSet): 
+from .pagination import OptionalPageNumberPagination
+
+
+class OrdemServicoViewSet(viewsets.ModelViewSet):
     queryset = OrdemServico.objects.select_related("cliente")
-    
+    pagination_class = OptionalPageNumberPagination
+
+    def get_queryset(self):
+        queryset = super().get_queryset().select_related("cliente")
+
+        if self.action == 'list':
+            q = self.request.query_params.get('q', '').strip()
+            date_from = self.request.query_params.get('date_from', '').strip()
+            date_to = self.request.query_params.get('date_to', '').strip()
+
+            if q:
+                queryset = queryset.filter(cliente__nome__icontains=q)
+            if date_from:
+                queryset = queryset.filter(data_criacao__gte=date_from)
+            if date_to:
+                queryset = queryset.filter(data_criacao__lte=date_to)
+
+            queryset = queryset.order_by('-data_criacao', '-id')
+
+        return queryset
+
     def get_serializer_class(self):
         if self.action == 'list':
             return OrdemServicoListSerializer
@@ -38,6 +62,10 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'], url_path='faturamento')
     def faturamento(self, request):
+        q = request.query_params.get('q', '').strip()
+        status_filter = request.query_params.get('status', '').strip()
+        billing_filter = request.query_params.get('billing', '').strip()
+
         servicos_concluidos_subquery = (
             Servico.objects.filter(
                 ordem_servico=OuterRef('pk'),
@@ -62,22 +90,45 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
             servicos_concluidos=Subquery(servicos_concluidos_subquery),
         )
 
-        base_liberadas = annotated.filter(total_servicos=F('servicos_concluidos')).distinct()
-
-        cobranca_imediata_qs = base_liberadas.filter(
-            cobranca_imediata='sim',
-            faturamento='nao',
-        )
-
-        servicos_concluidos_qs = (
-            base_liberadas.filter(
-                servicos__isnull=False,
-                servicos__status='concluida',
+        queryset = (
+            annotated.filter(
+                Q(cobranca_imediata='sim')
+                | Q(
+                    servicos__isnull=False,
+                    total_servicos=F('servicos_concluidos'),
+                )
             )
-            .exclude(faturamento='sim')
+            .distinct()
         )
 
-        queryset = (cobranca_imediata_qs | servicos_concluidos_qs).distinct()
+        if q:
+            queryset = queryset.filter(
+                Q(cliente__nome__icontains=q) | Q(id__icontains=q)
+            )
+
+        if status_filter == 'concluida':
+            queryset = queryset.filter(concluida='sim')
+        elif status_filter == 'andamento':
+            queryset = queryset.exclude(concluida='sim')
+
+        if billing_filter == 'faturada':
+            queryset = queryset.filter(faturamento='sim')
+        elif billing_filter == 'nao_faturada':
+            queryset = queryset.filter(faturamento='nao')
+        else:
+            queryset = queryset.filter(faturamento__in=['sim', 'nao'])
+
+        queryset = (
+            queryset
+            .filter(
+                Q(faturamento='sim') | Q(faturamento='nao')
+            )
+            .distinct()
+        )
         queryset = self.filter_queryset(queryset)
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)

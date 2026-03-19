@@ -9,7 +9,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = 'django-insecure-4v&_#+*bj_o(o#l=(nonu@m9id(z7!i=y$#9@(aa+w+if#edp*'
 
-DEBUG = False
+DEBUG = True
 
 if DEBUG:
     ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
@@ -73,7 +73,7 @@ if DEBUG:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.mysql',
-            'NAME': 'ergoapp',  # Substitua pelo nome do banco local
+            'NAME': 'ergogroup',  # Substitua pelo nome do banco local
             'USER': 'root',       # Substitua pelo usuário local
             'PASSWORD': '101508',     # Substitua pela senha local
             'HOST': 'localhost',           # Ou 127.0.0.1 para conexão local
