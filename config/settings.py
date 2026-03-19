@@ -9,7 +9,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = 'django-insecure-4v&_#+*bj_o(o#l=(nonu@m9id(z7!i=y$#9@(aa+w+if#edp*'
 
-DEBUG = True
+DEBUG = False
 
 if DEBUG:
     ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
