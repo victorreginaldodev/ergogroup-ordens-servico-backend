@@ -107,16 +107,22 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
             )
 
         if status_filter == 'concluida':
-            queryset = queryset.filter(concluida='sim')
+            queryset = queryset.filter(
+                Q(cobranca_imediata='sim') | Q(concluida='sim')
+            )
         elif status_filter == 'andamento':
-            queryset = queryset.exclude(concluida='sim')
+            queryset = queryset.filter(
+                Q(cobranca_imediata='sim') | ~Q(concluida='sim')
+            )
 
         if billing_filter == 'faturada':
             queryset = queryset.filter(faturamento='sim')
         elif billing_filter == 'nao_faturada':
             queryset = queryset.filter(faturamento='nao')
-        else:
+        elif billing_filter == 'all':
             queryset = queryset.filter(faturamento__in=['sim', 'nao'])
+        else:
+            queryset = queryset.filter(faturamento='nao')
 
         queryset = (
             queryset

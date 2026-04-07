@@ -478,6 +478,8 @@ class OrdemServicoFaturamentoEndpointTest(TestCase):
             descricao="Servico concluido",
             status='concluida'
         )
+        self.ordem_concluida.concluida = 'sim'
+        self.ordem_concluida.save(update_fields=['concluida'])
 
         self.ordem_cobranca_imediata = OrdemServico.objects.create(
             cliente=self.cliente,
@@ -514,6 +516,8 @@ class OrdemServicoFaturamentoEndpointTest(TestCase):
             descricao="Servico concluido cobranca",
             status='concluida'
         )
+        self.ordem_concluida_e_cobranca.concluida = 'sim'
+        self.ordem_concluida_e_cobranca.save(update_fields=['concluida'])
 
         self.ordem_faturada = OrdemServico.objects.create(
             cliente=self.cliente,
@@ -528,6 +532,8 @@ class OrdemServicoFaturamentoEndpointTest(TestCase):
             descricao="Servico faturado",
             status='concluida'
         )
+        self.ordem_faturada.concluida = 'sim'
+        self.ordem_faturada.save(update_fields=['concluida'])
 
     def test_retorna_ordens_para_faturamento(self):
         view = OrdemServicoViewSet.as_view({'get': 'faturamento'})
@@ -578,6 +584,34 @@ class OrdemServicoFaturamentoEndpointTest(TestCase):
         ids = [item['id'] for item in response.data if item['id'] == self.ordem_concluida_e_cobranca.id]
         self.assertEqual(len(ids), 1)
 
+    def test_status_concluida_mantem_cobranca_imediata_visivel(self):
+        view = OrdemServicoViewSet.as_view({'get': 'faturamento'})
+        request = self.factory.get('/api/ordens-servico/faturamento/', {'status': 'concluida'})
+        force_authenticate(request, user=self.user)
+        response = view(request)
+
+        self.assertEqual(response.status_code, 200)
+        ids = {item['id'] for item in response.data}
+
+        self.assertIn(self.ordem_concluida.id, ids)
+        self.assertIn(self.ordem_cobranca_imediata.id, ids)
+        self.assertIn(self.ordem_concluida_e_cobranca.id, ids)
+        self.assertNotIn(self.ordem_regular.id, ids)
+
+    def test_status_andamento_mantem_cobranca_imediata_visivel(self):
+        view = OrdemServicoViewSet.as_view({'get': 'faturamento'})
+        request = self.factory.get('/api/ordens-servico/faturamento/', {'status': 'andamento'})
+        force_authenticate(request, user=self.user)
+        response = view(request)
+
+        self.assertEqual(response.status_code, 200)
+        ids = {item['id'] for item in response.data}
+
+        self.assertIn(self.ordem_cobranca_imediata.id, ids)
+        self.assertIn(self.ordem_concluida_e_cobranca.id, ids)
+        self.assertNotIn(self.ordem_concluida.id, ids)
+        self.assertNotIn(self.ordem_regular.id, ids)
+
 
 class FinanceiroKPIsAPIViewTest(TestCase):
     def setUp(self):
@@ -600,6 +634,8 @@ class FinanceiroKPIsAPIViewTest(TestCase):
             descricao="Servico faturado",
             status='concluida'
         )
+        self.os_faturada.concluida = 'sim'
+        self.os_faturada.save(update_fields=['concluida'])
 
         self.os_concluida = OrdemServico.objects.create(
             cliente=self.cliente,
@@ -615,6 +651,8 @@ class FinanceiroKPIsAPIViewTest(TestCase):
             descricao="Servico concluido",
             status='concluida'
         )
+        self.os_concluida.concluida = 'sim'
+        self.os_concluida.save(update_fields=['concluida'])
 
         self.os_cobranca_imediata = OrdemServico.objects.create(
             cliente=self.cliente,
@@ -639,6 +677,8 @@ class FinanceiroKPIsAPIViewTest(TestCase):
             descricao="Servico concluido cobranca",
             status='concluida'
         )
+        self.os_concluida_e_cobranca.concluida = 'sim'
+        self.os_concluida_e_cobranca.save(update_fields=['concluida'])
 
         self.os_sem_liberacao = OrdemServico.objects.create(
             cliente=self.cliente,
