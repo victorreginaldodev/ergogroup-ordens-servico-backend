@@ -1,2 +1,0 @@
-from .CustomTokenObtainPairView import CustomTokenObtainPairView
-from .CustomTokenObtainPairSerializer import CustomTokenObtainPairSerializer
