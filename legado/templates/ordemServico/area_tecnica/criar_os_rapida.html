@@ -1,0 +1,94 @@
+{% extends 'ordemServico/base.html' %}
+{% load static %}
+{% block title %}Criar OS rápida{% endblock %}
+{% block content %}
+<div class="container page-title">
+
+    <h3 class="titulo-pagina">
+        <i class="fa-solid fa-pen-to-square"></i>
+        Criar nova ordem de serviço rápida
+    </h3>
+
+    <div
+        id="alerta-unico"
+        class="alert alert-warning alert-dismissible fade show"
+        role="alert"
+        style="position: fixed; top: 20px; right: 20px; z-index: 1050; max-width: 300px;"
+    >
+        <strong style="font-weight: 700;">Atenção:</strong> Antes de iniciar a criação de uma OS Rápida, verifique se o cliente e todos os
+        serviços já estão cadastrados. Se for necessário cadastrar serviços ou clientes durante a criação da OS rápida, você precisará recarregar a página e perderá todo o seu progresso.
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+
+
+    <form method="post">
+
+        {% csrf_token %}
+
+        <div class="p-2 mb-3">
+            <label for="{{ form.cliente.id_for_label }}">Selecione um cliente:</label>
+            <div class="form-group w-25">
+                {{ form.cliente }}
+            </div>
+        </div>
+
+        <div class="p-2 d-flex g-1">
+
+            <div class="w-25">
+                <label for="{{ form.profile.id_for_label }}">Selecione um técnico:</label>
+                <div class="form-group">
+                    {{ form.profile }}
+                </div>
+            </div>
+
+            <div style="width: 15vw;">
+                <div class="form-group">
+                    <label for="{{ formUpdate.data_inico.id_for_label }}">Data de recebimento:</label>
+                    {{ form.data_recebimento }}
+                </div>
+            </div>
+
+            <div class="w-25">
+                <label for="{{ form.servico.id_for_label }}">Selecione serviço:</label>
+                <div class="form-group">
+                    {{ form.servico }}
+                </div>
+            </div>
+
+            <div class="w-25">
+                <label for="{{ form.servico.id_for_label }}">Quantidade de serviços:</label>
+                <div class="form-group">
+                    {{ form.quantidade }}
+                </div>
+            </div>
+
+        </div>
+
+        <div class="mt-3 mb-3 p-2">
+            <div class="form-group">
+                <label for="{{ form.observacao.id_for_label }}">Descrição:</label>
+                {{ form.descricao }}
+            </div>
+        </div>
+
+        <button class="botao ms-2" type="submit">Salvar</button>
+    </form>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+    const alerta = document.getElementById("alerta-unico");
+    if (alerta) {
+        setTimeout(() => {
+            alerta.classList.remove("show");
+            alerta.classList.add("fade");
+            setTimeout(() => alerta.remove(), 150); // Remove do DOM após animação
+        }, 5000); // 5 segundos
+    }
+});
+
+</script>
+{% endblock %}

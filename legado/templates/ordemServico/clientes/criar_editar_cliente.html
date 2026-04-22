@@ -1,0 +1,186 @@
+{% extends 'ordemServico/base.html' %}
+{% load static %}
+{% block title %} Criar clientes {% endblock %}
+
+{% block content %}
+
+<div class="content page-title px-5 mb-5">
+
+    <div class="container">
+
+        <h3 class="titulo-pagina">
+            <i class="bi bi-pencil-square"></i>
+            {% if cliente %} Editar Cliente - {{ cliente.nome|title }} {% else %} Criar um Novo Cliente {% endif %}
+        </h3>        
+
+        <form method="POST" class="mt-4">
+            {% csrf_token %}
+
+            <!-- Primeira linha do formulário: Nome do cliente -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <label for="{{ form.nome.id_for_label }}" class="form-label">Nome do cliente:</label>
+                    <div class="form-group">
+                        {{ form.nome }}
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <label for="{{ form.tipo_cliente.id_for_label }}" class="form-label">Tipo de cliente:</label>
+                    <div class="form-group">
+                        {{ form.tipo_cliente }}
+                    </div>
+                </div>
+
+                <div class="col-md-2">
+                    <label for="{{ form.cliente_ativo.id_for_label }}" class="form-label">Cliente ativo:</label>
+                    <div class="form-group">
+                        {{ form.cliente_ativo }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Segunda linha do formulário: Tipo de inscrição e Número de inscrição -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <label for="{{ form.tipo_inscricao.id_for_label }}" class="form-label">Tipo de inscrição:</label>
+                    <div class="form-group">
+                        {{ form.tipo_inscricao }}
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <label for="{{ form.numero_inscricao.id_for_label }}" class="form-label">Número de
+                        inscrição:</label>
+                    <div class="form-group">
+                        {{ form.numero_inscricao }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Terceira linha do formulário: Tipo de cliente e Observação -->
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <label for="{{ form.observacao.id_for_label }}" class="form-label">Observação:</label>
+                    <div class="form-group">
+                        {{ form.observacao }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quarta linha do formulário: Nome do representante, Setor do representante, e E-mail do representante -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <label for="{{ form.nome_representante.id_for_label }}" class="form-label">Nome do
+                        representante:</label>
+                    <div class="form-group">
+                        {{ form.nome_representante }}
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <label for="{{ form.setor_representante.id_for_label }}" class="form-label">Setor do
+                        representante:</label>
+                    <div class="form-group">
+                        {{ form.setor_representante }}
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Quinta linha do formulário: Contato do representante e Cliente ativo -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <label for="{{ form.contato_representante.id_for_label }}" class="form-label">
+                        Contato do representante:
+                    </label>
+                    <div class="form-group">
+                        {{ form.contato_representante }}
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <label for="{{ form.email_representante.id_for_label }}" class="form-label">
+                        E-mail do representante:</label>
+                    <div class="form-group">
+                        {{ form.email_representante }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Campos adicionais antes do botão -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="form-check form-switch">
+                        {{ form.renovacao_automatica }}
+                        <label class="form-check-label" for="{{ form.renovacao_automatica.id_for_label }}">
+                            Renovação Automativa
+                        </label>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-check form-switch">
+                        {{ form.cobranca_revisao_alteracao }}
+                        <label class="form-check-label" for="{{ form.cobranca_revisao_alteracao.id_for_label }}">
+                            Cobrança de Revisão/Alteração
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn button py-2">
+                {% if cliente %} Salvar Alterações {% else %} Salvar Novo Cliente {% endif %}
+            </button>
+            
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.inputmask/5.0.7/jquery.inputmask.min.js"></script>
+
+<script>
+    $(document).ready(function () {
+        function applyMask() {
+            var tipoInscricao = $('#id_tipo_inscricao').val();
+
+            $('#id_numero_inscricao').inputmask('remove');
+
+            if (tipoInscricao === 'cpf') {
+                $('#id_numero_inscricao').inputmask('999.999.999-99');
+            } else if (tipoInscricao === 'cnpj') {
+                $('#id_numero_inscricao').inputmask('99.999.999/9999-99');
+            } else if (tipoInscricao === 'cei') {
+                $('#id_numero_inscricao').inputmask('99.999.99999/99');  // Máscara CEI
+            } else if (tipoInscricao === 'cno') {
+                $('#id_numero_inscricao').inputmask('99.999.999/9999-99');  // Máscara CNO
+            } else if (tipoInscricao === 'caepf') {
+                $('#id_numero_inscricao').inputmask('999.999.999-99');  // Máscara CAEPF (Semelhante ao CPF)
+            }
+        }
+
+        // Aplica a máscara ao carregar a página com base no valor atual do select
+        applyMask();
+
+        // Atualiza a máscara ao mudar o valor do select (quando o usuário escolhe outro tipo)
+        $('#id_tipo_inscricao').on('change', function () {
+            applyMask();  // Chama a função para atualizar a máscara
+        });
+    });
+</script>
+
+<script>
+    $(document).ready(function () {
+        // Aplicar máscara que se adapta para telefones fixos e móveis
+        $('#id_contato_representante').inputmask({
+            mask: ['(99) 9999-9999', '(99) 9 9999-9999'],
+            keepStatic: true  // Permite alternar entre os dois formatos dinamicamente
+        });
+    });
+</script>
+
+
+{% endblock %}

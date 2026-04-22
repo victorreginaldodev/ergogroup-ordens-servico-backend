@@ -1,0 +1,808 @@
+{% extends 'ordemServico/base.html' %}
+{% load static %}
+{% block title %} Líder Técnica {% endblock %}
+{% block content %}
+
+{% block styles %}
+<style>
+    .tabela-dados-servicos th,
+    td {
+        text-align: left !important;
+        font-size: 12px !important;
+        padding: 0.75rem;
+    }
+
+    .tabela-dados-servicos th {
+        width: 15vw;
+        background-color: var(--azul-principal);
+        border-bottom: 1px solid var(--cinza-claro);
+
+        color: var(--cinza-claro) !important;
+        font-weight: 600;
+    }
+
+    .tabela-dados-servicos td {
+        color: var(--cinza) !important;
+        font-weight: 400;
+        background-color: var(--cinza-claro);
+        border-bottom: 1px solid var(--cinza);
+    }
+
+    .notificacao {
+        padding: 1rem;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        color: white;
+        animation: fadeIn 0.3s forwards, fadeOut 1s 9s; /* Ajustado para 9s de delay antes do fadeOut */
+        opacity: 0;
+        position: relative;
+        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .notificacao.sucesso {
+        background-color: #388e3c;
+    }
+
+    .notificacao.erro {
+        background-color: #d32f2f;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeOut {
+        from { opacity: 1; }
+        to { opacity: 0; }
+    }
+
+    .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-top: 1rem;
+        gap: 1rem;
+    }
+
+    .button {
+        padding: 0.5rem 1rem;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+
+    .button:hover {
+        background-color: #0056b3;
+    }
+
+    .pagination-info {
+        font-size: 1rem;
+        color: #555;
+    }
+
+</style>
+{% endblock %}
+
+<div class="container mb-5">
+
+    <h3 class="titulo-pagina">
+        <i class="bi bi-person-gear" style="margin-right: 4px;"></i>
+        Serviços
+    </h3>
+    <div id="filtros-container" class="row" style="display: flex; align-items: center; margin-bottom: 0.5rem;">
+
+        <!-- Campo de Pesquisa -->
+        <div class="col-6">
+            <label for="pesquisa" style="display: block; font-weight: 400; font-size: 0.875rem; color: var(--cinza); margin-bottom: 0.5rem;">
+                Pesquisar pelo nome da empresa ou serviço
+            </label>
+            <input 
+                type="text" 
+                id="pesquisa" 
+                placeholder="Digite para pesquisar..." 
+                style="width: 100%; padding: 0.75rem; border: 1px solid #d1d1d1; border-radius: 8px; font-size: 1rem; outline: none; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); background-color: #F4F4F4;"
+            >
+        </div>
+
+        <!-- Filtro de Status -->
+        <div class="col-3">
+            <label for="status" style="display: block; font-weight: 400; font-size: 0.875rem; color: var(--cinza); margin-bottom: 0.5rem;">
+                Pesquisar por status
+            </label>
+            <select 
+                id="status" 
+                style="width: 100%; padding: 0.75rem; border: 1px solid #d1d1d1; border-radius: 8px; font-size: 1rem; outline: none; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); color: var(--cinza);"
+            >
+                <option value="todos">Todos</option>
+                <option value="em_espera">Em espera</option>
+                <option value="em_andamento">Em andamento</option>
+                <option value="concluida">Concluídos</option>
+            </select>
+        </div>
+    
+        <!-- Filtro de colaboradores -->
+        <div class="col-3">
+            <label for="colaborador-filter" style="display: block; font-weight: 400; font-size: 0.875rem; color: var(--cinza); margin-bottom: 0.5rem;">
+                Pesquisar por colaborador
+            </label>
+            <select 
+                id="colaborador-filter" 
+                name="colaborador-filter"  
+                style="width: 100%; padding: 0.75rem; border: 1px solid #d1d1d1; border-radius: 8px; font-size: 1rem; outline: none; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); color: var(--cinza);"
+            >
+                <option value="">Selecione...</option>
+                {% for profile in profiles %}
+                    <option value="{{ profile.id }}">{{ profile.user.username }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div> 
+       
+    <div id="servicos-container"></div>
+
+    <!-- Controles de Paginação -->
+    <nav aria-label="Navegação de Página">
+        <ul class="pagination justify-content-center mt-4" id="pagination-controls">
+            <!-- Os botões de navegação serão gerados dinamicamente -->
+        </ul>
+    </nav>
+
+    <!-- Modal de Confirmação -->
+    <div id="modal-confirmacao" class="modal" style="display: none; position: fixed; z-index: 9999; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5);">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 1.5rem; border-radius: 8px; width: 300px; text-align: center; box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);">
+            <p id="modal-text" style="margin-bottom: 1rem; font-size: 1rem;">Tem certeza que deseja excluir esta tarefa?</p>
+            <button id="confirmar-exclusao" style="padding: 0.5rem 1rem; background-color: #d32f2f; color: white; border: none; border-radius: 4px; cursor: pointer;">Confirmar</button>
+            <button id="cancelar-exclusao" style="padding: 0.5rem 1rem; background-color: #616161; color: white; border: none; border-radius: 4px; cursor: pointer; margin-left: 0.5rem;">Cancelar</button>
+        </div>
+    </div>
+
+    <!-- Contêiner para Notificações -->
+    <div id="notificacoes" style="position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px;"></div>
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const servicosContainer = document.getElementById('servicos-container');
+        const paginationControls = document.getElementById('pagination-controls');
+        const pesquisaInput = document.getElementById('pesquisa');
+        const statusSelect = document.getElementById('status');
+        const colaboradorSelect = document.getElementById('colaborador-filter');
+
+        // Armazena os filtros ativos
+        const filtrosAtivos = {
+            pesquisa: '',
+            status: '',
+            colaborador: '',
+        };
+
+        // Função para carregar serviços com filtros e paginação
+        async function carregarServicos(page = 1) {
+            try {
+                const params = new URLSearchParams({
+                    page,
+                    pesquisa: filtrosAtivos.pesquisa,
+                    status: filtrosAtivos.status,
+                    colaborador: filtrosAtivos.colaborador,
+                });
+
+                const response = await fetch(`?${params.toString()}`, {
+                    headers: { "X-Requested-With": "XMLHttpRequest" },
+                });
+
+                if (!response.ok) {
+                    console.error('Erro ao carregar os serviços:', response.statusText);
+                    return;
+                }
+
+                const data = await response.json();
+
+                // Renderiza os serviços
+                servicosContainer.innerHTML = '';
+                data.servicos.forEach(servico => {
+                    const acordeaoItem = `
+                        <div class="accordion mb-1" id="accordionFlushExample">
+                            <div class="accordion-item" style="border-bottom: 3px solid var(--cinza-claro);">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed w-100 text-start" type="button" 
+                                        data-bs-toggle="collapse"
+                                        data-bs-target="#flush-collapse-${servico.id}" 
+                                        aria-expanded="false" 
+                                        aria-controls="flush-collapse-${servico.id}">
+                                        <div class="row w-100 d-flex align-items-center">
+                                            <div class="col-1 text-center">
+                                                <p style="font-size: 12px; color: var(--cinza)">${servico.ordem_servico_id}</p>
+                                            </div>
+                                            <div class="col-5 text-center">
+                                                <p style="font-size: 12px; color: var(--cinza)">${truncateText(servico.cliente_nome, 50)}</p>
+                                            </div>
+                                            <div class="col-3 text-center">
+                                                <p style="font-size: 12px; color: var(--cinza)">${truncateText(servico.repositorio_nome, 40)}</p>
+                                            </div>
+                                            <div class="col-3 text-center">
+                                                <p id="status-servico-button${servico.id}" style="font-size: 10px; font-weight: bold;">
+                                                    <span style="
+                                                        display: inline-block;
+                                                        padding: 5px 10px;
+                                                        border-radius: 10px;
+                                                        text-transform: uppercase;
+                                                        color: ${servico.status_display === 'EM ESPERA' ? '#d32f2f' : 
+                                                                servico.status_display === 'EM ANDAMENTO' ? '#f9a825' : 
+                                                                servico.status_display === 'CONCLUÍDA' ? '#388e3c' : '#616161'};
+                                                        background-color: ${servico.status_display === 'EM ESPERA' ? 'rgba(211, 47, 47, 0.2)' : 
+                                                                            servico.status_display === 'EM ANDAMENTO' ? 'rgba(249, 168, 37, 0.2)' : 
+                                                                            servico.status_display === 'CONCLUÍDA' ? 'rgba(56, 142, 60, 0.2)' : 'transparent'};
+                                                        box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+                                                    ">
+                                                        ${servico.status_display || "N/A"}
+                                                    </span>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </button>
+                                </h2>
+                                <div 
+                                    id="flush-collapse-${servico.id}" 
+                                    class="accordion-collapse collapse" 
+                                    data-bs-parent="#accordionFlushExample">
+                                    <div class="accordion-body" style="border: 2px solid var(--cinza-claro); padding: 2rem 4rem;">
+                                        <div class="container-servico">
+
+                                            <div class="cabecalho">
+                                                <table class="w-100">
+                                                    <tr>
+                                                        <td class="text-center align-middle" style="border-bottom: 1px solid var(--cinza); border-right: 1px solid var(--cinza); color: var(--cinza)">${servico.cliente_nome}</td>
+                                                        <td class="text-center align-middle" style="border-bottom: 1px solid var(--cinza); border-right: 1px solid var(--cinza); color: var(--cinza)">${servico.tipo_inscricao_display}</td>
+                                                        <td class="text-center align-middle" style="border-bottom: 1px solid var(--cinza); border-right: 1px solid var(--cinza); color: var(--cinza)">${servico.numero_inscricao}</td>
+                                                        <td class="text-center align-middle" style="border-bottom: 1px solid var(--cinza); color: var(--cinza)">${servico.tipo_cliente_display}</td>
+                                                    </tr>
+                                                </table>
+                                            </div>
+
+                                            <div class="contato py-2">
+                                                <h3 class="py-3 text-muted" style="font-size: 14px; font-weight: 600; color: var(--cinza)">
+                                                    Dados do representante:
+                                                </h3>
+                                                <div class="py-1">
+                                                    <span class="fw-bold text-muted" style="font-size: 14px; color: var(--cinza)"">Nome:</span>
+                                                    <span class="text-muted" style="font-size: 14px; color: var(--cinza)"">${servico.nome_representante || "Não cadastrado"}</span>
+                                                </div>
+                                                <div class="py-1">
+                                                    <span class="fw-bold text-muted" style="font-size: 14px; color: var(--cinza)"">Setor:</span>
+                                                    <span class="text-muted" style="font-size: 14px; color: var(--cinza)"">${servico.setor_representante || "Não cadastrado"}</span>
+                                                </div>
+                                                <div class="py-1">
+                                                    <span class="fw-bold text-muted" style="font-size: 14px; color: var(--cinza)"">E-mail:</span>
+                                                    <span class="text-muted" style="font-size: 14px; color: var(--cinza)"">${servico.email_representante || "Não cadastrado"}</span>
+                                                </div>
+                                                <div class="py-1">
+                                                    <span class="fw-bold text-muted" style="font-size: 14px; color: var(--cinza)"">Telefone:</span>
+                                                    <span class="text-muted" style="font-size: 14px; color: var(--cinza)"">${servico.telefone_representante || "Não cadastrado"}</span>
+                                                </div>
+                                            </div>
+
+                                            <div class="dados-servico">
+                                                <h3 class="py-3 text-muted" style="font-size: 14px; font-weight: 600;">
+                                                    Dados do serviço:
+                                                </h3>
+
+                                                <table class="w-100">
+                                                    <tr style="border-bottom: 2px solid var(--cinza-claro);">
+                                                        <th class="align-middle" 
+                                                            style="font-size: 12px; color: var(--cinza-claro); background-color: var(--azul-principal); padding: 0.5rem; width: 15vw !important;">
+                                                            Número da OS
+                                                        </th>
+                                                        <td class="align-middle" style="color: var(--cinza)">${servico.ordem_servico_id || "N/A"}</td>
+                                                    </tr>
+                                                    <tr style="border-bottom: 2px solid var(--cinza-claro);">
+                                                        <th class="align-middle" 
+                                                            style="font-size: 12px; color: var(--cinza-claro); background-color: var(--azul-principal); padding: 0.5rem; width: 15vw !important;">
+                                                            Valor
+                                                        </th>
+                                                        <td class="align-middle" style="color: var(--cinza)">R$ ${servico.valor || "0,00"}</td>
+                                                    </tr>
+                                                    <tr style="border-bottom: 2px solid var(--cinza-claro);">
+                                                        <th class="align-middle" 
+                                                            style="font-size: 12px; color: var(--cinza-claro); background-color: var(--azul-principal); padding: 0.5rem; width: 15vw !important;">
+                                                            Nome do serviço
+                                                        </th>
+                                                        <td class="align-middle" style="color: var(--cinza)">${servico.repositorio_nome || "N/A"}</td>
+                                                    </tr>
+                                                    <tr style="border-bottom: 2px solid var(--cinza-claro);">
+                                                        <th class="align-middle" 
+                                                            style="font-size: 12px; color: var(--cinza-claro); background-color: var(--azul-principal); padding: 0.5rem; width: 15vw !important;">
+                                                            Status
+                                                        </th>
+                                                        <td class="align-middle" id="status-servico-table${servico.id}" style="color: var(--cinza)">
+                                                            ${servico.status_display || "N/A"}
+                                                        </td>
+                                                    </tr>
+                                                    <tr style="border-bottom: 2px solid var(--cinza-claro);">
+                                                        <th class="align-middle" 
+                                                            style="font-size: 12px; color: var(--cinza-claro); background-color: var(--azul-principal); padding: 0.5rem; width: 15vw !important;">
+                                                            Data de Conclusão
+                                                        </th>
+                                                        <td class="align-middle" id="data-conclusao-servico-${servico.id}" style="color: var(--cinza)">
+                                                            ${servico.data_conclusao || "Serviço ainda não concluído"}
+                                                        </td>
+                                                    </tr>
+                                                    <tr style="border-bottom: 2px solid var(--cinza-claro);">
+                                                        <th class="align-middle" 
+                                                            style="font-size: 12px; color: var(--cinza-claro); background-color: var(--azul-principal); padding: 0.5rem; width: 15vw !important;">
+                                                            Descrição
+                                                        </th>
+                                                        <td class="align-middle" style="overflow: auto; white-space: pre-wrap; color: var(--cinza)">${servico.descricao || "N/A"}</td>
+                                                    </tr>
+                                                </table>
+                                            </div>
+
+                                            <h6 class="py-2 mt-4" style="font-size: 12px; font-weight: 600; color: var(--cinza);">Atualizar status e data de conclusão:</h6>
+                                            <form class="form-status mb-3" method="POST" data-servico-id="${servico.id}">
+                                                {% csrf_token %}
+                                                <div class="row d-flex align-items-center">
+                                                    <div class="col-3">
+                                                        ${servico.form_status.status}
+                                                    </div>
+                                                    <div class="col-2">
+                                                        ${servico.form_status.data_conclusao}
+                                                    </div>
+                                                    <div class="col-3">
+                                                        <button type="submit" class="botao">Atualizar status</button>
+                                                    </div>
+                                                </div>
+                                            </form>
+
+                                            <div class="tarefas mt-3">
+                                            <h6 class="py-2" style="font-size: 14px; font-weight: 600; color: var(--cinza);">Tarefas:</h6>
+                                            <table id="tabela-tarefas-${servico.id}" class="w-100">
+                                                <tr>
+                                                    <th class="text-center align-middle" style="border-bottom: 1px solid var(--cinza); border-right: 1px solid var(--cinza); width: 30%; color: var(--cinza); font-size: 12px">Colaborador</th>
+                                                    <th class="text-center align-middle" style="border-bottom: 1px solid var(--cinza); border-right: 1px solid var(--cinza); width: 40%; color: var(--cinza); font-size: 12px">Descrição</th>
+                                                    <th class="text-center align-middle" style="border-bottom: 1px solid var(--cinza); border-right: 1px solid var(--cinza); width: 15%; color: var(--cinza); font-size: 12px">Status</th>
+                                                    <th class="text-center align-middle" style="border-bottom: 1px solid var(--cinza); width: 15%; color: var(--cinza); font-size: 12px; border-right: 1px solid var(--cinza)">Data de Conclusão</th>
+                                                    <th class="text-center align-middle" style="border-bottom: 1px solid var(--cinza); width: 15%; color: var(--cinza); font-size: 12px">Excluir</th>
+                                                </tr>
+                                                ${servico.tarefas.map(tarefa => `
+                                                    <tr>
+                                                        <td class="text-center align-middle" style="color: var(--cinza); font-size: 12px; border-bottom: 1px solid var(--cinza-claro)">${tarefa.profile}</td>
+                                                        <td class="text-center align-middle" style="color: var(--cinza); font-size: 12px; border-bottom: 1px solid var(--cinza-claro)">${tarefa.descricao || "Sem descrição"}</td>
+                                                        <td class="text-center align-middle" style="color: var(--cinza); font-size: 12px; border-bottom: 1px solid var(--cinza-claro)">${tarefa.status}</td>
+                                                        <td class="text-center align-middle" style="color: var(--cinza); font-size: 12px; border-bottom: 1px solid var(--cinza-claro)">${tarefa.data_conclusao}</td>
+                                                        <td class="text-center align-middle" style="border-bottom: 1px solid var(--cinza-claro);">
+                                                            <button 
+                                                                class="btn-excluir-tarefa" 
+                                                                data-tarefa-id="${tarefa.id}" 
+                                                                style="padding: 0.5rem; background-color: #d32f2f; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;"
+                                                            >
+                                                                Excluir
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                `).join('')}
+                                            </table>
+                                        </div>
+                                            <div class="container-servico d-flex justify-content-between mt-3">
+                                                <button type="button" class="botao" data-bs-toggle="modal" data-bs-target="#tarefaModal-${servico.id}">
+                                                    Adicionar Tarefa
+                                                </button>
+                                                <a 
+                                                    href="/ordens-servicos/editar/${servico.ordem_servico_id}/" 
+                                                    class="botao"
+                                                    style="text-decoration: none"
+                                                >
+                                                    Visualizar OS
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Modal -->
+                        <div class="modal fade" id="tarefaModal-${servico.id}" tabindex="-1" aria-labelledby="tarefaModalLabel-${servico.id}" aria-hidden="true">
+                            <div class="modal-dialog" style="font-family: var(--fonte);">
+                                <div class="modal-content" style="background-color: var(--cinza-claro); border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+                                    <div class="modal-header" style="background-color: var(--azul-principal); color: var(--branco); border-top-left-radius: 8px; border-top-right-radius: 8px;">
+                                        <h5 class="modal-title" id="tarefaModalLabel-${servico.id}" style="font-weight: bold;">Adicionar Tarefa - Serviço ${servico.id}</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="background-color: var(--branco); opacity: 0.8; border: none;"></button>
+                                    </div>
+                                    <div class="modal-body" style="padding: 20px;">
+                                        <form id="formTarefa-${servico.id}" class="form-tarefa" data-servico-id="${servico.id}">
+                                            {% csrf_token %}
+                                            <div class="mb-3">
+                                                <label for="profile-${servico.id}" class="form-label" style="color: var(--azul-principal); font-weight: bold;">Colaborador</label>
+                                                ${servico.form_tarefa.profile}
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="descricao-${servico.id}" class="form-label" style="color: var(--azul-principal); font-weight: bold;">Descrição</label>
+                                                ${servico.form_tarefa.descricao}
+                                            </div>
+                                            <div class="modal-footer" style="border-top: 1px solid var(--cinza); padding-top: 15px;">
+                                                <button type="submit" class="btn btn-success" style="background-color: var(--azul-secundario); border-color: var(--azul-secundario); color: var(--branco); font-weight: bold;">
+                                                    Salvar Tarefa
+                                                </button>
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="background-color: var(--cinza); border-color: var(--cinza); color: var(--branco); font-weight: bold;">
+                                                    Fechar
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    servicosContainer.insertAdjacentHTML('beforeend', acordeaoItem);
+                });
+
+                // Renderiza os controles de paginação
+                paginationControls.innerHTML = ''; // Limpa os controles existentes
+
+                paginationControls.className = 'pagination d-flex justify-content-center align-items-center mt-3'; // Adiciona classes ao contêiner
+
+                if (data.has_previous) {
+                    paginationControls.insertAdjacentHTML('beforeend', `
+                        <button 
+                            class="button btn-prev" 
+                            data-page="${data.previous_page_number}" 
+                            style="padding: 0.5rem 1rem; margin: 0 0.5rem; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                            Anterior
+                        </button>
+                    `);
+                }
+
+                paginationControls.insertAdjacentHTML('beforeend', `
+                    <span class="pagination-info" style="margin: 0 1rem; font-size: 1rem; color: #555;">
+                        Página ${data.current_page} de ${data.total_pages}
+                    </span>
+                `);
+
+                if (data.has_next) {
+                    paginationControls.insertAdjacentHTML('beforeend', `
+                        <button 
+                            class="button btn-next" 
+                            data-page="${data.next_page_number}" 
+                            style="padding: 0.5rem 1rem; margin: 0 0.5rem; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                            Próxima
+                        </button>
+                    `);
+                }
+
+                // Adiciona eventos aos botões de paginação
+                document.querySelectorAll('#pagination-controls button').forEach(button => {
+                    button.addEventListener('click', event => {
+                        event.preventDefault();
+                        const page = button.getAttribute('data-page');
+                        carregarServicos(page);
+                    });
+                });
+            } catch (error) {
+                console.error('Erro ao carregar serviços:', error);
+            }
+        }
+
+       // Atualiza filtros e recarrega serviços
+       function atualizarFiltros(chave, valor) {
+            filtrosAtivos[chave] = valor;
+            carregarServicos();
+        }
+
+        // Eventos para os filtros
+        pesquisaInput.addEventListener('input', (event) => {
+            atualizarFiltros('pesquisa', event.target.value);
+        });
+
+        statusSelect.addEventListener('change', (event) => {
+            atualizarFiltros('status', event.target.value);
+        });
+
+        colaboradorSelect.addEventListener('change', (event) => {
+            atualizarFiltros('colaborador', event.target.value);
+        });
+
+        // Função para truncar texto
+        function truncateText(text, limit) {
+            if (!text) return "N/A";
+            return text.length > limit ? text.substring(0, limit) + "..." : text;
+        }
+
+        // Carrega a primeira página ao iniciar
+        carregarServicos();
+    });
+</script>
+
+<script>
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        // Função para obter o token CSRF do DOM
+        function getCSRFToken() {
+            const csrfElement = document.querySelector('[name=csrfmiddlewaretoken]');
+            return csrfElement ? csrfElement.value : '';
+        }
+
+        const servicosContainer = document.getElementById('servicos-container');
+
+        // Função para exibir mensagens de sucesso ou erro
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast align-items-center text-bg-${type} border-0`;
+            toast.style.position = 'fixed';
+            toast.style.top = '20px';
+            toast.style.right = '20px';
+            toast.style.zIndex = 1055;
+
+            toast.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">${message}</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            `;
+            document.body.appendChild(toast);
+            const toastInstance = new bootstrap.Toast(toast);
+            toastInstance.show();
+            toast.addEventListener('hidden.bs.toast', () => toast.remove());
+        }
+
+        // Função para exibir o spinner no canto superior direito
+        function showSpinner() {
+            const spinner = document.createElement('div');
+            spinner.className = 'spinner-border text-primary';
+            spinner.style.position = 'fixed';
+            spinner.style.top = '20px';
+            spinner.style.right = '20px';
+            spinner.style.zIndex = 1055;
+            spinner.setAttribute('role', 'status');
+            spinner.innerHTML = '<span class="visually-hidden">Carregando...</span>';
+            document.body.appendChild(spinner);
+            return spinner;
+        }
+
+        // Submissão do formulário de atualização de status
+        servicosContainer.addEventListener('submit', async (event) => {
+            if (event.target.matches('.form-status')) {
+                event.preventDefault();
+                const form = event.target;
+                const servicoId = form.dataset.servicoId;
+
+                // Exibir spinner enquanto processa a requisição (opcional)
+                const spinner = showSpinner(); // Função para mostrar spinner, caso tenha
+
+                try {
+                    const response = await fetch(`/atualizar-status-servico/${servicoId}/`, {
+                        method: 'POST',
+                        body: new FormData(form),
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRFToken': getCSRFToken(),
+                        },
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        showToast('Status atualizado com sucesso!'); // Exibe mensagem de sucesso
+
+                        // Atualiza o status e a data de conclusão no frontend
+                        const statusFieldButton = document.querySelector(`#status-servico-button${servicoId}`);
+                        const dataConclusaoField = document.querySelector(`#data-conclusao-servico-${servicoId}`);
+                        const statusFieldTable = document.querySelector(`#status-servico-table${servicoId}`);
+
+                        // Atualiza os campos no DOM
+                        if (statusFieldButton) {
+                            const statusSelect = form.querySelector('select[name="status"]');
+                            const selectedStatus = statusSelect.selectedOptions[0].text || "N/A";
+
+                            // Atualiza o texto do span
+                            const spanElement = statusFieldButton.querySelector('span');
+                            if (spanElement) {
+                                spanElement.textContent = selectedStatus;
+
+                                // Atualiza os estilos dinamicamente
+                                let color, backgroundColor;
+
+                                if (selectedStatus === 'EM ESPERA') {
+                                    color = '#d32f2f';
+                                    backgroundColor = 'rgba(211, 47, 47, 0.2)';
+                                } else if (selectedStatus === 'EM ANDAMENTO') {
+                                    color = '#f9a825';
+                                    backgroundColor = 'rgba(249, 168, 37, 0.2)';
+                                } else if (selectedStatus === 'CONCLUÍDA') {
+                                    color = '#388e3c';
+                                    backgroundColor = 'rgba(56, 142, 60, 0.2)';
+                                } else {
+                                    color = '#616161';
+                                    backgroundColor = 'transparent';
+                                }
+
+                                // Aplica os estilos
+                                spanElement.style.color = color;
+                                spanElement.style.backgroundColor = backgroundColor;
+                            }
+                        }
+
+                        if (dataConclusaoField) {
+                            const dataConclusaoInput = form.querySelector('input[name="data_conclusao"]');
+                            dataConclusaoField.textContent = dataConclusaoInput && dataConclusaoInput.value
+                                ? dataConclusaoInput.value
+                                : "SERVIÇO AINDA NÃO CONCLUÍDO";
+                        }
+
+                        if (statusFieldTable) {
+                            const statusSelect = form.querySelector('select[name="status"]');
+                            statusFieldTable.textContent = statusSelect.selectedOptions[0].text || "N/A";
+                        }
+                    } else {
+                        showToast('Erro ao atualizar o status.', 'danger'); // Mensagem de erro
+                    }
+
+                } catch (error) {
+                    console.error('Erro ao enviar o formulário de status:', error);
+                    showToast('Erro interno ao atualizar o status.', 'danger');
+                } finally {
+                    // Remove spinner (opcional)
+                    if (spinner) spinner.remove();
+                }
+            }
+        });
+
+        // Submissão do formulário de adição de tarefa
+        servicosContainer.addEventListener('submit', async (event) => {
+            if (event.target.matches('.form-tarefa')) {
+                event.preventDefault();
+                const form = event.target;
+                const servicoId = form.dataset.servicoId;
+
+                // Exibir spinner
+                const spinner = showSpinner();
+
+                try {
+                    const response = await fetch(`/adicionar-tarefa/${servicoId}/`, {
+                        method: 'POST',
+                        body: new FormData(form),
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRFToken': getCSRFToken(),
+                        },
+                    });
+
+                    const data = await response.json();
+                    if (data.success) {
+                        showToast('Tarefa adicionada com sucesso!');
+                        form.reset(); // Limpa o formulário
+
+                        // Fecha o modal, se presente
+                        const modal = bootstrap.Modal.getInstance(form.closest('.modal'));
+                        if (modal) {
+                            modal.hide();
+                        }
+
+                        // Adicionar a nova tarefa na tabela correspondente
+                        const tabela = document.querySelector(`#tabela-tarefas-${servicoId}`);
+                        if (tabela) {
+                            tabela.insertAdjacentHTML('beforeend', `
+                                <tr id="tarefa-${data.tarefa.id}">
+                                    <td class="text-center align-middle" style="color: var(--cinza); font-size: 12px; border-bottom: 1px solid var(--cinza-claro)">${data.tarefa.profile}</td>
+                                    <td class="text-center align-middle" style="color: var(--cinza); font-size: 12px; border-bottom: 1px solid var(--cinza-claro)">${data.tarefa.descricao || 'Sem descrição'}</td>
+                                    <td class="text-center align-middle" style="color: var(--cinza); font-size: 12px; border-bottom: 1px solid var(--cinza-claro)">${data.tarefa.status}</td>
+                                    <td class="text-center align-middle" style="color: var(--cinza); font-size: 12px; border-bottom: 1px solid var(--cinza-claro)">${data.tarefa.data_termino || 'Não concluída'}</td>
+                                    <td class="text-center align-middle" style="border-bottom: 1px solid var(--cinza-claro);">
+                                        <button 
+                                            class="btn-excluir-tarefa" 
+                                            data-tarefa-id="${data.tarefa.id}" 
+                                            style="padding: 0.5rem; background-color: #d32f2f; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;"
+                                            >
+                                                Excluir
+                                            </button>
+                                    </td>
+                                </tr>
+                            `);
+                        } else {
+                            console.error(`Tabela de tarefas não encontrada para o serviço ${servicoId}`);
+                        }
+                    } else {
+                        showToast('Erro ao adicionar tarefa.', 'danger');
+                    }
+                } catch (error) {
+                    console.error('Erro ao enviar o formulário de tarefa:', error);
+                    showToast('Erro interno ao adicionar tarefa.', 'danger');
+                } finally {
+                    // Remover spinner
+                    spinner.remove();
+                }
+            }
+        });
+    });
+
+</script>
+
+<script>
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const modalConfirmacao = document.getElementById('modal-confirmacao');
+        const confirmarExclusaoBtn = document.getElementById('confirmar-exclusao');
+        const cancelarExclusaoBtn = document.getElementById('cancelar-exclusao');
+        const notificacoesContainer = document.getElementById('notificacoes');
+        let tarefaIdParaExcluir = null;
+        let linhaTarefaParaExcluir = null;
+
+        // Função para mostrar o modal
+        function mostrarModal(tarefaId, linhaTarefa) {
+            tarefaIdParaExcluir = tarefaId;
+            linhaTarefaParaExcluir = linhaTarefa;
+            modalConfirmacao.style.display = 'block';
+        }
+
+        // Função para fechar o modal
+        function fecharModal() {
+            modalConfirmacao.style.display = 'none';
+            tarefaIdParaExcluir = null;
+            linhaTarefaParaExcluir = null;
+        }
+
+        // Função para mostrar notificações
+        function mostrarNotificacao(mensagem, tipo = 'sucesso') {
+            const notificacao = document.createElement('div');
+            notificacao.className = `notificacao ${tipo}`;
+            notificacao.textContent = mensagem;
+
+            notificacoesContainer.appendChild(notificacao);
+
+            // Remove a notificação após 5 segundos (tempo total de exibição + animação de saída)
+            setTimeout(() => {
+                notificacao.remove();
+            }, 5000);
+        }
+
+        // Evento de clique no botão de exclusão
+        document.addEventListener('click', (event) => {
+            if (event.target.classList.contains('btn-excluir-tarefa')) {
+                const tarefaId = event.target.getAttribute('data-tarefa-id');
+                const linhaTarefa = event.target.closest('tr');
+                mostrarModal(tarefaId, linhaTarefa);
+            }
+        });
+
+        // Confirmar exclusão
+        confirmarExclusaoBtn.addEventListener('click', async () => {
+            if (!tarefaIdParaExcluir || !linhaTarefaParaExcluir) return;
+
+            try {
+                const response = await fetch(`/tarefas/${tarefaIdParaExcluir}/excluir/`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    },
+                });
+
+                if (response.ok) {
+                    linhaTarefaParaExcluir.remove();
+                    mostrarNotificacao('Tarefa excluída com sucesso!', 'sucesso');
+                } else {
+                    mostrarNotificacao('Erro ao excluir a tarefa. Tente novamente.', 'erro');
+                }
+            } catch (error) {
+                console.error('Erro ao excluir tarefa:', error);
+                mostrarNotificacao('Erro ao excluir a tarefa. Tente novamente.', 'erro');
+            }
+
+            fecharModal();
+        });
+
+        // Cancelar exclusão
+        cancelarExclusaoBtn.addEventListener('click', fecharModal);
+    });
+
+</script>
+
+{% endblock %}

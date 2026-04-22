@@ -1,0 +1,450 @@
+{% extends 'ordemServico/base.html' %}
+{% load static %}
+{% block title %}Financeiro{% endblock %}
+{% block content %}
+
+{% block styles %}
+<style>
+    .tabela-accordion th {
+        text-align: left;
+        padding: 8px;
+        border-bottom: 1px solid var(--cinza-claro);
+        background-color: var(--azul-principal);
+        Color: var(--cinza-claro);
+        width: 15vw;
+        text-transform: uppercase;
+        font-size: 12px;
+        font-weight: 500;
+    }
+
+    .tabela-accordion td {
+        padding-left: 1rem;
+        border-bottom: 1px solid var(--cinza-claro);
+        color: var(--cinza);
+        font-size: 14px;
+    }
+
+    #spinner-container {
+        transition: all 0.3s ease;
+        /* Suaviza a exibição */
+        max-width: 300px;
+        color: var(--cinza-escuro);
+        /* Cor do texto */
+    }
+
+    .d-flex {
+        display: flex;
+        justify-content: center; 
+        align-items: center;  
+        flex-wrap: wrap;  
+        gap: 3rem;
+    }
+
+    .col-md-4 {
+        max-width: 300px; 
+    }
+
+    .mx-2 {
+        margin-left: 8px;
+        margin-right: 8px;
+    }
+
+</style>
+{% endblock %}
+
+<div class="container">
+
+    <div id="alert-container"
+        style=" position: fixed; top: 10px; right: 10px; z-index: 1055; width: 300px; display: none;"></div>
+
+    <h3 class="titulo-pagina">
+        <i class="bi bi-currency-dollar"></i>
+        Financeiro
+    </h3>
+
+    <div class="d-flex justify-content-center align-items-center mb-5 flex-wrap">
+        <!-- Card: Total Faturadas -->
+        <div class="col-md-4 mx-2">
+            <div class="card"
+                style="background-color: #d4edda; color: green; border-radius: 8px; border: none; box-shadow: 4px 4px 8px var(--cinza);">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Total Faturadas</h5>
+                    <p class="card-text fs-4" id="total-faturadas" data-valor="{{ total_faturadas|default:0 }}"></p>
+                </div>
+            </div>
+        </div>
+    
+        <!-- Card: Total Liberadas -->
+        <div class="col-md-4 mx-2">
+            <div class="card shadow-sm"
+                style="background-color: #fff3cd; color: #856404; border-radius: 8px; border: none; box-shadow: 4px 4px 8px var(--cinza);">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Total Liberadas</h5>
+                    <p class="card-text fs-4" id="total-liberadas" data-valor="{{ total_liberadas|default:0 }}"></p>
+                </div>
+            </div>
+        </div>
+    
+        <!-- Card: Total Não Liberadas -->
+        <div class="col-md-4 mx-2">
+            <div class="card shadow-sm"
+                style="background-color: #f8d7da; color: red; border-radius: 8px; border: none; box-shadow: 4px 4px 8px var(--cinza);">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Total Não Liberadas</h5>
+                    <p class="card-text fs-4" id="total-nao-liberadas" data-valor="{{ total_nao_liberadas|default:0 }}">
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+
+
+    <!-- Filtros -->
+    <div class="row g-2 align-items-center px-2 mb-1">
+        <div class="col-auto" style="position: relative;">
+            <button id="filtro_liberada" class="" style="
+                    display: inline-block;
+                    background-color: #d4edda; /* Fundo verde claro */
+                    color: green; 
+                    border-radius: 4px;
+                    padding: 10px 12px;
+                    font-weight: bold;
+                    border: none;
+                    box-shadow: 1px 1px 2px green;
+                    position: relative;
+                ">
+                Liberadas
+            </button>
+        </div>
+
+        <div class="col-auto">
+            <button id="limpar_filtros" style="
+                display: inline-block;
+                background-color: var(--cinza-claro); /* Fundo verde claro */
+                color: var(--cinza); 
+                border-radius: 4px;
+                padding: 10px 12px;
+                font-weight: bold;
+                border: none;
+                box-shadow: 1px 1px 2px var(--cinza);
+            ">
+                Todos</button>
+        </div>
+
+        <div class="col-auto  w-75">
+            <input type="text" id="filtro_cliente" class="form-control w-50" placeholder="Digite o nome do cliente"
+                style="background-color: var(--cinza-claro); border: none; box-shadow: 2px 2px 4px var(--cinza);">
+        </div>
+    </div>
+
+
+    <div class="accordion accordion-flush mt-4" id="accordionFlushExample">
+        {% for item in ordens_com_formularios %}
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="heading{{ item.ordem.id }}">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#collapse{{ item.ordem.id }}" aria-expanded="false"
+                    aria-controls="collapse{{ item.ordem.id }}">
+                    <div class="row w-100">
+                        <div class="col-1">
+                            <p style="color: var(--cinza); font-weight: 600;">{{ item.ordem.id }}</p>
+                        </div>
+                        <div class="col-6">
+                            <p style="color: var(--cinza);">{{ item.ordem.cliente.nome|truncatechars:45 }}</p>
+                        </div>
+                        <div class="col-2">
+                            {% if item.ordem.get_faturamento_display == "Sim" %}
+                            <p
+                                style="background-color: #D4EDDA; color: #155724; font-weight: bold; text-align: center; padding: 0.3rem; font-size: 12px; border-radius: 5px;">
+                                Faturada
+                            </p>
+                            {% elif item.ordem.get_faturamento_display == "Não" %}
+                            <p
+                                style="background-color: #F8D7DA; color: #721C24; font-weight: bold; text-align: center; padding: 0.3rem; font-size: 12px; border-radius: 5px;">
+                                Não faturada
+                            </p>
+                            {% else %}
+                            <p style="color: #6C757D;">-</p>
+                            {% endif %}
+                        </div>
+                        <div class="col-2">
+                            {% if item.ordem.liberada_para_faturamento %}
+                            <p
+                                style="background-color: #D4EDDA; color: #155724; font-weight: bold; text-align: center; padding: 0.3rem; font-size: 12px; border-radius: 5px;">
+                                Liberada
+                            </p>
+                            {% else %}
+                            <p
+                                style="background-color: #E2E3E5; color: #6C757D; font-weight: bold; text-align: center; padding: 0.3rem; font-size: 12px; border-radius: 5px;">
+                                Aguardando liberação
+                            </p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </button>
+            </h2>
+            <div id="collapse{{ item.ordem.id }}" class="accordion-collapse collapse"
+                aria-labelledby="heading{{ item.ordem.id }}" data-bs-parent="#accordionFlushExample">
+                <div class="accordion-body p-4">
+
+                    <h3 style="color: var(--cinza)">Informações da ordem de serviço:</h3>
+                    <table class="tabela-accordion mt-3"
+                        style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                        <tbody>
+                            <tr>
+                                <th>Cliente</th>
+                                <td>{{ item.ordem.cliente.nome }}</td>
+                            </tr>
+                            <tr>
+                                <th>Valor</th>
+                                <td>R$ {{ item.ordem.valor|floatformat:2 }}</td>
+                            </tr>
+                            <tr>
+                                <th>Forma de Pagamento</th>
+                                <td>{{ item.ordem.get_forma_pagamento_display }}</td>
+                            </tr>
+                            <tr>
+                                <th>Quantidade de Parcelas</th>
+                                <td>
+                                    {% if item.ordem.quantidade_parcelas %}
+                                    {{ item.ordem.quantidade_parcelas }}
+                                    {% else %}
+                                    Quantidade de parcelas não informada
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Cobrança Imediata</th>
+                                <td>{{ item.ordem.get_cobranca_imediata_display }}</td>
+                            </tr>
+                            <tr>
+                                <th>Data do 1º faturamento</th>
+                                <td>{{ item.ordem.faturamento_1|date:'d/m/Y' }}</td>
+                            </tr>
+                            <tr>
+                                <th>Nome Contato NF</th>
+                                <td>{{ item.ordem.nome_contato_envio_nf|title }}</td>
+                            </tr>
+                            <tr>
+                                <th>Contato Envio NF</th>
+                                <td>{{ item.ordem.contato_envio_nf }}</td>
+                            </tr>
+                            <tr>
+                                <th>Observação</th>
+                                <td style="max-height: 100px; overflow-y: auto; display: block; line-height: 1.5;">
+                                    {{ item.ordem.observacao }}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <!-- Formulário -->
+                    <h4 class="mt-4 mb-3" style="color: var(--cinza)">Atualizar Informações do faturamento:</h4>
+                    <form method="post" action="{% url 'salvar_ordem_servico' %}" class="form-ordem-servico"
+                        data-id="{{ item.ordem.id }}">
+                        {% csrf_token %}
+                        <input type="hidden" name="ordem_id" value="{{ item.ordem.id }}">
+
+                        <div class="row">
+                            <div class="col-2">
+                                <label for="faturamento-{{ item.ordem.id }}" class="form-label">Faturamento</label>
+                                {{ item.form.faturamento }}
+                            </div>
+                            <div class="col-2">
+                                <label for="data_faturamento-{{ item.ordem.id }}" class="form-label">Data
+                                    Faturamento</label>
+                                {{ item.form.data_faturamento }}
+                            </div>
+                            <div class="col-2">
+                                <label for="numero_nf-{{ item.ordem.id }}" class="form-label">Número NF</label>
+                                {{ item.form.numero_nf }}
+                            </div>
+                        </div>
+
+                        <button type="button" class="button mt-2 salvar-formulario">Atualizar</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div id="spinner-container" style="
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    z-index: 1055;
+    display: none; /* Escondido por padrão */
+    align-items: center;
+    justify-content: center;
+    background-color: var(--cinza-claro);
+    padding: 10px 15px;
+    border-radius: 8px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+">
+    <div id="spinner" class="spinner-border text-primary" role="status"
+        style="width: 20px; height: 20px; margin-right: 10px;">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+    <span id="spinner-message">Faturando...</span>
+</div>
+
+
+{% endblock %}
+
+{% block scripts %}
+
+<!-- Formatação de valores nos cards
+- Formata os valores exibidos nos cards "Total Faturadas", "Total Liberadas" e "Total Não Liberadas" para o padrão
+brasileiro de moeda (R$). -->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        // Função para formatar números no padrão brasileiro
+        function formatarParaReal(valor) {
+            return valor.toLocaleString("pt-BR", {
+                style: "currency",
+                currency: "BRL",
+            });
+        }
+
+        // Seleciona os elementos e formata os valores
+        const totalFaturadas = document.getElementById("total-faturadas");
+        const totalLiberadas = document.getElementById("total-liberadas");
+        const totalNaoLiberadas = document.getElementById("total-nao-liberadas");
+
+        // Obtém os valores dos atributos data-valor
+        totalFaturadas.textContent = formatarParaReal(parseFloat(totalFaturadas.dataset.valor));
+        totalLiberadas.textContent = formatarParaReal(parseFloat(totalLiberadas.dataset.valor));
+        totalNaoLiberadas.textContent = formatarParaReal(parseFloat(totalNaoLiberadas.dataset.valor));
+    });
+</script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const tabela = document.querySelector("#accordionFlushExample"); // Container do Accordion
+        const filtroClienteInput = document.getElementById("filtro_cliente");
+        const botaoLiberadas = document.getElementById("filtro_liberada");
+        const botaoLimparFiltros = document.getElementById("limpar_filtros");
+        
+        // Função para filtrar ordens liberadas
+        function filtrarLiberadas() {
+            const linhas = tabela.querySelectorAll(".accordion-item");
+
+            linhas.forEach((linha) => {
+                const liberadaSpan = linha.querySelector(".col-2:nth-child(4) p"); // Coluna Liberada
+                const faturamentoSpan = linha.querySelector(".col-2:nth-child(3) p"); // Coluna Faturamento
+
+                if (liberadaSpan && faturamentoSpan) {
+                    const liberada = liberadaSpan.textContent.trim().toLowerCase();
+                    const faturamento = faturamentoSpan.textContent.trim().toLowerCase();
+
+                    if (liberada === "liberada" && faturamento === "não faturada") {
+                        linha.style.display = ""; // Mostra o item
+                    } else {
+                        linha.style.display = "none"; // Esconde o item
+                    }
+                }
+            });
+        }
+
+        // Função para filtrar pelo nome do cliente
+        function filtrarPorCliente(event) {
+            const filtro = event.target.value.trim().toLowerCase();
+            const linhas = tabela.querySelectorAll(".accordion-item");
+
+            linhas.forEach((linha) => {
+                const clienteSpan = linha.querySelector(".col-6 p"); // Coluna Cliente
+
+                if (clienteSpan) {
+                    const nomeCliente = clienteSpan.textContent.trim().toLowerCase();
+
+                    if (nomeCliente.includes(filtro)) {
+                        linha.style.display = ""; // Mostra o item
+                    } else {
+                        linha.style.display = "none"; // Esconde o item
+                    }
+                }
+            });
+        }
+
+        // Função para limpar todos os filtros
+        function limparFiltros() {
+            const linhas = tabela.querySelectorAll(".accordion-item");
+
+            linhas.forEach((linha) => {
+                linha.style.display = ""; // Mostra todas as linhas
+            });
+
+            filtroClienteInput.value = ""; // Limpa o input de cliente
+        }
+
+        // Event listeners
+        botaoLiberadas.addEventListener("click", filtrarLiberadas);
+        filtroClienteInput.addEventListener("input", filtrarPorCliente);
+        botaoLimparFiltros.addEventListener("click", limparFiltros);
+    });
+</script>
+
+
+<script>
+
+    document.addEventListener("DOMContentLoaded", function () {
+        const buttons = document.querySelectorAll(".salvar-formulario");
+        const spinnerContainer = document.getElementById("spinner-container");
+        const spinner = document.getElementById("spinner");
+        const spinnerMessage = document.getElementById("spinner-message");
+
+        function showSpinner(message = "Faturando...") {
+            spinnerContainer.style.display = "flex"; // Exibe o spinner
+            spinnerMessage.textContent = message; // Atualiza a mensagem do spinner
+            spinner.style.display = "block"; // Garante que o ícone do spinner apareça
+        }
+
+        function hideSpinner() {
+            setTimeout(() => {
+                spinnerContainer.style.display = "none"; // Esconde o spinner
+            }, 3000); // Esconde após 3 segundos para que o usuário veja a mensagem
+        }
+
+        buttons.forEach((button) => {
+            button.addEventListener("click", function () {
+                const form = this.closest(".form-ordem-servico");
+                const csrfToken = form.querySelector("input[name='csrfmiddlewaretoken']").value;
+                const formData = new FormData(form);
+
+                showSpinner(); // Mostra o spinner ao começar a requisição
+
+                fetch("/salvar-ordem-servico/", {
+                    method: "POST",
+                    headers: {
+                        "X-CSRFToken": csrfToken,
+                        "X-Requested-With": "XMLHttpRequest",
+                    },
+                    body: formData,
+                })
+                    .then((response) => {
+                        if (!response.ok) {
+                            return response.json().then((data) => {
+                                throw data;
+                            });
+                        }
+                        return response.json();
+                    })
+                    .then((data) => {
+                        spinnerMessage.textContent = "Ordem de serviço faturada com sucesso!"; // Mensagem de sucesso
+                        spinner.style.display = "none"; // Esconde o ícone do spinner
+                        hideSpinner(); // Esconde o container após um tempo
+                    })
+                    .catch((data) => {
+                        spinnerMessage.textContent = "Erro ao faturar uma ordem de serviço."; // Mensagem de erro
+                        spinner.style.display = "none"; // Esconde o ícone do spinner
+                        hideSpinner(); // Esconde o container após um tempo
+                    });
+            });
+        });
+    });
+
+</script>
+{% endblock %}

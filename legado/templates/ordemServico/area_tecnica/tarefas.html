@@ -1,0 +1,478 @@
+{% extends 'ordemServico/base.html' %}
+{% load static %}
+{% block title %} Técnico {% endblock %}
+{% block content %}
+
+{% block styles %}
+<style>
+    .tabela-dados-servicos th,
+    td {
+        text-align: left !important;
+        font-size: 12px !important;
+        padding: 0.75rem;
+    }
+
+    .tabela-dados-servicos th {
+        width: 15vw;
+        background-color: var(--azul-principal);
+        border-bottom: 1px solid var(--cinza-claro);
+
+        color: var(--cinza-claro) !important;
+        font-weight: 600;
+    }
+
+    .tabela-dados-servicos td {
+        color: var(--cinza) !important;
+        font-weight: 400;
+        background-color: var(--cinza-claro);
+        border-bottom: 1px solid var(--cinza);
+    }
+</style>
+{% endblock %}
+<div class="container mb-5">
+
+    <h3 class="titulo-pagina">
+        <i class="bi bi-check-square"></i>
+        Tarefas
+    </h3>
+    
+    <div id="filtros-tarefas-container" class="row" style="display: flex; align-items: center; margin-bottom: 0.5rem;">
+        <!-- Campo de Pesquisa -->
+        <div class="col-9">
+            <label for="pesquisa-tarefas" style="display: block; font-weight: 400; font-size: 0.875rem; color: var(--cinza); margin-bottom: 0.5rem;">
+                Pesquisar pelo nome do cliente ou serviço
+            </label>
+            <input 
+                type="text" 
+                id="pesquisa-tarefas" 
+                placeholder="Digite para pesquisar..." 
+                style="width: 100%; padding: 0.5rem; border: 1px solid #d1d1d1; border-radius: 8px; font-size: 1rem; outline: none; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); background-color: #F4F4F4;"
+            >
+        </div>
+    
+        <!-- Filtro de Status -->
+        <div class="col-3">
+            <label for="status-tarefas" style="display: block; font-weight: 400; font-size: 0.875rem; color: var(--cinza); margin-bottom: 0.5rem;">
+                Pesquisar por status
+            </label>
+            <select 
+                id="status-tarefas" 
+                style="width: 100%; padding: 0.5rem; border: 1px solid #d1d1d1; border-radius: 8px; font-size: 1rem; outline: none; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); color: var(--cinza); background-color: #F4F4F4;"
+            >
+                <option value="todos">Todos</option>
+                <option value="nao_iniciada">Não iniciada</option>
+                <option value="em_andamento">Em andamento</option>
+                <option value="concluida">Concluída</option>
+            </select>
+        </div>
+    </div>
+    
+
+    <div id="tarefas-container"></div>
+
+    <div class="mt-5 text-center">
+        <div id="pagination-controls"></div>
+    </div>
+   
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const tarefasContainer = document.getElementById('tarefas-container');
+        const paginationControls = document.getElementById('pagination-controls');
+        const pesquisaInput = document.getElementById('pesquisa-tarefas');
+        const statusSelect = document.getElementById('status-tarefas');
+
+        // Estado dos filtros ativos
+        const filtrosAtivos = {
+            pesquisa: '',
+            status: 'todos',
+        };
+
+        // Atualiza filtros e recarrega tarefas
+        function atualizarFiltros(chave, valor) {
+            filtrosAtivos[chave] = valor;
+            carregarTarefas();
+        }
+
+        // Eventos para os filtros
+        pesquisaInput.addEventListener('input', (event) => {
+            atualizarFiltros('pesquisa', event.target.value);
+        });
+
+        statusSelect.addEventListener('change', (event) => {
+            atualizarFiltros('status', event.target.value);
+        });
+
+        async function carregarTarefas(page = 1) {
+            try {
+
+                const params = new URLSearchParams({
+                    page,
+                    pesquisa: filtrosAtivos.pesquisa,
+                    status: filtrosAtivos.status,
+                });
+
+                const response = await fetch(`?${params.toString()}`, {
+                    headers: { "X-Requested-With": "XMLHttpRequest" },
+                });
+
+                if (!response.ok) throw new Error('Erro ao carregar tarefas');
+
+                const data = await response.json();
+                tarefasContainer.innerHTML = '';
+
+                // Renderiza cada tarefa como um acordeão
+                data.tarefas.forEach(tarefa => {
+                    const acordeaoItem = `
+                        <div class="accordion mb-1" id="accordionTarefas">
+                            <div class="accordion-item" style="border-bottom: 3px solid var(--cinza-claro);">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed w-100 text-start" type="button" 
+                                        data-bs-toggle="collapse"
+                                        data-bs-target="#flush-collapse-tarefa-${tarefa.id}" 
+                                        aria-expanded="false" 
+                                        aria-controls="flush-collapse-tarefa-${tarefa.id}">
+                                        <div class="row w-100 d-flex align-items-center">
+                                            <div class="col-6 text-center">
+                                                <p style="font-size: 12px; color: var(--cinza)">${truncateText(tarefa.cliente, 60)}</p>
+                                            </div>
+                                            <div class="col-3 text-center">
+                                                <p style="font-size: 12px; color: var(--cinza)">${truncateText(tarefa.servico_nome, 40)}</p>
+                                            </div>
+                                            <div class="col-3 text-center">
+                                                <p id="status-tarefa-button-${tarefa.id}" style="font-size: 10px; font-weight: bold;">
+                                                    <span style="
+                                                        display: inline-block;
+                                                        padding: 5px 10px;
+                                                        border-radius: 10px;
+                                                        text-transform: uppercase;
+                                                        color: ${tarefa.status === 'NÃO INICIADA' ? '#d32f2f' : 
+                                                                tarefa.status === 'EM ANDAMENTO' ? '#f9a825' : 
+                                                                tarefa.status === 'CONCLUÍDA' ? '#388e3c' : '#616161'};
+                                                        background-color: ${tarefa.status === 'NÃO INICIADA' ? 'rgba(211, 47, 47, 0.2)' : 
+                                                                            tarefa.status === 'EM ANDAMENTO' ? 'rgba(249, 168, 37, 0.2)' : 
+                                                                            tarefa.status === 'CONCLUÍDA' ? 'rgba(56, 142, 60, 0.2)' : 'transparent'};
+                                                        box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+                                                    ">
+                                                        ${tarefa.status || "N/A"}
+                                                    </span>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </button>
+                                </h2>
+                                <div 
+                                    id="flush-collapse-tarefa-${tarefa.id}" 
+                                    class="accordion-collapse collapse" 
+                                    data-bs-parent="#accordionTarefas">
+                                    <div class="accordion-body" style="border: 2px solid var(--cinza-claro); padding: 2rem 4rem;">
+                                        <div class="dados-tarefa">
+
+                                            <div class="cabecalho">
+                                                <table class="w-100">
+                                                    <tr>
+                                                        <td 
+                                                            class="text-center align-middle" style="border-bottom: 1px solid var(--cinza); border-right: 1px solid var(--cinza); color: var(--cinza)">
+                                                            ${tarefa.cliente}
+                                                        </td>
+                                                        <td 
+                                                            class="text-center align-middle" style="border-bottom: 1px solid var(--cinza); border-right: 1px solid var(--cinza); color: var(--cinza)">
+                                                            ${tarefa.tipo_inscricao}
+                                                        </td>
+                                                        <td 
+                                                            class="text-center align-middle" style="border-bottom: 1px solid var(--cinza); border-right: 1px solid var(--cinza); color: var(--cinza)">
+                                                            ${tarefa.numero_inscricao}
+                                                        </td>
+                                                        <td class="text-center align-middle" style="border-bottom: 1px solid var(--cinza); color: var(--cinza)">
+                                                            ${tarefa.tipo_cliente}
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </div>
+
+                                            <div class="contato py-2">
+                                                <h3 class="py-3 text-muted" style="font-size: 14px; font-weight: 600; color: var(--cinza)">
+                                                    Dados do representante:
+                                                </h3>
+                                                <div class="py-1">
+                                                    <span class="fw-bold text-muted" style="font-size: 14px; color: var(--cinza)"">Nome:</span>
+                                                    <span class="text-muted" style="font-size: 14px; color: var(--cinza)"">${tarefa.nome_representante || "Não cadastrado"}</span>
+                                                </div>
+                                                <div class="py-1">
+                                                    <span class="fw-bold text-muted" style="font-size: 14px; color: var(--cinza)"">Setor:</span>
+                                                    <span class="text-muted" style="font-size: 14px; color: var(--cinza)"">${tarefa.setor_representante || "Não cadastrado"}</span>
+                                                </div>
+                                                <div class="py-1">
+                                                    <span class="fw-bold text-muted" style="font-size: 14px; color: var(--cinza)"">E-mail:</span>
+                                                    <span class="text-muted" style="font-size: 14px; color: var(--cinza)"">${tarefa.email_representante || "Não cadastrado"}</span>
+                                                </div>
+                                                <div class="py-1">
+                                                    <span class="fw-bold text-muted" style="font-size: 14px; color: var(--cinza)"">Telefone:</span>
+                                                    <span class="text-muted" style="font-size: 14px; color: var(--cinza)"">${tarefa.telefone_representante || "Não cadastrado"}</span>
+                                                </div>
+                                            </div>
+
+                                            <h3 class="py-3 text-muted" style="font-size: 14px; font-weight: 600;">
+                                                Detalhes da Tarefa:
+                                            </h3>
+                                            <table class="w-100">
+                                                <tr style="border-bottom: 2px solid var(--cinza-claro);">
+                                                    <th class="align-middle" style="font-size: 12px; color: var(--cinza-claro); background-color: var(--azul-principal); padding: 0.5rem; width: 15vw !important;">Serviço</th>
+                                                    <td class="align-middle" style="color: var(--cinza)">${tarefa.servico_nome || "N/A"}</td>
+                                                </tr>
+                                                <tr style="border-bottom: 2px solid var(--cinza-claro);">
+                                                    <th class="align-middle" style="font-size: 12px; color: var(--cinza-claro); background-color: var(--azul-principal); padding: 0.5rem; width: 15vw !important;">Data de Início</th>
+                                                    <td id="data-inicio-${tarefa.id}" class="align-middle" style="color: var(--cinza)">${tarefa.data_inicio || "Não iniciada"}</td>
+                                                </tr>
+                                                <tr style="border-bottom: 2px solid var(--cinza-claro);">
+                                                    <th class="align-middle" style="font-size: 12px; color: var(--cinza-claro); background-color: var(--azul-principal); padding: 0.5rem; width: 15vw !important;">Data de Término</th>
+                                                    <td id="data-termino-${tarefa.id}" class="align-middle" style="color: var(--cinza)">${tarefa.data_termino || "Não concluída"}</td>
+                                                </tr>
+                                                <tr style="border-bottom: 2px solid var(--cinza-claro);">
+                                                    <th class="align-middle" style="font-size: 12px; color: var(--cinza-claro); background-color: var(--azul-principal); padding: 0.5rem; width: 15vw !important;">Status</th>
+                                                    <td id="status-tarefa-table-${tarefa.id}" class="align-middle" style="color: var(--cinza)">${tarefa.status}</td>
+                                                </tr>
+                                                <tr style="border-bottom: 2px solid var(--cinza-claro);">
+                                                    <th class="align-middle" style="font-size: 12px; color: var(--cinza-claro); background-color: var(--azul-principal); padding: 0.5rem; width: 15vw !important;">Descrição da ordem de serviço</th>
+                                                    <td class="align-middle" style="overflow: auto; white-space: pre-wrap; color: var(--cinza)">${tarefa.descricao_servico || "Sem descrição do serviço"}</td>
+                                                </tr>
+                                                <tr style="border-bottom: 2px solid var(--cinza-claro);">
+                                                    <th class="align-middle" style="font-size: 12px; color: var(--cinza-claro); background-color: var(--azul-principal); padding: 0.5rem; width: 15vw !important;">Descrição da tarefa</th>
+                                                    <td class="align-middle" style="overflow: auto; white-space: pre-wrap; color: var(--cinza)">${tarefa.descricao_tarefa || "Sem descrição da tarefa"}</td>
+                                                </tr>
+                                            </table>
+                                        </div>
+                                        <h6 class="py-2 mt-4" style="font-size: 12px; font-weight: 600; color: var(--cinza);">Atualizar status e datas:</h6>
+                                        <form class="form-status mb-3" method="POST" data-tarefa-id="${tarefa.id}">
+                                            {% csrf_token %}
+                                            <div class="row "> <!-- Adicionada classe para espaçamento entre os elementos -->
+                                                <!-- Campo Status -->
+                                                <div class="col-md-3">
+                                                    <label for="status-${tarefa.id}" class="form-label" style="font-size: 12px; color: var(--cinza); font-weight: 500;">
+                                                        Status
+                                                    </label>
+                                                    ${tarefa.form_update.status
+                                                        .replace('id_status', `status-${tarefa.id}`)
+                                                        .replace('value=""', `value="${tarefa.status}"`)}
+                                                </div>
+
+                                                <!-- Campo Data de Início -->
+                                                <div class="col-md-2">
+                                                    <label for="data-inicio-${tarefa.id}" class="form-label" style="font-size: 12px; color: var(--cinza); font-weight: 500;">
+                                                        Data de Início
+                                                    </label>
+                                                    <input 
+                                                        type="date" 
+                                                        id="data-inicio-${tarefa.id}" 
+                                                        name="data_inicio" 
+                                                        value="${tarefa.data_inicio || ''}" 
+                                                        class="form-control w-100"
+                                                        style="color: var(--cinza); font-size: 12px;" />
+                                                </div>
+
+                                                <!-- Campo Data de Término -->
+                                                <div class="col-md-2">
+                                                    <label for="data-termino-${tarefa.id}" class="form-label" style="font-size: 12px; color: var(--cinza); font-weight: 500;">
+                                                        Data de Término
+                                                    </label>
+                                                    <input 
+                                                        type="date" 
+                                                        id="data-termino-${tarefa.id}" 
+                                                        name="data_termino" 
+                                                        value="${tarefa.data_termino || ''}" 
+                                                        class="form-control w-100"
+                                                        style="color: var(--cinza); font-size: 12px;" />
+                                                </div>
+
+                                                <!-- Botão Salvar -->
+                                                <div class="col-md-3 d-flex align-items-end">
+                                                    <button type="submit" class="button w-25">
+                                                        Salvar
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    tarefasContainer.insertAdjacentHTML('beforeend', acordeaoItem);
+                });
+                
+
+                // Controles de paginação
+                paginationControls.innerHTML = '';
+                if (data.has_previous) {
+                    paginationControls.insertAdjacentHTML('beforeend', `<button class="botao me-2" data-page="${data.previous_page_number}">Anterior</button>`);
+                }
+                paginationControls.insertAdjacentHTML('beforeend', `<span style="color:var(--cinza)">Página ${data.current_page} de ${data.total_pages}</span>`);
+                if (data.has_next) {
+                    paginationControls.insertAdjacentHTML('beforeend', `<button class="botao ms-2" data-page="${data.next_page_number}">Próxima</button>`);
+                }
+
+                // Eventos para paginação
+                paginationControls.querySelectorAll('button').forEach(button => {
+                    button.addEventListener('click', () => carregarTarefas(button.getAttribute('data-page')));
+                });
+
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        // Função para truncar texto
+        function truncateText(text, limit) {
+            if (!text) return "N/A";
+            return text.length > limit ? text.substring(0, limit) + "..." : text;
+        }
+
+        // Carrega tarefas na inicialização
+        carregarTarefas();
+    });
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const tarefasContainer = document.getElementById('tarefas-container');
+
+        // Adiciona container para as mensagens de sucesso/falha
+        const notificationContainer = document.createElement('div');
+        notificationContainer.id = 'notification-container';
+        notificationContainer.style.position = 'fixed';
+        notificationContainer.style.top = '10px';
+        notificationContainer.style.right = '10px';
+        notificationContainer.style.zIndex = '1000';
+        notificationContainer.style.display = 'none'; // Inicialmente oculto
+        document.body.appendChild(notificationContainer);
+
+        // Adiciona spinner para carregamento
+        const spinner = document.createElement('div');
+        spinner.id = 'loading-spinner';
+        spinner.style.position = 'fixed';
+        spinner.style.top = '50%';
+        spinner.style.left = '50%';
+        spinner.style.transform = 'translate(-50%, -50%)';
+        spinner.style.zIndex = '1001';
+        spinner.style.display = 'none'; // Inicialmente oculto
+        spinner.innerHTML = `
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>`;
+        document.body.appendChild(spinner);
+
+        tarefasContainer.addEventListener('submit', async (event) => {
+            if (event.target.matches('.form-status')) {
+                event.preventDefault();
+                const form = event.target;
+                const tarefaId = form.dataset.tarefaId;
+
+                // Exibe o spinner
+                spinner.style.display = 'block';
+
+                try {
+                    const response = await fetch(`/atualizar-tarefa/${tarefaId}/`, {
+                        method: 'POST',
+                        body: new FormData(form),
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRFToken': getCSRFToken(),
+                        },
+                    });
+
+                    const data = await response.json();
+                    if (data.success) {
+                        // Atualiza os campos na tabela
+                        const dataInicioField = document.getElementById(`data-inicio-${tarefaId}`);
+                        const dataTerminoField = document.getElementById(`data-termino-${tarefaId}`);
+                        const statusFieldTable = document.getElementById(`status-tarefa-table-${tarefaId}`);
+                        const statusFieldButton = document.getElementById(`status-tarefa-button-${tarefaId}`);
+
+                        if (dataInicioField) {
+                            dataInicioField.textContent = data.tarefa.data_inicio || "Não iniciada";
+                        }
+
+                        if (dataTerminoField) {
+                            dataTerminoField.textContent = data.tarefa.data_termino || "Não concluída";
+                        }
+
+                        if (statusFieldTable) {
+                            statusFieldTable.textContent = data.tarefa.status || "N/A";
+                        }
+
+                        if (statusFieldButton) {
+                            const spanElement = statusFieldButton.querySelector('span');
+                            if (spanElement) {
+                                spanElement.textContent = data.tarefa.status || "N/A";
+
+                                // Atualiza os estilos dinamicamente
+                                let color, backgroundColor;
+
+                                if (data.tarefa.status === 'NÃO INICIADA') {
+                                    color = '#d32f2f';
+                                    backgroundColor = 'rgba(211, 47, 47, 0.2)';
+                                } else if (data.tarefa.status === 'EM ANDAMENTO') {
+                                    color = '#f9a825';
+                                    backgroundColor = 'rgba(249, 168, 37, 0.2)';
+                                } else if (data.tarefa.status === 'CONCLUÍDA') {
+                                    color = '#388e3c';
+                                    backgroundColor = 'rgba(56, 142, 60, 0.2)';
+                                } else {
+                                    color = '#616161';
+                                    backgroundColor = 'transparent';
+                                }
+
+                                spanElement.style.color = color;
+                                spanElement.style.backgroundColor = backgroundColor;
+                            }
+                        }
+
+                        // Mostra mensagem de sucesso
+                        showNotification('Formulário salvo com sucesso!', 'success');
+                    } else {
+                        // Mostra mensagem de erro
+                        showNotification(`Erro ao salvar: ${data.error}`, 'danger');
+                    }
+                } catch (error) {
+                    console.error('Erro interno:', error);
+                    // Mostra mensagem de erro genérico
+                    showNotification('Erro ao salvar o formulário. Tente novamente.', 'danger');
+                } finally {
+                    // Oculta o spinner
+                    spinner.style.display = 'none';
+                }
+            }
+        });
+
+        // Função para obter o token CSRF
+        function getCSRFToken() {
+            const csrfElement = document.querySelector('[name=csrfmiddlewaretoken]');
+            return csrfElement ? csrfElement.value : '';
+        }
+
+        // Função para exibir mensagens de notificação
+        function showNotification(message, type) {
+            notificationContainer.innerHTML = `
+                <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            `;
+            notificationContainer.style.display = 'block';
+
+            // Remove a mensagem automaticamente após 3 segundos
+            setTimeout(() => {
+                notificationContainer.style.display = 'none';
+            }, 3000);
+        }
+    });
+</script>
+
+
+{% endblock %}

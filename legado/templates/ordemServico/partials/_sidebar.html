@@ -1,0 +1,176 @@
+{% load static %}
+<div class="sidebar">
+
+    <div class="logo">
+        <img src="{% static 'assets\logo.png' %}" alt="Logo da empresa" style="width: 7vw" />
+    </div>
+
+
+    <div>
+        <a class="dropdown-item"
+            href="{% if request.user.profile.role != 4 and request.user.profile.role != 5 %}{% url 'painel_de_controle' %}{% endif %}"
+            {% if request.user.profile.role == 4 or request.user.profile.role == 5 %}
+                onclick="showTechPermissionAlert(); return false;"
+            {% endif %} 
+            style="color: #fff; font-size: 14px;">
+            <i class="bi bi-graph-up" style="margin-right: 4px;"></i>
+            Painel de controle
+        </a>
+
+        <a class="dropdown-item"
+            href="{% if request.user.profile.role != 4 and request.user.profile.role != 5 %}{% url 'criar_ordem_servico' %}{% endif %}"
+            {% if request.user.profile.role == 4 or request.user.profile.role == 5 %}
+                onclick="showTechPermissionAlert(); return false;"
+            {% endif %} style="color: #fff; font-size: 14px;">
+            <i class="bi bi-pencil-square" style="margin-right: 4px; color: #fff;"></i>
+            Criar Ordem Serviço
+        </a>
+
+        <div class="dropdown dropdown-sidebar mb-2">
+            <button class="btn dropdown-toggle" type="button" id="dropdownMenuTech" data-bs-toggle="dropdown"
+                aria-expanded="false" style="font-size: 14px;">
+                <i class="fa-solid fa-helmet-safety" style="margin-right: 4px;"></i> Área Técnica
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="dropdownMenuTech">
+                <li>
+                    <!-- Líder Técnico (restrito para Líderes Técnicos e acima) -->
+                    <a class="dropdown-item"
+                        href="{% if request.user.profile.role != 4 and request.user.profile.role != 5 %}{% url 'dashboard_lider' %}{% endif %}"
+                        {% if request.user.profile.role == 4 or request.user.profile.role == 5 %}
+                            onclick="showTechPermissionAlert(); return false;"
+                        {% endif %} style="color: #000">
+                        <i class="bi bi-person-gear" style="margin-right: 4px;"></i>
+                        Líder técnico
+                    </a>
+                </li>
+                <li>
+                    <!-- Técnico (restrito para Técnicos e Sub-Líderes Técnicos) -->
+                    <a class="dropdown-item"
+                        href="{% if request.user.profile.role == 4 or request.user.profile.role == 5 %}{% url 'tecnico' %}{% endif %}"
+                        {% if request.user.profile.role == 1 or request.user.profile.role == 2 or request.user.profile.role == 3 %}
+                            onclick="showLeaderPermissionAlert(); return false;"
+                        {% endif %} style="color: #000">
+                        <i class="fa-solid fa-helmet-safety" style="margin-right: 4px;"></i>
+                        Técnico
+                    </a>
+
+                </li>
+                <li>
+                    <!-- Técnico (restrito para Técnicos e Sub-Líderes Técnicos) -->
+                    <a class="dropdown-item"
+                        href="{% if request.user.profile.role == 4 or request.user.profile.role == 5 %}{% url 'os_rapida' %}{% endif %}"
+                        {% if request.user.profile.role == 1 or request.user.profile.role == 2 or request.user.profile.role == 3 %}
+                            onclick="showLeaderPermissionAlert(); return false;"
+                        {% endif %} style="color: #000">
+                        <i class="bi bi-lightning" style="margin-right: 4px;"></i>
+                        OS Rápida
+                    </a>
+                </li>
+                <li>
+                    <!-- Criar OS Rápida (acesso liberado para todos os usuários) -->
+                    <a class="dropdown-item" href="{% url 'criar_os_rapida' %}" style="color: #000">
+                        <i class="bi bi-pencil-square" style="margin-right: 4px;"></i>
+                        Criar OS Rápida
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <div class="dropdown dropdown-sidebar mb-2">
+            <button class="btn dropdown-toggle" type="button" id="dropdownMenuTech" data-bs-toggle="dropdown"
+                aria-expanded="false" style="font-size: 14px;">
+                <i class="bi bi-currency-dollar" style="margin-right: 4px;"></i> 
+                Financeiro
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="dropdownMenuTech">
+                <li>
+                    <!-- Líder Técnico (restrito para Líderes Técnicos e acima) -->
+                    <a class="dropdown-item"
+                        href="{% if request.user.profile.role != 4 and request.user.profile.role != 5 %}{% url 'financeiro' %}{% endif %}"
+                        {% if request.user.profile.role == 4 or request.user.profile.role == 5 %}
+                            onclick="showTechPermissionAlert(); return false;"
+                        {% endif %} 
+                        style="color:  var(--cinza); font-size: 14px;">
+                        <i class="bi bi-currency-dollar" style="margin-right: 4px;"></i> 
+                        Financeiro
+                    </a>
+                </li>
+                <li>
+                    <!-- Líder Técnico (restrito para Líderes Técnicos e acima) -->
+                    <a class="dropdown-item"
+                        href="{% if request.user.profile.role != 4 and request.user.profile.role != 5 %}{% url 'faturar_os_rapida' %}{% endif %}"
+                        {% if request.user.profile.role == 4 or request.user.profile.role == 5 %}
+                            onclick="showTechPermissionAlert(); return false;"
+                        {% endif %} 
+                        style="color: var(--cinza); font-size: 14px;">
+                        <i class="bi bi-lightning" style="margin-right: 4px;"></i> 
+                        Faturamento de OS Rápidas
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <div class="dropdown dropdown-sidebar mb-2">
+            <button class="btn dropdown-toggle" type="button" id="dropdownMenuTech" data-bs-toggle="dropdown"
+                aria-expanded="false" style="font-size: 14px;">
+                <i class="bi bi-buildings-fill" style="margin-right: 4px;"></i>
+                Clientes
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="dropdownMenuTech">
+                <li>
+                    <!-- Líder Técnico (restrito para Líderes Técnicos e acima) -->
+                    <a class="dropdown-item"
+                        href="{% if request.user.profile.role != 4 and request.user.profile.role != 5 %}{% url 'listar_clientes' %}{% endif %}"
+                        {% if request.user.profile.role == 4 or request.user.profile.role == 5 %}
+                            onclick="showTechPermissionAlert(); return false;"
+                        {% endif %} style="color: var(--cinza); font-size: 14px;">
+                        <i class="bi bi-buildings-fill" style="margin-right: 4px;"></i>
+                        Lista de clientes
+                    </a>
+                </li>
+                <li>
+                    <!-- Líder Técnico (restrito para Líderes Técnicos e acima) -->
+                    <a class="dropdown-item"
+                        href="{% if request.user.profile.role != 4 and request.user.profile.role != 5 %}{% url 'criar_cliente' %}{% endif %}"
+                        {% if request.user.profile.role == 4 or request.user.profile.role == 5 %}
+                            onclick="showTechPermissionAlert(); return false;"
+                        {% endif %} style="color: var(--cinza); font-size: 14px;">
+                        <i class="bi bi-building-fill-add" style="margin-right: 4px;"></i>
+                        Criar novo cliente
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <a href="{% if request.user.profile.role != 4 and request.user.profile.role != 5 %}{% url 'repositorio' %}{% endif %}"
+        {% if request.user.profile.role == 4 or request.user.profile.role == 5 %}
+            onclick="showTechPermissionAlert(); return false;"
+        {% endif %} style="font-size: 14px;">
+            <i class="fas fa-plus"></i>
+            Adicionar serviço
+        </a>
+
+        <a href="{% url 'usuario' %}" style="font-size: 14px;">
+            <i class="fa-solid fa-user-edit" style="margin-right: 4px;"></i> 
+            Perfil de usuário
+        </a>
+
+        <a href="{% url 'logout' %}" style="font-size: 14px;">
+            <i class="fas fa-sign-out-alt" style="margin-right: 4px;"></i>
+            Sair do sistema
+        </a>
+
+    </div>
+
+</div>
+
+<!-- Função JavaScript para mostrar alertas -->
+<script>
+    function showTechPermissionAlert() {
+        alert("Você não tem permissão para acessar esta área.");
+    }
+
+    function showLeaderPermissionAlert() {
+        alert("Atualmente, apenas usuários do tipo 'Técnico' podem acessar esta página, pois as informações são específicas ao trabalho dos técnicos. Estamos desenvolvendo uma solução que permitirá que você, como Líder ou Diretor, acompanhe o progresso das atividades dos colaboradores de forma mais detalhada.");
+    }
+</script>
