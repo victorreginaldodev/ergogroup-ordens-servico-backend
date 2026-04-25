@@ -1,3 +1,4 @@
+from logging import root
 from pathlib import Path
 import os
 from dotenv import load_dotenv
@@ -34,7 +35,6 @@ INSTALLED_APPS = [
     'apps.servicos',
     'apps.tarefas',
     'apps.analise',
-    'legado.ordemServico',
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
@@ -80,13 +80,21 @@ if DEBUG:
         BANCO DE DADOS DE DESENVOLVIMENTO
     '''
     DATABASES = {
+        # 'default': {
+        #     'ENGINE': 'django.db.backends.mysql',
+        #     'NAME': 'ergogroup',  # Substitua pelo nome do banco local
+        #     'USER': 'root',       # Substitua pelo usuário local
+        #     'PASSWORD': '101508',     # Substitua pela senha local
+        #     'HOST': 'localhost',           # Ou 127.0.0.1 para conexão local
+        #     'PORT': '3306',                # Porta padrão do MySQL
+        # },
         'default': {
             'ENGINE': 'django.db.backends.mysql',
-            'NAME': 'ergogroup',  # Substitua pelo nome do banco local
-            'USER': 'root',       # Substitua pelo usuário local
-            'PASSWORD': '101508',     # Substitua pela senha local
-            'HOST': 'localhost',           # Ou 127.0.0.1 para conexão local
-            'PORT': '3306',                # Porta padrão do MySQL
+            'NAME': 'ergogroup_migracao', 
+            'USER': 'root',       
+            'PASSWORD': '101508',     
+            'HOST': 'localhost',           
+            'PORT': '3306',         
         }
     }
 else:

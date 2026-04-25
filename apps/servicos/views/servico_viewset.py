@@ -25,7 +25,7 @@ from apps.servicos.serializers import ServicoListSerializer, ServicoSerializer
     destroy=extend_schema(summary='Remover serviço'),
 )
 class ServicoViewSet(viewsets.ModelViewSet):
-    queryset = Servico.objects.select_related('ordem_servico', 'repositorio').all()
+    queryset = Servico.objects.select_related('ordem_servico__cliente', 'repositorio').prefetch_related('tarefas').all()
     permission_classes = [IsAuthenticated]
 
     def get_serializer_class(self):

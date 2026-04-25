@@ -21,8 +21,18 @@ def _usuario_payload(usuario):
 class LoginSerializer(TokenObtainPairSerializer):
     """Retorna access, refresh e dados do usuário autenticado."""
 
+    # Garante o campo correto mesmo que o import do simplejwt aconteça antes
+    # do registry do Django estar totalmente carregado (USERNAME_FIELD = 'email').
+    username_field = 'email'
+
     def validate(self, attrs):
-        data = super().validate(attrs)
+        print(">>> LOGIN attrs recebidos:", attrs)
+        try:
+            data = super().validate(attrs)
+        except Exception as e:
+            print(">>> LOGIN erro no super().validate:", type(e).__name__, e)
+            raise
+        print(">>> LOGIN usuário autenticado:", self.user)
 
         if not self.user.ativo:
             raise serializers.ValidationError('Usuário inativo. Entre em contato com o administrador.')

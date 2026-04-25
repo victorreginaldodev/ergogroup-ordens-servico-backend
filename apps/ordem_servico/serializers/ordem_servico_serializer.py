@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from apps.ordem_servico.models import OrdemServico
 from apps.clientes.models import Cliente
-from apps.clientes.serializers import ClienteListSerializer
+from apps.clientes.serializers import ClienteListSerializer, ClienteSerializer
 
 
 class OrdemServicoListSerializer(serializers.ModelSerializer):
@@ -18,7 +18,7 @@ class OrdemServicoListSerializer(serializers.ModelSerializer):
 
 
 class OrdemServicoSerializer(serializers.ModelSerializer):
-    cliente_detail = ClienteListSerializer(source='cliente', read_only=True)
+    cliente_detail = ClienteSerializer(source='cliente', read_only=True)
     cliente = serializers.PrimaryKeyRelatedField(queryset=Cliente.objects.all())
     forma_pagamento_display = serializers.CharField(source='get_forma_pagamento_display', read_only=True)
     liberada_para_faturamento = serializers.SerializerMethodField()

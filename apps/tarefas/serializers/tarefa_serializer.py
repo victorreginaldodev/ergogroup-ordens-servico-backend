@@ -13,7 +13,7 @@ class TarefaListSerializer(serializers.ModelSerializer):
         model = Tarefa
         fields = [
             'id', 'servico', 'responsavel', 'responsavel_nome',
-            'status', 'status_display', 'data_inicio', 'data_termino', 'atualizado_em',
+            'descricao', 'status', 'status_display', 'data_inicio', 'data_termino', 'atualizado_em',
         ]
 
 

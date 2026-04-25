@@ -23,7 +23,12 @@ class LoginView(TokenObtainPairView):
         responses={200: LoginSerializer},
     )
     def post(self, request, *args, **kwargs):
-        return super().post(request, *args, **kwargs)
+        print(">>> LOGIN request.data:", request.data)
+        print(">>> LOGIN Content-Type:", request.content_type)
+        response = super().post(request, *args, **kwargs)
+        print(">>> LOGIN response.status:", response.status_code)
+        print(">>> LOGIN response.data:", response.data)
+        return response
 
 
 class RefreshView(TokenRefreshView):

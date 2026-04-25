@@ -7,30 +7,6 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, Spec
 urlpatterns = [
     path('admin/', admin.site.urls),
 
-    path('', include('legado.ordemServico.urls.OrdemServicoUrls')),
-
-    path('', include('legado.ordemServico.urls.FinanceiroUrls')),
-
-    path('', include('legado.ordemServico.urls.ServicosUrls')),
-
-    path('', include('legado.ordemServico.urls.TarefasUrls')),
-
-    path('', include('legado.ordemServico.urls.OsRapidaUrls')),
-
-    path('', include('legado.ordemServico.urls.LoginUrls')),
-
-    path('', include('legado.ordemServico.urls.RegistroUrls')),
-
-    path('', include('legado.ordemServico.urls.ClientesUrls')),
-
-    path('', include('legado.ordemServico.urls.RepositorioUrls')),
-
-    path('', include('legado.ordemServico.urls.UsuarioUrls')),
-
-    path('', include('legado.ordemServico.urls.PainelControleUrls')),
-
-    path('', include('legado.ordemServico.urls.ApiUrls')),
-
     path('api/contas/', include('apps.contas.urls')),
     path('api/clientes/', include('apps.clientes.urls')),
     path('api/ordem-servico/', include('apps.ordem_servico.urls')),
