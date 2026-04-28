@@ -22,7 +22,11 @@ from apps.tarefas.serializers import TarefaListSerializer, TarefaSerializer
     destroy=extend_schema(summary='Remover tarefa'),
 )
 class TarefaViewSet(viewsets.ModelViewSet):
-    queryset = Tarefa.objects.select_related('servico', 'responsavel').all()
+    queryset = Tarefa.objects.select_related(
+        'responsavel',
+        'servico__repositorio',
+        'servico__ordem_servico__cliente',
+    ).all()
     permission_classes = [IsAuthenticated]
 
     def get_serializer_class(self):
