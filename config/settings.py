@@ -97,15 +97,15 @@ else:
         BANDO DE DADOS DE PRODUÇÃO
     '''
     DATABASES = {
+        # 'default': {
+        #     'ENGINE': 'django.db.backends.mysql',
+        #     'NAME': 'ErgoGroup$ErgoGroupApp',
+        #     'USER': 'ErgoGroup',
+        #     'PASSWORD': 'Ergo@2025',
+        #     'HOST': 'ErgoGroup.mysql.pythonanywhere-services.com',
+        #     'PORT': '3306',
+        # },
         'default': {
-            'ENGINE': 'django.db.backends.mysql',
-            'NAME': 'ErgoGroup$ErgoGroupApp',
-            'USER': 'ErgoGroup',
-            'PASSWORD': 'Ergo@2025',
-            'HOST': 'ErgoGroup.mysql.pythonanywhere-services.com',
-            'PORT': '3306',
-        },
-        'ergoapp_v3': {
             'ENGINE': 'django.db.backends.mysql',
             'NAME': 'ErgoGroup$ergoapp_v3',
             'USER': 'ErgoGroup',
