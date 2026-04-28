@@ -32,7 +32,7 @@ from legado.ordemServico.models import (
     Tarefa as LegadoTarefa,
 )
 
-NOVO_DB = 'ergogroup_migracao'
+NOVO_DB = 'ergoapp_v3'
 
 
 def _make_aware(dt):

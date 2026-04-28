@@ -80,14 +80,6 @@ if DEBUG:
         BANCO DE DADOS DE DESENVOLVIMENTO
     '''
     DATABASES = {
-        # 'default': {
-        #     'ENGINE': 'django.db.backends.mysql',
-        #     'NAME': 'ergogroup',  # Substitua pelo nome do banco local
-        #     'USER': 'root',       # Substitua pelo usuário local
-        #     'PASSWORD': '101508',     # Substitua pela senha local
-        #     'HOST': 'localhost',           # Ou 127.0.0.1 para conexão local
-        #     'PORT': '3306',                # Porta padrão do MySQL
-        # },
         'default': {
             'ENGINE': 'django.db.backends.mysql',
             'NAME': 'ergogroup_migracao', 
@@ -106,6 +98,14 @@ else:
         'default': {
             'ENGINE': 'django.db.backends.mysql',
             'NAME': 'ErgoGroup$ErgoGroupApp',
+            'USER': 'ErgoGroup',
+            'PASSWORD': 'Ergo@2025',
+            'HOST': 'ErgoGroup.mysql.pythonanywhere-services.com',
+            'PORT': '3306',
+        },
+        'ergoapp_v3': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': 'ErgoGroup$ergoapp_v3',
             'USER': 'ErgoGroup',
             'PASSWORD': 'Ergo@2025',
             'HOST': 'ErgoGroup.mysql.pythonanywhere-services.com',
