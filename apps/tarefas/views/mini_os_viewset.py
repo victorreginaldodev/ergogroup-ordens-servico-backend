@@ -3,6 +3,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
 
+from apps.contas.models.choices import TipoUsuario
 from apps.tarefas.models import MiniOS
 from apps.tarefas.serializers import MiniOSListSerializer, MiniOSSerializer
 
@@ -35,6 +36,11 @@ class MiniOSViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = super().get_queryset()
+        user = self.request.user
+
+        if user.tipo_usuario == TipoUsuario.TECNICO:
+            queryset = queryset.filter(responsavel=user)
+
         q = self.request.query_params.get('q', '').strip()
         cliente_id = self.request.query_params.get('cliente', '').strip()
         responsavel_id = self.request.query_params.get('responsavel', '').strip()
