@@ -35,4 +35,4 @@ class ServicoSerializer(serializers.ModelSerializer):
             'id', 'ordem_servico', 'repositorio', 'repositorio_detail',
             'descricao', 'status', 'status_display', 'data_conclusao',
         ]
-        read_only_fields = ['status', 'data_conclusao']
+        read_only_fields = ['data_conclusao']
