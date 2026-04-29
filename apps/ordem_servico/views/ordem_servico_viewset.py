@@ -28,7 +28,7 @@ from apps.servicos.models import Servico
     destroy=extend_schema(summary='Remover ordem de serviço'),
 )
 class OrdemServicoViewSet(viewsets.ModelViewSet):
-    queryset = OrdemServico.objects.select_related('cliente', 'criado_por').all()
+    queryset = OrdemServico.objects.select_related('cliente', 'criado_por').prefetch_related('servicos__tarefas__responsavel').all()
     permission_classes = [IsAuthenticated]
 
     def get_serializer_class(self):
