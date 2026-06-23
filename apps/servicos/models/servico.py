@@ -123,6 +123,15 @@ class Servico(models.Model):
                 updates['terminado_por_id'] = None
 
         if updates:
+            from apps.auditoria.models import AcaoAuditoria
+            from apps.auditoria.utils import registrar_update_direto
+
+            registrar_update_direto(
+                self,
+                updates,
+                acao=AcaoAuditoria.PROPAGACAO_STATUS,
+                motivo='Serviço sincronizado automaticamente a partir das tarefas.',
+            )
             updates['atualizado_em'] = timezone.now()
             Servico.objects.filter(pk=self.pk).update(**updates)
             for campo, valor in updates.items():

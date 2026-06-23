@@ -169,6 +169,14 @@ class OrdemServico(models.Model):
                     updates['liberada_para_faturamento_por_id'] = ultimo_servico.terminado_por_id
 
         if updates:
+            from apps.auditoria.utils import registrar_update_direto
+
+            registrar_update_direto(
+                self,
+                updates,
+                acao=_acao_auditoria_updates_os(updates),
+                motivo='Ordem de Serviço sincronizada automaticamente a partir dos serviços.',
+            )
             updates['data_atualizacao'] = timezone.now()
             OrdemServico.objects.filter(pk=self.pk).update(**updates)
             for campo, valor in updates.items():
@@ -183,3 +191,11 @@ class OrdemServico(models.Model):
 def _as_datetime(value):
     dt = datetime.combine(value, time.min)
     return timezone.make_aware(dt, timezone.get_current_timezone())
+
+
+def _acao_auditoria_updates_os(updates):
+    from apps.auditoria.models import AcaoAuditoria
+
+    if 'liberada_para_faturamento' in updates:
+        return AcaoAuditoria.LIBERACAO_FATURAMENTO
+    return AcaoAuditoria.PROPAGACAO_STATUS
