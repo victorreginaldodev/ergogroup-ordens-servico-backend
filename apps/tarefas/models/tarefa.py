@@ -1,11 +1,13 @@
 from django.db import models
 from django.conf import settings
+from django.utils import timezone
 
 
 class StatusTarefa(models.TextChoices):
-    NAO_INICIADA = 'nao_iniciada', 'Não Iniciada'
+    ABERTA = 'aberta', 'Aberta'
     EM_ANDAMENTO = 'em_andamento', 'Em Andamento'
     CONCLUIDA = 'concluida', 'Concluída'
+    CANCELADA = 'cancelada', 'Cancelada'
 
 
 class Tarefa(models.Model):
@@ -22,7 +24,8 @@ class Tarefa(models.Model):
     descricao = models.TextField(null=True, blank=True)
     data_inicio = models.DateField(null=True, blank=True)
     data_termino = models.DateField(null=True, blank=True)
-    status = models.CharField(max_length=15, choices=StatusTarefa.choices, default=StatusTarefa.NAO_INICIADA)
+    status = models.CharField(max_length=15, choices=StatusTarefa.choices, default=StatusTarefa.ABERTA)
+    criada_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -35,6 +38,14 @@ class Tarefa(models.Model):
 
     def save(self, *args, **kwargs):
         from apps.servicos.models import Servico
+
+        hoje = timezone.localdate()
+        if self.status in (StatusTarefa.EM_ANDAMENTO, StatusTarefa.CONCLUIDA) and self.data_inicio is None:
+            self.data_inicio = hoje
+        if self.status == StatusTarefa.CONCLUIDA and self.data_termino is None:
+            self.data_termino = hoje
+        if self.status != StatusTarefa.CONCLUIDA and self.data_termino is not None:
+            self.data_termino = None
 
         servico_anterior_id = None
         if self.pk:
@@ -49,11 +60,11 @@ class Tarefa(models.Model):
         if servico_anterior_id and servico_anterior_id != self.servico_id:
             servico_anterior = Servico.objects.filter(pk=servico_anterior_id).first()
             if servico_anterior:
-                servico_anterior.sincronizar_status()
+                servico_anterior.sincronizar_status_e_rastreio()
 
-        self.servico.sincronizar_status()
+        self.servico.sincronizar_status_e_rastreio()
 
     def delete(self, *args, **kwargs):
         servico = self.servico
         super().delete(*args, **kwargs)
-        servico.sincronizar_status()
+        servico.sincronizar_status_e_rastreio()

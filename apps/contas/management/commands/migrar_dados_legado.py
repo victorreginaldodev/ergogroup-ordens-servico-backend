@@ -1,6 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.db import connections, transaction
 from django.utils import timezone
+from datetime import datetime, time
 
 from apps.clientes.models import Cliente
 from apps.contas.models import Usuario
@@ -43,6 +44,12 @@ def _make_aware(dt):
         return dt
     return timezone.make_aware(dt)
 
+
+def _date_to_aware(value):
+    if value is None:
+        return None
+    return timezone.make_aware(datetime.combine(value, time.min))
+
 ROLE_MAP = {
     1: 'diretor',
     2: 'administrativo',
@@ -55,6 +62,14 @@ ROLE_MAP = {
 FORMA_PAGAMENTO_MAP = {
     'debto': 'debito',
     'check': 'cheque',
+}
+
+SERVICO_STATUS_MAP = {
+    'em_espera': 'aberto',
+}
+
+TAREFA_STATUS_MAP = {
+    'nao_iniciada': 'aberta',
 }
 
 
@@ -258,6 +273,7 @@ class Command(BaseCommand):
                 cliente_id=os.cliente_id,
                 criado_por_id=criado_por_id,
                 data_criacao=os.data_criacao,
+                criada_em=_date_to_aware(os.data_criacao) or timezone.now(),
                 valor=os.valor or 0,
                 forma_pagamento=forma,
                 quantidade_parcelas=os.quantidade_parcelas,
@@ -266,9 +282,19 @@ class Command(BaseCommand):
                 contato_envio_nf=os.contato_envio_nf or '',
                 observacao=os.observacao,
                 concluida=_sim_nao(os.concluida),
+                status='concluida' if _sim_nao(os.concluida) else 'aberta',
+                prioridade='baixa',
+                liberada_para_faturamento=_sim_nao(os.cobranca_imediata),
+                liberada_para_faturamento_em=(
+                    _date_to_aware(os.data_criacao) if _sim_nao(os.cobranca_imediata) else None
+                ),
+                liberada_para_faturamento_por_id=(
+                    criado_por_id if _sim_nao(os.cobranca_imediata) else None
+                ),
                 faturada=_sim_nao(os.faturamento),
                 numero_nf=os.numero_nf,
                 data_faturamento=os.data_faturamento,
+                faturada_por_id=3 if _sim_nao(os.faturamento) else None,
                 # data_atualizacao é auto_now — será definida no update abaixo
             ))
 
@@ -289,8 +315,11 @@ class Command(BaseCommand):
                 ordem_servico_id=s.ordem_servico_id,
                 repositorio_id=s.repositorio_id,
                 descricao=s.descricao,
-                status=s.status or 'em_espera',
+                status=SERVICO_STATUS_MAP.get(s.status, s.status or 'aberto'),
+                data_termino=s.data_conclusao,
                 data_conclusao=s.data_conclusao,
+                criado_em=_date_to_aware(s.data_conclusao) or timezone.now(),
+                atualizado_em=timezone.now(),
             )
             for s in LegadoServico.objects.using('default').all()
         ]
@@ -323,7 +352,12 @@ class Command(BaseCommand):
                 descricao=t.descricao,
                 data_inicio=t.data_inicio,
                 data_termino=t.data_termino,
-                status=t.status or 'nao_iniciada',
+                status=TAREFA_STATUS_MAP.get(t.status, t.status or 'aberta'),
+                criada_em=(
+                    _date_to_aware(t.data_inicio)
+                    or _date_to_aware(t.data_termino)
+                    or timezone.now()
+                ),
             ))
 
         if not dry_run and objs:
@@ -353,6 +387,14 @@ class Command(BaseCommand):
                 skipped.append(m.id)
                 continue
 
+            revisao_cliente = m.revisao_cliente or False
+            faturada = _sim_nao(m.faturamento)
+            data_liberacao_cobranca = (
+                _date_to_aware(m.data_termino)
+                if revisao_cliente and m.status == 'finalizada'
+                else None
+            )
+
             objs.append(MiniOS(
                 id=m.id,
                 cliente_id=m.cliente_id,
@@ -364,9 +406,20 @@ class Command(BaseCommand):
                 data_inicio=m.data_inicio,
                 data_termino=m.data_termino,
                 status=m.status or 'nao_iniciado',
-                revisao_cliente=m.revisao_cliente or False,
-                faturada=_sim_nao(m.faturamento),
+                criada_em=(
+                    _date_to_aware(m.data_recebimento)
+                    or _date_to_aware(m.data_inicio)
+                    or _date_to_aware(m.data_termino)
+                    or timezone.now()
+                ),
+                atualizado_em=timezone.now(),
+                revisao_cliente=revisao_cliente,
+                gera_cobranca=revisao_cliente,
+                data_liberacao_cobranca=data_liberacao_cobranca,
+                liberada_cobranca_por_id=responsavel_id if data_liberacao_cobranca else None,
+                faturada=faturada,
                 numero_nf=m.n_nf,
+                faturada_por_id=3 if faturada else None,
             ))
 
         if not dry_run and objs:

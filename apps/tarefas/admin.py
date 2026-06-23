@@ -14,11 +14,20 @@ class TarefaAdmin(admin.ModelAdmin):
     list_filter = ['status']
     search_fields = ['descricao', 'responsavel__nome_completo']
     raw_id_fields = ['servico', 'responsavel']
+    readonly_fields = ['data_inicio', 'data_termino', 'criada_em', 'atualizado_em']
 
 
 @admin.register(MiniOS)
 class MiniOSAdmin(admin.ModelAdmin):
-    list_display = ['id', 'cliente', 'servico', 'responsavel', 'status', 'faturada', 'data_recebimento']
-    list_filter = ['status', 'faturada', 'revisao_cliente']
+    list_display = [
+        'id', 'cliente', 'servico', 'responsavel', 'status',
+        'gera_cobranca', 'faturada', 'faturada_por', 'data_recebimento',
+    ]
+    list_filter = ['status', 'faturada', 'revisao_cliente', 'gera_cobranca']
     search_fields = ['cliente__nome', 'servico__nome', 'responsavel__nome_completo']
-    raw_id_fields = ['cliente', 'servico', 'responsavel']
+    raw_id_fields = ['cliente', 'servico', 'responsavel', 'liberada_cobranca_por', 'faturada_por']
+    readonly_fields = [
+        'data_inicio', 'data_termino', 'criada_em', 'atualizado_em',
+        'gera_cobranca', 'data_liberacao_cobranca',
+        'liberada_cobranca_por', 'faturada_por',
+    ]

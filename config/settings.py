@@ -165,7 +165,10 @@ LOGIN_URL = 'login'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 DEFAULT_FROM_EMAIL = "nao-responder@ergogroupapp.com"
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+if DEBUG:
+    EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
+else:
+    EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
 EMAIL_HOST_USER = 'nao-responder@ergogroupapp.com'
 EMAIL_HOST_PASSWORD = 'Ergo@2025'  # Certifique-se de que a senha esteja correta
 EMAIL_USE_TLS = True

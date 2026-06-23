@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Novo contrato criado</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333333;
+        }
+        h1 {
+            color: #2A6CB2;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #dddddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+            width: 220px;
+        }
+        .footer {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #666666;
+        }
+    </style>
+</head>
+<body>
+    <h1>Novo contrato criado</h1>
+    <p>Uma Ordem de Serviço do tipo contrato foi criada no sistema.</p>
+
+    <table>
+        <tr>
+            <th>OS</th>
+            <td>#{{ ordem_servico.pk }}</td>
+        </tr>
+        <tr>
+            <th>Cliente</th>
+            <td>{{ ordem_servico.cliente.nome }}</td>
+        </tr>
+        <tr>
+            <th>Objeto do contrato</th>
+            <td>{{ ordem_servico.objeto_contrato }}</td>
+        </tr>
+        <tr>
+            <th>Início</th>
+            <td>{{ ordem_servico.contrato_data_inicio|date:"d/m/Y" }}</td>
+        </tr>
+        <tr>
+            <th>Fim</th>
+            <td>{{ ordem_servico.contrato_data_fim|date:"d/m/Y" }}</td>
+        </tr>
+        <tr>
+            <th>Gestor</th>
+            <td>{{ ordem_servico.gestor_contrato_nome|default:"Não informado" }}</td>
+        </tr>
+        <tr>
+            <th>E-mail do gestor</th>
+            <td>{{ ordem_servico.gestor_contrato_email|default:"Não informado" }}</td>
+        </tr>
+        <tr>
+            <th>Telefone do gestor</th>
+            <td>{{ ordem_servico.gestor_contrato_telefone|default:"Não informado" }}</td>
+        </tr>
+    </table>
+
+    <p class="footer">
+        Atenciosamente,<br>
+        Equipe ErgoGroup
+    </p>
+</body>
+</html>

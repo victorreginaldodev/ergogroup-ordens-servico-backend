@@ -1,11 +1,10 @@
-from django.db.models import Sum, Count, F, OuterRef, Subquery, Q
+from django.db.models import Sum
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from drf_spectacular.utils import extend_schema
 
 from apps.ordem_servico.models import OrdemServico
-from apps.servicos.models import Servico
 
 
 class FinanceiroKPIsView(APIView):
@@ -23,35 +22,7 @@ class FinanceiroKPIsView(APIView):
     def get(self, request):
         qs = OrdemServico.objects.all()
 
-        servicos_concluidos_sq = (
-            Servico.objects
-            .filter(ordem_servico=OuterRef('pk'), status='concluida')
-            .values('ordem_servico')
-            .annotate(c=Count('id'))
-            .values('c')
-        )
-        total_servicos_sq = (
-            Servico.objects
-            .filter(ordem_servico=OuterRef('pk'))
-            .values('ordem_servico')
-            .annotate(c=Count('id'))
-            .values('c')
-        )
-
-        annotated = qs.annotate(
-            total_servicos=Subquery(total_servicos_sq),
-            servicos_concluidos=Subquery(servicos_concluidos_sq),
-        )
-
-        liberadas = (
-            annotated
-            .filter(faturada=False)
-            .filter(
-                Q(cobranca_imediata=True) |
-                Q(servicos__isnull=False, total_servicos=F('servicos_concluidos'))
-            )
-            .distinct()
-        )
+        liberadas = qs.filter(faturada=False, liberada_para_faturamento=True)
 
         total_faturado = (
             qs.filter(faturada=True).aggregate(total=Sum('valor'))['total'] or 0

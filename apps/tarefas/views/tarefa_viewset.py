@@ -13,7 +13,7 @@ from apps.tarefas.serializers import TarefaListSerializer, TarefaSerializer
         parameters=[
             OpenApiParameter('servico', int, description='Filtrar por ID do serviço'),
             OpenApiParameter('responsavel', int, description='Filtrar por ID do responsável'),
-            OpenApiParameter('status', str, description='Filtrar por status (nao_iniciada/em_andamento/concluida)'),
+            OpenApiParameter('status', str, description='Filtrar por status (aberta/em_andamento/concluida/cancelada)'),
         ],
     ),
     create=extend_schema(summary='Criar tarefa'),

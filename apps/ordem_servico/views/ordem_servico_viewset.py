@@ -2,12 +2,11 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from django.db.models import Exists, OuterRef, Q
+from django.db.models import Q
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
 
 from apps.ordem_servico.models import OrdemServico
 from apps.ordem_servico.serializers import OrdemServicoListSerializer, OrdemServicoSerializer
-from apps.servicos.models import Servico
 
 
 @extend_schema_view(
@@ -28,7 +27,13 @@ from apps.servicos.models import Servico
     destroy=extend_schema(summary='Remover ordem de serviço'),
 )
 class OrdemServicoViewSet(viewsets.ModelViewSet):
-    queryset = OrdemServico.objects.select_related('cliente', 'criado_por').prefetch_related('servicos__tarefas__responsavel').all()
+    queryset = OrdemServico.objects.select_related(
+        'cliente',
+        'criado_por',
+        'atualizado_por',
+        'liberada_para_faturamento_por',
+        'faturada_por',
+    ).prefetch_related('servicos__tarefas__responsavel').all()
     permission_classes = [IsAuthenticated]
 
     def get_serializer_class(self):
@@ -55,19 +60,7 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
         if faturada in ('true', 'false'):
             queryset = queryset.filter(faturada=(faturada == 'true'))
         if liberada in ('true', 'false'):
-            # Espelha OrdemServico.liberada_para_faturamento():
-            # cobranca_imediata=True  OU  (tem serviços E todos com status='concluida')
-            has_servicos = Exists(
-                Servico.objects.filter(ordem_servico_id=OuterRef('pk'))
-            )
-            has_non_concluded = Exists(
-                Servico.objects.filter(ordem_servico_id=OuterRef('pk')).exclude(status='concluida')
-            )
-            liberated_q = Q(cobranca_imediata=True) | (has_servicos & ~has_non_concluded)
-            if liberada == 'true':
-                queryset = queryset.filter(liberated_q)
-            else:
-                queryset = queryset.exclude(liberated_q)
+            queryset = queryset.filter(liberada_para_faturamento=(liberada == 'true'))
 
         return queryset
 
@@ -75,7 +68,7 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['patch'], url_path='faturar')
     def faturar(self, request, pk=None):
         os = self.get_object()
-        if not os.liberada_para_faturamento():
+        if not os.liberada_para_faturamento:
             return Response(
                 {'detail': 'Ordem de serviço não está liberada para faturamento.'},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -85,11 +78,16 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
         os.faturada = True
         os.numero_nf = numero_nf
         os.data_faturamento = data_faturamento
-        os.save(update_fields=['faturada', 'numero_nf', 'data_faturamento'])
+        os.faturada_por = request.user
+        os.save(update_fields=['faturada', 'numero_nf', 'data_faturamento', 'faturada_por', 'data_atualizacao'])
         return Response(OrdemServicoSerializer(os, context={'request': request}).data)
 
     @extend_schema(summary='Verificar se está liberada para faturamento')
     @action(detail=True, methods=['get'], url_path='liberada-faturamento')
     def liberada_faturamento(self, request, pk=None):
         os = self.get_object()
-        return Response({'liberada': os.liberada_para_faturamento()})
+        return Response({
+            'liberada': os.liberada_para_faturamento,
+            'liberada_em': os.liberada_para_faturamento_em,
+            'liberada_por': os.liberada_para_faturamento_por_id,
+        })

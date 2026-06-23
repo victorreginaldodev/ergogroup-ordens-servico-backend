@@ -1,4 +1,4 @@
-from rest_framework import viewsets, status
+from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -14,7 +14,7 @@ from apps.servicos.serializers import ServicoListSerializer, ServicoSerializer
         summary='Listar serviços',
         parameters=[
             OpenApiParameter('ordem_servico', int, description='Filtrar por ID da ordem de serviço'),
-            OpenApiParameter('status', str, description='Filtrar por status (em_espera/em_andamento/concluida)'),
+            OpenApiParameter('status', str, description='Filtrar por status (aberto/em_andamento/concluida/cancelado)'),
             OpenApiParameter('repositorio', int, description='Filtrar por ID do repositório'),
         ],
     ),
@@ -25,7 +25,11 @@ from apps.servicos.serializers import ServicoListSerializer, ServicoSerializer
     destroy=extend_schema(summary='Remover serviço'),
 )
 class ServicoViewSet(viewsets.ModelViewSet):
-    queryset = Servico.objects.select_related('ordem_servico__cliente', 'repositorio').prefetch_related('tarefas').all()
+    queryset = Servico.objects.select_related(
+        'ordem_servico__cliente',
+        'repositorio',
+        'terminado_por',
+    ).prefetch_related('tarefas').all()
     permission_classes = [IsAuthenticated]
 
     def get_serializer_class(self):
@@ -52,5 +56,5 @@ class ServicoViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], url_path='sincronizar')
     def sincronizar(self, request, pk=None):
         servico = self.get_object()
-        servico.sincronizar_status()
+        servico.sincronizar_status_e_rastreio()
         return Response(ServicoSerializer(servico, context={'request': request}).data)

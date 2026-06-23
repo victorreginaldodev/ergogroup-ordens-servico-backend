@@ -16,7 +16,8 @@ class TarefaListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'servico', 'responsavel', 'responsavel_nome',
             'cliente_nome', 'repositorio_nome',
-            'descricao', 'status', 'status_display', 'data_inicio', 'data_termino', 'atualizado_em',
+            'descricao', 'status', 'status_display', 'data_inicio',
+            'data_termino', 'criada_em', 'atualizado_em',
         ]
 
 
@@ -30,6 +31,6 @@ class TarefaSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'servico', 'responsavel', 'responsavel_nome',
             'descricao', 'status', 'status_display',
-            'data_inicio', 'data_termino', 'atualizado_em',
+            'data_inicio', 'data_termino', 'criada_em', 'atualizado_em',
         ]
-        read_only_fields = ['atualizado_em']
+        read_only_fields = ['data_inicio', 'data_termino', 'criada_em', 'atualizado_em']

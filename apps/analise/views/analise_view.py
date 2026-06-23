@@ -57,10 +57,10 @@ class AnaliseDadosView(APIView):
     def _servicos(self, data_inicio, meses):
         concluidos = Servico.objects.filter(
             status=StatusServico.CONCLUIDA,
-            data_conclusao__isnull=False,
-            data_conclusao__gte=data_inicio,
+            data_termino__isnull=False,
+            data_termino__gte=data_inicio,
         )
-        por_mes_map = _agregar_por_mes(concluidos, campo_data='data_conclusao')
+        por_mes_map = _agregar_por_mes(concluidos, campo_data='data_termino')
         principais = list(
             Servico.objects
             .filter(repositorio__isnull=False)

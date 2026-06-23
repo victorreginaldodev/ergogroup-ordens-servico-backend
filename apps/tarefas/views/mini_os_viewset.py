@@ -1,5 +1,7 @@
-from rest_framework import viewsets
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
 
@@ -26,7 +28,13 @@ from apps.tarefas.serializers import MiniOSListSerializer, MiniOSSerializer
     destroy=extend_schema(summary='Remover Mini OS'),
 )
 class MiniOSViewSet(viewsets.ModelViewSet):
-    queryset = MiniOS.objects.select_related('cliente', 'servico', 'responsavel').all()
+    queryset = MiniOS.objects.select_related(
+        'cliente',
+        'servico',
+        'responsavel',
+        'liberada_cobranca_por',
+        'faturada_por',
+    ).all()
     permission_classes = [IsAuthenticated]
 
     def get_serializer_class(self):
@@ -61,3 +69,25 @@ class MiniOSViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(faturada=(faturada == 'true'))
 
         return queryset
+
+    @extend_schema(summary='Faturar Mini OS')
+    @action(detail=True, methods=['patch'], url_path='faturar')
+    def faturar(self, request, pk=None):
+        mini_os = self.get_object()
+        if not mini_os.gera_cobranca:
+            return Response(
+                {'detail': 'Mini OS não gera cobrança.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if mini_os.data_liberacao_cobranca is None:
+            return Response(
+                {'detail': 'Mini OS ainda não está liberada para cobrança.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        numero_nf = request.data.get('numero_nf')
+        mini_os.faturada = True
+        mini_os.numero_nf = numero_nf
+        mini_os.faturada_por = request.user
+        mini_os.save(update_fields=['faturada', 'numero_nf', 'faturada_por', 'atualizado_em'])
+        return Response(MiniOSSerializer(mini_os, context={'request': request}).data)
