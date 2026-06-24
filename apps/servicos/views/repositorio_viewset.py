@@ -19,7 +19,7 @@ from apps.servicos.serializers import RepositorioSerializer
     destroy=extend_schema(summary='Remover repositório'),
 )
 class RepositorioViewSet(viewsets.ModelViewSet):
-    queryset = Repositorio.objects.all()
+    queryset = Repositorio.objects.prefetch_related('subitens').all()
     serializer_class = RepositorioSerializer
     permission_classes = [IsAuthenticated]
 

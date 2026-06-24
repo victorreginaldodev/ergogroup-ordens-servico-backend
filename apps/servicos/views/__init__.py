@@ -1,2 +1,3 @@
 from .repositorio_viewset import RepositorioViewSet
 from .servico_viewset import ServicoViewSet
+from .subitem_repositorio_viewset import SubitemRepositorioViewSet
