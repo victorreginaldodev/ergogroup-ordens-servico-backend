@@ -4,11 +4,12 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from drf_spectacular.utils import extend_schema
 
+from apps.contas.permissions import PodeVerValoresFinanceiros
 from apps.ordem_servico.models import OrdemServico
 
 
 class FinanceiroKPIsView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, PodeVerValoresFinanceiros]
 
     @extend_schema(
         summary='KPIs financeiros',
@@ -16,7 +17,9 @@ class FinanceiroKPIsView(APIView):
             'Retorna três totalizadores:\n'
             '- **total_faturado**: soma das OS já faturadas.\n'
             '- **total_para_faturar**: soma das OS liberadas e ainda não faturadas.\n'
-            '- **total_sem_liberacao**: soma das OS em aberto sem liberação para faturamento.'
+            '- **total_sem_liberacao**: soma das OS em aberto sem liberação para faturamento.\n\n'
+            'Indisponível (403) para os perfis Sub-Líder Técnico, Técnico, '
+            'Gestor Administrativo e Administrativo.'
         ),
     )
     def get(self, request):

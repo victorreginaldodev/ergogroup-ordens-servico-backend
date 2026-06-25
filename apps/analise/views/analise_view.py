@@ -1,18 +1,20 @@
 from datetime import date
 
 from django.db.models import Count, Sum
-from django.db.models.functions import TruncMonth
 from django.utils import timezone
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from drf_spectacular.utils import extend_schema
 
+from apps.contas.permissions import usuario_pode_ver_valores
 from apps.ordem_servico.models import OrdemServico
 from apps.servicos.models import Servico
 from apps.servicos.models.servico import StatusServico
 from apps.tarefas.models import Tarefa, MiniOS
 from apps.tarefas.models.tarefa import StatusTarefa
+
+from apps.analise.utils import agregar_por_mes, gerar_intervalo_meses, preencher_meses
 
 
 class AnaliseDadosView(APIView):
@@ -22,37 +24,46 @@ class AnaliseDadosView(APIView):
         summary='Análise de dados',
         description=(
             'Métricas agregadas dos últimos 12 meses: ordens de serviço, '
-            'serviços, tarefas, mini OS e clientes.'
+            'serviços, tarefas, mini OS e clientes.\n\n'
+            'Os campos `ordens_servico.vendas_por_mes` e o bloco `clientes` '
+            'envolvem valores monetários e são omitidos da resposta para os '
+            'perfis Sub-Líder Técnico, Técnico, Gestor Administrativo e '
+            'Administrativo.'
         ),
     )
     def get(self, request):
         hoje = timezone.now().date()
-        meses = _gerar_intervalo_meses(hoje, 12)
+        meses = gerar_intervalo_meses(hoje, 12)
         data_inicio = date(meses[0]['ano'], meses[0]['mes'], 1)
+        pode_ver_valores = usuario_pode_ver_valores(request.user)
 
-        return Response({
-            'ordens_servico': self._ordens_servico(data_inicio, meses),
+        resultado = {
+            'ordens_servico': self._ordens_servico(data_inicio, meses, pode_ver_valores),
             'servicos': self._servicos(data_inicio, meses),
             'tarefas': self._tarefas(data_inicio, meses),
             'minios': self._minios(data_inicio, meses),
-            'clientes': self._clientes(),
-        })
+        }
+        if pode_ver_valores:
+            resultado['clientes'] = self._clientes()
+        return Response(resultado)
 
     # ------------------------------------------------------------------ #
 
-    def _ordens_servico(self, data_inicio, meses):
+    def _ordens_servico(self, data_inicio, meses, pode_ver_valores):
         qs = OrdemServico.objects.all()
-        vendas_map = _agregar_por_mes(
-            qs.filter(data_criacao__gte=data_inicio),
-            campo_data='data_criacao',
-            agregacao=Sum('valor'),
-        )
-        return {
+        resultado = {
             'total': qs.count(),
             'total_concluidas': qs.filter(concluida=True).count(),
             'total_nao_concluidas': qs.filter(concluida=False).count(),
-            'vendas_por_mes': _preencher_meses(meses, vendas_map, default=0),
         }
+        if pode_ver_valores:
+            vendas_map = agregar_por_mes(
+                qs.filter(data_criacao__gte=data_inicio),
+                campo_data='data_criacao',
+                agregacao=Sum('valor'),
+            )
+            resultado['vendas_por_mes'] = preencher_meses(meses, vendas_map, default=0)
+        return resultado
 
     def _servicos(self, data_inicio, meses):
         concluidos = Servico.objects.filter(
@@ -60,7 +71,7 @@ class AnaliseDadosView(APIView):
             data_termino__isnull=False,
             data_termino__gte=data_inicio,
         )
-        por_mes_map = _agregar_por_mes(concluidos, campo_data='data_termino')
+        por_mes_map = agregar_por_mes(concluidos, campo_data='data_termino')
         principais = list(
             Servico.objects
             .filter(repositorio__isnull=False)
@@ -78,7 +89,7 @@ class AnaliseDadosView(APIView):
         ]
         return {
             'concluidos_ultimos_12_meses_total': concluidos.count(),
-            'concluidos_por_mes': _preencher_meses(meses, por_mes_map),
+            'concluidos_por_mes': preencher_meses(meses, por_mes_map),
             'principais_por_quantidade': [
                 {
                     'repositorio_id': i['repositorio_id'],
@@ -96,7 +107,7 @@ class AnaliseDadosView(APIView):
             data_termino__isnull=False,
             data_termino__gte=data_inicio,
         )
-        por_mes_map = _agregar_por_mes(concluidas, campo_data='data_termino')
+        por_mes_map = agregar_por_mes(concluidas, campo_data='data_termino')
         por_status = [
             {
                 'status': item['status'],
@@ -107,7 +118,7 @@ class AnaliseDadosView(APIView):
         ]
         return {
             'por_status': por_status,
-            'concluidas_por_mes': _preencher_meses(meses, por_mes_map),
+            'concluidas_por_mes': preencher_meses(meses, por_mes_map),
         }
 
     def _minios(self, data_inicio, meses):
@@ -116,13 +127,13 @@ class AnaliseDadosView(APIView):
             data_termino__isnull=False,
             data_termino__gte=data_inicio,
         )
-        por_mes_map = _agregar_por_mes(concluidos, campo_data='data_termino')
+        por_mes_map = agregar_por_mes(concluidos, campo_data='data_termino')
         qs = MiniOS.objects.all()
         return {
             'total': qs.count(),
             'total_revisao_cliente': qs.filter(revisao_cliente=True).count(),
             'concluidas_ultimos_12_meses_total': concluidos.count(),
-            'concluidas_por_mes': _preencher_meses(meses, por_mes_map),
+            'concluidas_por_mes': preencher_meses(meses, por_mes_map),
         }
 
     def _clientes(self):
@@ -155,42 +166,3 @@ class AnaliseDadosView(APIView):
             if i['cliente_id'] is not None
         ]
         return {'mais_faturamento': mais_faturamento, 'mais_vendas': mais_vendas}
-
-
-# ------------------------------------------------------------------ #
-# Helpers compartilhados
-# ------------------------------------------------------------------ #
-
-def _gerar_intervalo_meses(data_base: date, quantidade: int) -> list:
-    meses, ano, mes = [], data_base.year, data_base.month
-    for _ in range(quantidade):
-        meses.append({'ano': ano, 'mes': mes})
-        mes -= 1
-        if mes == 0:
-            mes, ano = 12, ano - 1
-    return list(reversed(meses))
-
-
-def _agregar_por_mes(queryset, campo_data: str, agregacao=None) -> dict:
-    if agregacao is None:
-        agregacao = Count('id')
-    return {
-        item['mes']: item['total']
-        for item in (
-            queryset
-            .annotate(mes=TruncMonth(campo_data))
-            .values('mes')
-            .annotate(total=agregacao)
-        )
-    }
-
-
-def _preencher_meses(meses: list, mapa: dict, default=0) -> list:
-    return [
-        {
-            'ano': m['ano'],
-            'mes': m['mes'],
-            'total': mapa.get(date(m['ano'], m['mes'], 1), default),
-        }
-        for m in meses
-    ]

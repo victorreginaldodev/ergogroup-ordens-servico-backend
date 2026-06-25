@@ -31,3 +31,24 @@ class IsSelfOrGestor(BasePermission):
             obj == request.user or
             request.user.tipo_usuario in TIPOS_GESTORES
         )
+
+
+TIPOS_SEM_ACESSO_A_VALORES = {
+    TipoUsuario.SUB_GESTOR_TECNICO,
+    TipoUsuario.TECNICO,
+    TipoUsuario.GESTOR_ADMINISTRATIVO,
+    TipoUsuario.ADMINISTRATIVO,
+}
+
+
+def usuario_pode_ver_valores(user) -> bool:
+    """Indica se o usuário pode visualizar valores monetários em indicadores/BI."""
+    return user.is_superuser or user.tipo_usuario not in TIPOS_SEM_ACESSO_A_VALORES
+
+
+class PodeVerValoresFinanceiros(BasePermission):
+    """Bloqueia perfis sem acesso a valores monetários nos indicadores."""
+    message = 'Seu perfil não tem acesso a valores financeiros.'
+
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and usuario_pode_ver_valores(request.user)
