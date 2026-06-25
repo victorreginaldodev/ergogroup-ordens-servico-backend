@@ -1,4 +1,4 @@
-# Subitens do catalogo comum
+# Subitens do Catalogo Comum
 
 ## Escopo
 
