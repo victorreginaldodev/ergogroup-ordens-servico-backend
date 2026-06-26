@@ -9,6 +9,7 @@ class OrdemServicoListSerializer(serializers.ModelSerializer):
     forma_pagamento_display = serializers.CharField(source='get_forma_pagamento_display', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     prioridade_display = serializers.CharField(source='get_prioridade_display', read_only=True)
+    liberada_para_faturamento_por_nome = serializers.SerializerMethodField()
 
     class Meta:
         model = OrdemServico
@@ -18,7 +19,14 @@ class OrdemServicoListSerializer(serializers.ModelSerializer):
             'status_display', 'prioridade', 'prioridade_display',
             'concluida', 'faturada', 'cobranca_imediata', 'contrato',
             'liberada_para_faturamento', 'liberada_para_faturamento_em',
+            'liberada_para_faturamento_por_nome',
         ]
+
+    def get_liberada_para_faturamento_por_nome(self, obj):
+        if not obj.liberada_para_faturamento_por:
+            return None
+        usuario = obj.liberada_para_faturamento_por
+        return usuario.nome_completo or usuario.get_full_name() or usuario.username
 
 
 class OrdemServicoSerializer(serializers.ModelSerializer):
