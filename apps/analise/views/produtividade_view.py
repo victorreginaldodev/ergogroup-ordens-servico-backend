@@ -47,9 +47,11 @@ class ProdutividadeView(APIView):
     # ------------------------------------------------------------------ #
 
     def _tempos_medios(self, data_inicio):
-        os_concluidas = (
+        # Todos os pares (criacao, fim_real) de OS concluídas — sem filtro de data.
+        # A distribuição e a média global precisam refletir o histórico completo do banco.
+        todos_pares = list(
             OrdemServico.objects
-            .filter(status=StatusOS.CONCLUIDA, data_criacao__gte=data_inicio)
+            .filter(concluida=True)
             .annotate(
                 data_fim_real=Max(
                     'servicos__data_termino',
@@ -57,20 +59,18 @@ class ProdutividadeView(APIView):
                 )
             )
             .filter(data_fim_real__isnull=False)
+            .values_list('data_criacao', 'data_fim_real')
         )
-        os_media = _media_dias(os_concluidas.values_list('data_criacao', 'data_fim_real'))
 
         servicos_concluidos = Servico.objects.filter(
             status=StatusServico.CONCLUIDA,
             data_inicio__isnull=False,
             data_termino__isnull=False,
-            data_termino__gte=data_inicio,
         )
         servico_media = _media_dias(servicos_concluidos.values_list('data_inicio', 'data_termino'))
 
         tarefas_com_inicio = Tarefa.objects.filter(
             data_inicio__isnull=False,
-            data_inicio__gte=data_inicio,
         )
         lead_time_media = _media_dias(
             (timezone.localtime(criada_em).date(), inicio)
@@ -78,9 +78,12 @@ class ProdutividadeView(APIView):
         )
 
         return {
-            'os_criacao_para_encerramento_dias': os_media,
+            'os_criacao_para_encerramento_dias': _media_dias(todos_pares),
+            'os_total_com_data': len(todos_pares),
+            'os_distribuicao_tempo': _distribuicao_tempo_os(todos_pares),
             'servicos_inicio_para_fim_dias': servico_media,
             'tarefa_criacao_para_inicio_dias': lead_time_media,
+            'tempo_por_repositorio': _tempo_por_repositorio(),
         }
 
     def _taxa_cancelamento(self, data_inicio):
@@ -97,16 +100,19 @@ class ProdutividadeView(APIView):
         }
 
     def _por_tecnico(self, data_inicio, meses, usuario):
-        tarefas_concluidas_qs = Tarefa.objects.filter(
+        # Histórico completo — para KPIs absolutos e tempo médio
+        tarefas_hist_qs = Tarefa.objects.filter(
             status=StatusTarefa.CONCLUIDA,
             data_termino__isnull=False,
-            data_termino__gte=data_inicio,
         )
-        minios_concluidas_qs = MiniOS.objects.filter(
+        minios_hist_qs = MiniOS.objects.filter(
             status=StatusMiniOS.FINALIZADA,
             data_termino__isnull=False,
-            data_termino__gte=data_inicio,
         )
+        # Últimos 12 meses — apenas para o gráfico mensal
+        tarefas_concluidas_qs = tarefas_hist_qs.filter(data_termino__gte=data_inicio)
+        minios_concluidas_qs  = minios_hist_qs.filter(data_termino__gte=data_inicio)
+
         tarefas_abertas_qs = Tarefa.objects.filter(
             status__in=[StatusTarefa.ABERTA, StatusTarefa.EM_ANDAMENTO],
         )
@@ -115,17 +121,20 @@ class ProdutividadeView(APIView):
         )
 
         if usuario.tipo_usuario == TipoUsuario.TECNICO:
-            tarefas_concluidas_qs = tarefas_concluidas_qs.filter(responsavel=usuario)
-            minios_concluidas_qs = minios_concluidas_qs.filter(responsavel=usuario)
-            tarefas_abertas_qs = tarefas_abertas_qs.filter(responsavel=usuario)
-            minios_abertas_qs = minios_abertas_qs.filter(responsavel=usuario)
+            tarefas_hist_qs        = tarefas_hist_qs.filter(responsavel=usuario)
+            minios_hist_qs         = minios_hist_qs.filter(responsavel=usuario)
+            tarefas_concluidas_qs  = tarefas_concluidas_qs.filter(responsavel=usuario)
+            minios_concluidas_qs   = minios_concluidas_qs.filter(responsavel=usuario)
+            tarefas_abertas_qs     = tarefas_abertas_qs.filter(responsavel=usuario)
+            minios_abertas_qs      = minios_abertas_qs.filter(responsavel=usuario)
 
         dados = {}
         duracoes_por_tecnico = {}
         tarefas_concluidas_por_mes = _mapa_por_responsavel_e_mes(tarefas_concluidas_qs, 'data_termino')
-        minios_concluidas_por_mes = _mapa_por_responsavel_e_mes(minios_concluidas_qs, 'data_termino')
+        minios_concluidas_por_mes  = _mapa_por_responsavel_e_mes(minios_concluidas_qs, 'data_termino')
 
-        for responsavel_id, nome, inicio, termino in tarefas_concluidas_qs.values_list(
+        # KPIs e tempo médio usam o histórico completo
+        for responsavel_id, nome, inicio, termino in tarefas_hist_qs.values_list(
             'responsavel_id', 'responsavel__nome_completo', 'data_inicio', 'data_termino',
         ):
             entry = dados.setdefault(responsavel_id, _linha_tecnico(responsavel_id, nome))
@@ -133,7 +142,7 @@ class ProdutividadeView(APIView):
             if inicio and termino:
                 duracoes_por_tecnico.setdefault(responsavel_id, []).append((termino - inicio).days)
 
-        for responsavel_id, nome in minios_concluidas_qs.values_list('responsavel_id', 'responsavel__nome_completo'):
+        for responsavel_id, nome in minios_hist_qs.values_list('responsavel_id', 'responsavel__nome_completo'):
             entry = dados.setdefault(responsavel_id, _linha_tecnico(responsavel_id, nome))
             entry['mini_os_concluidas'] += 1
 
@@ -205,3 +214,56 @@ def _media_dias(pares_datas) -> float | None:
     if not diffs:
         return None
     return round(sum(diffs) / len(diffs), 1)
+
+
+def _tempo_por_repositorio() -> list[dict]:
+    rows = (
+        Servico.objects
+        .filter(
+            status=StatusServico.CONCLUIDA,
+            repositorio__isnull=False,
+            data_inicio__isnull=False,
+            data_termino__isnull=False,
+        )
+        .values_list('repositorio_id', 'repositorio__nome', 'data_inicio', 'data_termino')
+    )
+    mapa: dict[int, dict] = {}
+    for rep_id, rep_nome, inicio, termino in rows:
+        dias = (termino - inicio).days
+        if dias < 0:
+            continue
+        entry = mapa.setdefault(rep_id, {'nome': rep_nome, 'dias': []})
+        entry['dias'].append(dias)
+    resultado = sorted(
+        [
+            {
+                'repositorio_id': rep_id,
+                'repositorio_nome': data['nome'],
+                'total_concluidos': len(data['dias']),
+                'media_dias': round(sum(data['dias']) / len(data['dias']), 1),
+            }
+            for rep_id, data in mapa.items()
+            if data['dias']
+        ],
+        key=lambda x: x['media_dias'],
+        reverse=True,
+    )
+    return resultado
+
+
+def _distribuicao_tempo_os(pares: list[tuple]) -> dict:
+    buckets = {'ate_7': 0, 'de_8_a_15': 0, 'de_16_a_30': 0, 'de_31_a_60': 0, 'acima_60': 0}
+    for criacao, fim in pares:
+        if criacao and fim:
+            dias = (fim - criacao).days
+            if dias <= 7:
+                buckets['ate_7'] += 1
+            elif dias <= 15:
+                buckets['de_8_a_15'] += 1
+            elif dias <= 30:
+                buckets['de_16_a_30'] += 1
+            elif dias <= 60:
+                buckets['de_31_a_60'] += 1
+            else:
+                buckets['acima_60'] += 1
+    return buckets

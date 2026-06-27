@@ -22,22 +22,11 @@ O objetivo desta evolucao e melhorar rastreabilidade, cobranca, auditoria, contr
 5. [Contratos e notificacoes](05-contratos-notificacoes.md)
 6. [Auditoria operacional](06-auditoria.md)
 7. [Subitens do catalogo comum](07-subitens-catalogo.md)
+8. [Modulo de Analytics Operacional](08-analytics.md)
 
 ## Evolucoes no escopo global
 
 As melhorias abaixo tambem fazem parte da EV1, mas permanecem documentadas neste README ate receberem detalhamento proprio para implementacao.
-
-### Indicadores e BI
-
-Criar um modulo inteligente de indicadores para acompanhar a operacao, apoiar decisoes internas e dar visibilidade sobre produtividade, tempos medios e volume de visitas tecnicas.
-
-Indicadores pedidos explicitamente:
-
-- Analise individual de cada tecnico.
-- Tempo medio entre a criacao e o encerramento de uma Ordem de Servico.
-- Tempo medio entre o inicio e o fim de um Servico especifico.
-- Quantidade de visitas tecnicas por mes em OS ou OS Operacional.
-- Analise tecnica dos indicadores.
 
 ### Pagina consolidada de OS, Servicos e Tarefas
 
