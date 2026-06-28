@@ -41,8 +41,6 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'drf_spectacular',
     'corsheaders',
-    # App legado para migração de dados
-    'legado.ordemServico',
 ]
 
 AUTH_USER_MODEL = 'contas.Usuario'
