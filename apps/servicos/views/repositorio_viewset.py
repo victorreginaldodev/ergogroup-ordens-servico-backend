@@ -10,13 +10,29 @@ from apps.servicos.serializers import RepositorioSerializer
 @extend_schema_view(
     list=extend_schema(
         summary='Listar repositórios',
-        parameters=[OpenApiParameter('q', str, description='Busca por nome')],
+        description='Retorna a lista de repositórios com seus subitens. Suporta busca por nome ou descrição.',
+        parameters=[OpenApiParameter('q', str, description='Busca por nome ou descrição (parcial).')],
     ),
-    create=extend_schema(summary='Criar repositório'),
-    retrieve=extend_schema(summary='Detalhar repositório'),
-    update=extend_schema(summary='Atualizar repositório'),
-    partial_update=extend_schema(summary='Atualizar repositório parcialmente'),
-    destroy=extend_schema(summary='Remover repositório'),
+    create=extend_schema(
+        summary='Criar repositório',
+        description='Cria um novo repositório.',
+    ),
+    retrieve=extend_schema(
+        summary='Detalhar repositório',
+        description='Retorna todos os campos de um repositório, incluindo seus subitens.',
+    ),
+    update=extend_schema(
+        summary='Atualizar repositório',
+        description='Substitui integralmente os dados de um repositório.',
+    ),
+    partial_update=extend_schema(
+        summary='Atualizar repositório parcialmente',
+        description='Atualiza um ou mais campos de um repositório.',
+    ),
+    destroy=extend_schema(
+        summary='Remover repositório',
+        description='Remove permanentemente um repositório e todos os seus subitens.',
+    ),
 )
 class RepositorioViewSet(viewsets.ModelViewSet):
     queryset = Repositorio.objects.prefetch_related('subitens').all()

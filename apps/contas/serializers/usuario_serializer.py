@@ -81,3 +81,12 @@ class AlterarSenhaSerializer(serializers.Serializer):
         if attrs['nova_senha'] != attrs['nova_senha_confirmacao']:
             raise serializers.ValidationError({'nova_senha_confirmacao': 'As senhas não coincidem.'})
         return attrs
+
+
+class TipoOpcaoSerializer(serializers.Serializer):
+    value = serializers.CharField()
+    label = serializers.CharField()
+
+
+class DetalheSerializer(serializers.Serializer):
+    detail = serializers.CharField()

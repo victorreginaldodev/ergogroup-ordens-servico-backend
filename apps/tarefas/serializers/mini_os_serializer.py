@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
+from drf_spectacular.utils import extend_schema_field
+
 from apps.tarefas.models import MiniOS, RepositorioMiniOS
 from apps.clientes.models import Cliente
 from apps.clientes.serializers import ClienteListSerializer
@@ -28,12 +30,14 @@ class MiniOSListSerializer(serializers.ModelSerializer):
             'criada_em', 'atualizado_em',
         ]
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_liberada_cobranca_por_nome(self, obj):
         if not obj.liberada_cobranca_por:
             return None
         usuario = obj.liberada_cobranca_por
         return usuario.nome_completo or usuario.get_full_name() or usuario.username
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_faturada_por_nome(self, obj):
         if not obj.faturada_por:
             return None
@@ -71,12 +75,14 @@ class MiniOSSerializer(serializers.ModelSerializer):
             'liberada_cobranca_por', 'faturada_por',
         ]
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_liberada_cobranca_por_nome(self, obj):
         if not obj.liberada_cobranca_por:
             return None
         usuario = obj.liberada_cobranca_por
         return usuario.nome_completo or usuario.get_full_name() or usuario.username
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_faturada_por_nome(self, obj):
         if not obj.faturada_por:
             return None
@@ -89,3 +95,7 @@ class MiniOSSerializer(serializers.ModelSerializer):
             if validated_data.get('faturada') is True and not instance.faturada:
                 validated_data['faturada_por'] = request.user
         return super().update(instance, validated_data)
+
+
+class FaturarMiniOSRequestSerializer(serializers.Serializer):
+    numero_nf = serializers.CharField(max_length=10, required=False, allow_null=True)

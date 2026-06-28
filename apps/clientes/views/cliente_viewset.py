@@ -4,23 +4,54 @@ from django.db.models import Q
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
 
 from apps.clientes.models import Cliente
+from apps.clientes.models.cliente import TipoCliente
 from apps.clientes.serializers import ClienteListSerializer, ClienteSerializer
 
 
 @extend_schema_view(
     list=extend_schema(
         summary='Listar clientes',
+        description=(
+            'Retorna a lista paginada de clientes com campos resumidos. '
+            'Suporta busca textual e filtragem por tipo e status.'
+        ),
         parameters=[
-            OpenApiParameter('q', str, description='Busca por nome ou número de inscrição'),
-            OpenApiParameter('tipo', str, description='Filtrar por tipo de cliente'),
-            OpenApiParameter('ativo', str, description='Filtrar por status (true/false)'),
+            OpenApiParameter(
+                'q', str,
+                description='Busca por nome ou número de inscrição (parcial, sem distinção de maiúsculas).',
+            ),
+            OpenApiParameter(
+                'tipo', str,
+                description='Filtrar por tipo de cliente.',
+                enum=TipoCliente,
+            ),
+            OpenApiParameter(
+                'ativo', str,
+                description='Filtrar por status de ativação.',
+                enum=['true', 'false'],
+            ),
         ],
     ),
-    create=extend_schema(summary='Cadastrar cliente'),
-    retrieve=extend_schema(summary='Detalhar cliente'),
-    update=extend_schema(summary='Atualizar cliente'),
-    partial_update=extend_schema(summary='Atualizar cliente parcialmente'),
-    destroy=extend_schema(summary='Remover cliente'),
+    create=extend_schema(
+        summary='Cadastrar cliente',
+        description='Cria um novo cliente com todos os dados cadastrais.',
+    ),
+    retrieve=extend_schema(
+        summary='Detalhar cliente',
+        description='Retorna todos os campos cadastrais de um cliente pelo seu ID.',
+    ),
+    update=extend_schema(
+        summary='Atualizar cliente',
+        description='Substitui integralmente os dados cadastrais de um cliente.',
+    ),
+    partial_update=extend_schema(
+        summary='Atualizar cliente parcialmente',
+        description='Atualiza um ou mais campos cadastrais de um cliente.',
+    ),
+    destroy=extend_schema(
+        summary='Remover cliente',
+        description='Remove permanentemente um cliente.',
+    ),
 )
 class ClienteViewSet(viewsets.ModelViewSet):
     queryset = Cliente.objects.all()

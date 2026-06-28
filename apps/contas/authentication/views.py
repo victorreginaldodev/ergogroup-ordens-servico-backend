@@ -7,7 +7,9 @@ from drf_spectacular.utils import extend_schema
 
 from apps.contas.authentication.serializers import (
     LoginSerializer,
+    LoginResponseSerializer,
     TokenRefreshComUsuarioSerializer,
+    TokenRefreshResponseSerializer,
     LogoutSerializer,
 )
 from apps.contas.serializers import UsuarioDetailSerializer
@@ -20,7 +22,10 @@ class LoginView(TokenObtainPairView):
     @extend_schema(
         summary='Login',
         description='Autentica com e-mail e senha. Retorna access token, refresh token e dados do usuário.',
-        responses={200: LoginSerializer},
+        responses={
+            200: LoginResponseSerializer,
+            401: None,
+        },
     )
     def post(self, request, *args, **kwargs):
         print(">>> LOGIN request.data:", request.data)
@@ -38,7 +43,10 @@ class RefreshView(TokenRefreshView):
     @extend_schema(
         summary='Renovar token',
         description='Renova o access token usando o refresh token. Retorna também os dados atualizados do usuário.',
-        responses={200: TokenRefreshComUsuarioSerializer},
+        responses={
+            200: TokenRefreshResponseSerializer,
+            401: None,
+        },
     )
     def post(self, request, *args, **kwargs):
         return super().post(request, *args, **kwargs)

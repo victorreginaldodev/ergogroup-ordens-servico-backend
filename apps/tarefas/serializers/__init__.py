@@ -1,3 +1,3 @@
 from .repositorio_mini_os_serializer import RepositorioMiniOSSerializer
 from .tarefa_serializer import TarefaListSerializer, TarefaSerializer
-from .mini_os_serializer import MiniOSListSerializer, MiniOSSerializer
+from .mini_os_serializer import MiniOSListSerializer, MiniOSSerializer, FaturarMiniOSRequestSerializer

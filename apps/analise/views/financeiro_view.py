@@ -2,8 +2,9 @@ from django.db.models import Sum
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, OpenApiResponse
 
+from apps.analise.serializers import FinanceiroKPIsSerializer
 from apps.contas.permissions import PodeVerValoresFinanceiros
 from apps.ordem_servico.models import OrdemServico
 
@@ -21,6 +22,10 @@ class FinanceiroKPIsView(APIView):
             'Indisponível (403) para os perfis Sub-Líder Técnico, Técnico, '
             'Gestor Administrativo e Administrativo.'
         ),
+        responses={
+            200: FinanceiroKPIsSerializer,
+            403: OpenApiResponse(description='Sem permissão para ver valores financeiros.'),
+        },
     )
     def get(self, request):
         qs = OrdemServico.objects.all()

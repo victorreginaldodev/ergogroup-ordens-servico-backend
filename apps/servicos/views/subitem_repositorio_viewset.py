@@ -9,18 +9,34 @@ from apps.servicos.serializers import SubitemRepositorioSerializer
 
 @extend_schema_view(
     list=extend_schema(
-        summary='Listar subitens de repositorio',
+        summary='Listar subitens de repositório',
+        description='Retorna a lista de subitens de repositório. Suporta filtragem por repositório, status e busca textual.',
         parameters=[
-            OpenApiParameter('repositorio', int, description='Filtra por repositorio'),
-            OpenApiParameter('ativo', bool, description='Filtra por status ativo'),
-            OpenApiParameter('q', str, description='Busca por nome ou descricao'),
+            OpenApiParameter('repositorio', int, description='Filtrar pelo ID do repositório.'),
+            OpenApiParameter('ativo', str, description='Filtrar por status de ativação.', enum=['true', 'false']),
+            OpenApiParameter('q', str, description='Busca por nome ou descrição (parcial).'),
         ],
     ),
-    create=extend_schema(summary='Criar subitem de repositorio'),
-    retrieve=extend_schema(summary='Detalhar subitem de repositorio'),
-    update=extend_schema(summary='Atualizar subitem de repositorio'),
-    partial_update=extend_schema(summary='Atualizar subitem de repositorio parcialmente'),
-    destroy=extend_schema(summary='Remover subitem de repositorio'),
+    create=extend_schema(
+        summary='Criar subitem de repositório',
+        description='Cria um novo subitem vinculado a um repositório. O par (repositório, nome) deve ser único.',
+    ),
+    retrieve=extend_schema(
+        summary='Detalhar subitem de repositório',
+        description='Retorna todos os campos de um subitem de repositório pelo seu ID.',
+    ),
+    update=extend_schema(
+        summary='Atualizar subitem de repositório',
+        description='Substitui integralmente os dados de um subitem de repositório.',
+    ),
+    partial_update=extend_schema(
+        summary='Atualizar subitem de repositório parcialmente',
+        description='Atualiza um ou mais campos de um subitem de repositório.',
+    ),
+    destroy=extend_schema(
+        summary='Remover subitem de repositório',
+        description='Remove permanentemente um subitem de repositório.',
+    ),
 )
 class SubitemRepositorioViewSet(viewsets.ModelViewSet):
     queryset = SubitemRepositorio.objects.select_related('repositorio').all()

@@ -7,25 +7,56 @@ from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiPara
 
 from apps.contas.models.choices import TipoUsuario
 from apps.tarefas.models import MiniOS
-from apps.tarefas.serializers import MiniOSListSerializer, MiniOSSerializer
+from apps.tarefas.models.mini_os import StatusMiniOS
+from apps.tarefas.serializers import MiniOSListSerializer, MiniOSSerializer, FaturarMiniOSRequestSerializer
 
 
 @extend_schema_view(
     list=extend_schema(
         summary='Listar Mini OS',
+        description=(
+            'Retorna a lista paginada de Mini OS. '
+            'Técnicos veem apenas as próprias Mini OS; demais perfis veem todas.'
+        ),
         parameters=[
-            OpenApiParameter('q', str, description='Busca por cliente ou serviço'),
-            OpenApiParameter('cliente', int, description='Filtrar por ID do cliente'),
-            OpenApiParameter('responsavel', int, description='Filtrar por ID do responsável'),
-            OpenApiParameter('status', str, description='Filtrar por status'),
-            OpenApiParameter('faturada', str, description='Filtrar por faturamento (true/false)'),
+            OpenApiParameter('q', str, description='Busca por nome do cliente ou serviço (parcial).'),
+            OpenApiParameter('cliente', int, description='Filtrar pelo ID do cliente.'),
+            OpenApiParameter('responsavel', int, description='Filtrar pelo ID do responsável.'),
+            OpenApiParameter('status', str, description='Filtrar por status.', enum=StatusMiniOS),
+            OpenApiParameter('faturada', str, description='Filtrar por status de faturamento.', enum=['true', 'false']),
         ],
     ),
-    create=extend_schema(summary='Criar Mini OS'),
-    retrieve=extend_schema(summary='Detalhar Mini OS'),
-    update=extend_schema(summary='Atualizar Mini OS'),
-    partial_update=extend_schema(summary='Atualizar Mini OS parcialmente'),
-    destroy=extend_schema(summary='Remover Mini OS'),
+    create=extend_schema(
+        summary='Criar Mini OS',
+        description=(
+            'Cria uma nova Mini OS. Se `revisao_cliente=true`, `gera_cobranca` é definido '
+            'automaticamente como `true` e, ao finalizar, `data_liberacao_cobranca` e '
+            '`liberada_cobranca_por` são preenchidos automaticamente.'
+        ),
+    ),
+    retrieve=extend_schema(
+        summary='Detalhar Mini OS',
+        description='Retorna todos os campos de uma Mini OS pelo seu ID.',
+    ),
+    update=extend_schema(
+        summary='Atualizar Mini OS',
+        description=(
+            'Substitui integralmente os dados de uma Mini OS. '
+            'Campos calculados (`gera_cobranca`, `data_liberacao_cobranca`, '
+            '`liberada_cobranca_por`, `faturada_por`) são somente leitura.'
+        ),
+    ),
+    partial_update=extend_schema(
+        summary='Atualizar Mini OS parcialmente',
+        description=(
+            'Atualiza um ou mais campos de uma Mini OS. '
+            'Campos calculados são somente leitura e ignorados no body.'
+        ),
+    ),
+    destroy=extend_schema(
+        summary='Remover Mini OS',
+        description='Remove permanentemente uma Mini OS.',
+    ),
 )
 class MiniOSViewSet(viewsets.ModelViewSet):
     queryset = MiniOS.objects.select_related(
@@ -70,7 +101,18 @@ class MiniOSViewSet(viewsets.ModelViewSet):
 
         return queryset
 
-    @extend_schema(summary='Faturar Mini OS')
+    @extend_schema(
+        summary='Faturar Mini OS',
+        description=(
+            'Marca a Mini OS como faturada, registrando o número da NF e o usuário responsável. '
+            'Retorna 400 se a Mini OS não gerar cobrança ou ainda não estiver liberada para cobrança.'
+        ),
+        request=FaturarMiniOSRequestSerializer,
+        responses={
+            200: MiniOSSerializer,
+            400: None,
+        },
+    )
     @action(detail=True, methods=['patch'], url_path='faturar')
     def faturar(self, request, pk=None):
         mini_os = self.get_object()

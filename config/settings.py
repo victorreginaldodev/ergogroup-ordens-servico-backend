@@ -204,4 +204,10 @@ SPECTACULAR_SETTINGS = {
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
     'COMPONENT_SPLIT_REQUEST': True,
+    'ENUM_NAME_OVERRIDES': {
+        # Status (OS) e StatusTarefa têm valores idênticos — mapear um; o outro é deduplucado automaticamente
+        'StatusOSETarefaEnum': 'apps.ordem_servico.models.ordem_servico.Status',
+        'StatusServicoEnum':   'apps.servicos.models.servico.StatusServico',
+        'StatusMiniOSEnum':    'apps.tarefas.models.mini_os.StatusMiniOS',
+    },
 }

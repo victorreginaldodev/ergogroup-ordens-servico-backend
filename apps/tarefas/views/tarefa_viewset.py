@@ -4,23 +4,55 @@ from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiPara
 
 from apps.contas.models.choices import TipoUsuario
 from apps.tarefas.models import Tarefa
+from apps.tarefas.models.tarefa import StatusTarefa
 from apps.tarefas.serializers import TarefaListSerializer, TarefaSerializer
 
 
 @extend_schema_view(
     list=extend_schema(
         summary='Listar tarefas',
+        description=(
+            'Retorna a lista paginada de tarefas. '
+            'Técnicos veem apenas as próprias tarefas; demais perfis veem todas.'
+        ),
         parameters=[
-            OpenApiParameter('servico', int, description='Filtrar por ID do serviço'),
-            OpenApiParameter('responsavel', int, description='Filtrar por ID do responsável'),
-            OpenApiParameter('status', str, description='Filtrar por status (aberta/em_andamento/concluida/cancelada)'),
+            OpenApiParameter('servico', int, description='Filtrar pelo ID do serviço.'),
+            OpenApiParameter('responsavel', int, description='Filtrar pelo ID do responsável.'),
+            OpenApiParameter('status', str, description='Filtrar por status.', enum=StatusTarefa),
         ],
     ),
-    create=extend_schema(summary='Criar tarefa'),
-    retrieve=extend_schema(summary='Detalhar tarefa'),
-    update=extend_schema(summary='Atualizar tarefa'),
-    partial_update=extend_schema(summary='Atualizar tarefa parcialmente'),
-    destroy=extend_schema(summary='Remover tarefa'),
+    create=extend_schema(
+        summary='Criar tarefa',
+        description=(
+            'Cria uma nova tarefa vinculada a um serviço. '
+            'Campos calculados (`data_inicio`, `data_termino`) são gerenciados '
+            'automaticamente conforme o status da tarefa.'
+        ),
+    ),
+    retrieve=extend_schema(
+        summary='Detalhar tarefa',
+        description='Retorna todos os campos de uma tarefa pelo seu ID.',
+    ),
+    update=extend_schema(
+        summary='Atualizar tarefa',
+        description=(
+            'Substitui integralmente os dados de uma tarefa. '
+            'Alterar o `status` para `em_andamento` ou `concluida` preenche '
+            '`data_inicio` e `data_termino` automaticamente.'
+        ),
+    ),
+    partial_update=extend_schema(
+        summary='Atualizar tarefa parcialmente',
+        description=(
+            'Atualiza um ou mais campos de uma tarefa. '
+            'Alterar o `status` para `em_andamento` ou `concluida` preenche '
+            '`data_inicio` e `data_termino` automaticamente.'
+        ),
+    ),
+    destroy=extend_schema(
+        summary='Remover tarefa',
+        description='Remove permanentemente uma tarefa e ressincroniza o status do serviço vinculado.',
+    ),
 )
 class TarefaViewSet(viewsets.ModelViewSet):
     queryset = Tarefa.objects.select_related(

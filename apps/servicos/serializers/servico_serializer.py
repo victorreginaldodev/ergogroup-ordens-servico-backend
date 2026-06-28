@@ -1,4 +1,6 @@
 from rest_framework import serializers
+from drf_spectacular.utils import extend_schema_field
+
 from apps.servicos.models import Servico, Repositorio
 from apps.servicos.serializers.repositorio_serializer import RepositorioSerializer
 
@@ -21,9 +23,11 @@ class ServicoListSerializer(serializers.ModelSerializer):
             'cliente_nome', 'data_criacao', 'tem_tarefas',
         ]
 
+    @extend_schema_field(serializers.BooleanField())
     def get_tem_tarefas(self, obj):
         return obj.tarefas.exists()
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_terminado_por_nome(self, obj):
         if not obj.terminado_por:
             return None
@@ -52,6 +56,7 @@ class ServicoSerializer(serializers.ModelSerializer):
             'terminado_por', 'criado_em', 'atualizado_em',
         ]
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_terminado_por_nome(self, obj):
         if not obj.terminado_por:
             return None

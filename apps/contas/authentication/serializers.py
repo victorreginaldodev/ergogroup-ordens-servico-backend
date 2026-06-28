@@ -4,6 +4,29 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
 
+class UsuarioPayloadSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    email = serializers.EmailField()
+    username = serializers.CharField()
+    nome_completo = serializers.CharField()
+    tipo_usuario = serializers.CharField()
+    tipo_usuario_display = serializers.CharField()
+    ativo = serializers.BooleanField()
+    is_staff = serializers.BooleanField()
+    is_superuser = serializers.BooleanField()
+
+
+class LoginResponseSerializer(serializers.Serializer):
+    access = serializers.CharField()
+    refresh = serializers.CharField()
+    usuario = UsuarioPayloadSerializer()
+
+
+class TokenRefreshResponseSerializer(serializers.Serializer):
+    access = serializers.CharField()
+    usuario = UsuarioPayloadSerializer()
+
+
 def _usuario_payload(usuario):
     return {
         'id': usuario.id,

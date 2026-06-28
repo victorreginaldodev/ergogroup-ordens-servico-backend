@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from drf_spectacular.utils import extend_schema
 
+from apps.analise.serializers import ProdutividadeResponseSerializer
 from apps.analise.utils import gerar_intervalo_meses, preencher_meses
 from apps.contas.models.choices import TipoUsuario
 from apps.ordem_servico.models import OrdemServico
@@ -32,6 +33,7 @@ class ProdutividadeView(APIView):
             'qualquer perfil autenticado. Técnicos veem apenas a própria '
             'linha em `por_tecnico`.'
         ),
+        responses={200: ProdutividadeResponseSerializer},
     )
     def get(self, request):
         hoje = timezone.now().date()

@@ -13,6 +13,8 @@ from apps.contas.serializers import (
     UsuarioCreateSerializer,
     UsuarioUpdateSerializer,
     AlterarSenhaSerializer,
+    TipoOpcaoSerializer,
+    DetalheSerializer,
 )
 from apps.contas.permissions import IsGestor, IsSelfOrGestor
 
@@ -22,17 +24,53 @@ Usuario = get_user_model()
 @extend_schema_view(
     list=extend_schema(
         summary='Listar usuários',
+        description=(
+            'Retorna a lista paginada de usuários com campos resumidos. '
+            'Suporta busca textual e filtragem por tipo e status.'
+        ),
         parameters=[
-            OpenApiParameter('q', str, description='Busca por nome ou e-mail'),
-            OpenApiParameter('tipo', str, description='Filtrar por tipo de usuário'),
-            OpenApiParameter('ativo', str, description='Filtrar por status (true/false)'),
+            OpenApiParameter(
+                'q', str,
+                description='Busca por nome completo ou e-mail (parcial, sem distinção de maiúsculas).',
+            ),
+            OpenApiParameter(
+                'tipo', str,
+                description='Filtrar por tipo de usuário.',
+                enum=TipoUsuario,
+            ),
+            OpenApiParameter(
+                'ativo', str,
+                description='Filtrar por status de ativação.',
+                enum=['true', 'false'],
+            ),
         ],
     ),
-    create=extend_schema(summary='Criar usuário'),
-    retrieve=extend_schema(summary='Detalhar usuário'),
-    update=extend_schema(summary='Atualizar usuário'),
-    partial_update=extend_schema(summary='Atualizar usuário parcialmente'),
-    destroy=extend_schema(summary='Remover usuário'),
+    create=extend_schema(
+        summary='Criar usuário',
+        description='Cria um novo usuário. Requer perfil Gestor ou superior.',
+    ),
+    retrieve=extend_schema(
+        summary='Detalhar usuário',
+        description='Retorna todos os campos cadastrais de um usuário pelo seu ID.',
+    ),
+    update=extend_schema(
+        summary='Atualizar usuário',
+        description=(
+            'Substitui integralmente os dados cadastrais de um usuário. '
+            'Cada usuário pode editar o próprio cadastro; gestores podem editar qualquer usuário.'
+        ),
+    ),
+    partial_update=extend_schema(
+        summary='Atualizar usuário parcialmente',
+        description=(
+            'Atualiza um ou mais campos cadastrais de um usuário. '
+            'Cada usuário pode editar o próprio cadastro; gestores podem editar qualquer usuário.'
+        ),
+    ),
+    destroy=extend_schema(
+        summary='Remover usuário',
+        description='Remove permanentemente um usuário. Requer perfil Gestor ou superior.',
+    ),
 )
 class UsuarioViewSet(viewsets.ModelViewSet):
     queryset = Usuario.objects.all().order_by('nome_completo')
@@ -70,13 +108,30 @@ class UsuarioViewSet(viewsets.ModelViewSet):
 
         return queryset
 
-    @extend_schema(summary='Dados do usuário autenticado', responses=UsuarioDetailSerializer)
+    @extend_schema(
+        summary='Dados do usuário autenticado',
+        description='Retorna os dados completos do usuário identificado pelo token JWT.',
+        responses={200: UsuarioDetailSerializer},
+    )
     @action(detail=False, methods=['get'], url_path='me')
     def me(self, request):
         serializer = UsuarioDetailSerializer(request.user)
         return Response(serializer.data)
 
-    @extend_schema(summary='Alterar senha', request=AlterarSenhaSerializer)
+    @extend_schema(
+        summary='Alterar senha',
+        description=(
+            'Altera a senha de um usuário. Cada usuário pode alterar a própria senha '
+            'informando a senha atual. Diretores e Gestores Administrativos podem '
+            'alterar a senha de qualquer usuário sem informar a senha atual.'
+        ),
+        request=AlterarSenhaSerializer,
+        responses={
+            200: DetalheSerializer,
+            400: None,
+            403: None,
+        },
+    )
     @action(detail=True, methods=['patch'], url_path='alterar-senha')
     def alterar_senha(self, request, pk=None):
         usuario = self.get_object()
@@ -91,7 +146,12 @@ class UsuarioViewSet(viewsets.ModelViewSet):
         usuario.save(update_fields=['password'])
         return Response({'detail': 'Senha alterada com sucesso.'})
 
-    @extend_schema(summary='Ativar usuário')
+    @extend_schema(
+        summary='Ativar usuário',
+        description='Marca um usuário como ativo, permitindo que ele acesse o sistema. Requer perfil Gestor ou superior.',
+        request=None,
+        responses={200: DetalheSerializer},
+    )
     @action(detail=True, methods=['patch'], url_path='ativar')
     def ativar(self, request, pk=None):
         usuario = self.get_object()
@@ -99,7 +159,18 @@ class UsuarioViewSet(viewsets.ModelViewSet):
         usuario.save(update_fields=['ativo'])
         return Response({'detail': f'Usuário {usuario.nome_completo} ativado com sucesso.'})
 
-    @extend_schema(summary='Desativar usuário')
+    @extend_schema(
+        summary='Desativar usuário',
+        description=(
+            'Marca um usuário como inativo, bloqueando o acesso ao sistema. '
+            'Requer perfil Gestor ou superior. Não é possível desativar o próprio usuário.'
+        ),
+        request=None,
+        responses={
+            200: DetalheSerializer,
+            400: None,
+        },
+    )
     @action(detail=True, methods=['patch'], url_path='desativar')
     def desativar(self, request, pk=None):
         usuario = self.get_object()
@@ -112,7 +183,11 @@ class UsuarioViewSet(viewsets.ModelViewSet):
         usuario.save(update_fields=['ativo'])
         return Response({'detail': f'Usuário {usuario.nome_completo} desativado com sucesso.'})
 
-    @extend_schema(summary='Listar tipos de usuário disponíveis')
+    @extend_schema(
+        summary='Listar tipos de usuário',
+        description='Retorna todos os tipos de usuário disponíveis no sistema com seus rótulos.',
+        responses={200: TipoOpcaoSerializer(many=True)},
+    )
     @action(detail=False, methods=['get'], url_path='tipos')
     def tipos(self, request):
         return Response([{'value': v, 'label': l} for v, l in TipoUsuario.choices])

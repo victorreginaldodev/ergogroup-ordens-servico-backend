@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from drf_spectacular.utils import extend_schema
 
+from apps.analise.serializers import AnaliseDadosResponseSerializer
 from apps.contas.permissions import usuario_pode_ver_valores
 from apps.ordem_servico.models import OrdemServico
 from apps.servicos.models import Servico
@@ -32,6 +33,7 @@ class AnaliseDadosView(APIView):
             'perfis Sub-Líder Técnico, Técnico, Gestor Administrativo e '
             'Administrativo.'
         ),
+        responses={200: AnaliseDadosResponseSerializer},
     )
     def get(self, request):
         hoje = timezone.now().date()

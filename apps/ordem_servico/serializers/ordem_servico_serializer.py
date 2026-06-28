@@ -1,4 +1,6 @@
 from rest_framework import serializers
+from drf_spectacular.utils import extend_schema_field
+
 from apps.ordem_servico.models import OrdemServico
 from apps.clientes.models import Cliente
 from apps.clientes.serializers import ClienteListSerializer, ClienteSerializer
@@ -22,6 +24,7 @@ class OrdemServicoListSerializer(serializers.ModelSerializer):
             'liberada_para_faturamento_por_nome',
         ]
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_liberada_para_faturamento_por_nome(self, obj):
         if not obj.liberada_para_faturamento_por:
             return None
@@ -92,23 +95,27 @@ class OrdemServicoSerializer(serializers.ModelSerializer):
 
         return attrs
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_criado_por_nome(self, obj):
         if not obj.criado_por:
             return None
         return obj.criado_por.nome_completo or obj.criado_por.get_full_name() or obj.criado_por.username
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_liberada_para_faturamento_por_nome(self, obj):
         if not obj.liberada_para_faturamento_por:
             return None
         usuario = obj.liberada_para_faturamento_por
         return usuario.nome_completo or usuario.get_full_name() or usuario.username
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_faturada_por_nome(self, obj):
         if not obj.faturada_por:
             return None
         usuario = obj.faturada_por
         return usuario.nome_completo or usuario.get_full_name() or usuario.username
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_data_conclusao_os(self, obj):
         ultimo_servico = obj.servicos.filter(status='concluida').order_by('-data_termino', '-data_conclusao', '-id').first()
         if not ultimo_servico:
@@ -116,6 +123,7 @@ class OrdemServicoSerializer(serializers.ModelSerializer):
         data_conclusao = ultimo_servico.data_termino or ultimo_servico.data_conclusao
         return str(data_conclusao) if data_conclusao else None
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_finalizador_nome(self, obj):
         if obj.liberada_para_faturamento_por:
             usuario = obj.liberada_para_faturamento_por
@@ -139,3 +147,14 @@ class OrdemServicoSerializer(serializers.ModelSerializer):
             if validated_data.get('faturada') is True and not instance.faturada:
                 validated_data['faturada_por'] = request.user
         return super().update(instance, validated_data)
+
+
+class FaturarRequestSerializer(serializers.Serializer):
+    numero_nf = serializers.IntegerField(required=False, allow_null=True)
+    data_faturamento = serializers.DateField(required=False, allow_null=True)
+
+
+class LiberadaFaturamentoSerializer(serializers.Serializer):
+    liberada = serializers.BooleanField()
+    liberada_em = serializers.DateTimeField(allow_null=True)
+    liberada_por = serializers.IntegerField(allow_null=True)
