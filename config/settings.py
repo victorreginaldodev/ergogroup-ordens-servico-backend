@@ -1,21 +1,20 @@
-from logging import root
 from pathlib import Path
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
-
-
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-4v&_#+*bj_o(o#l=(nonu@m9id(z7!i=y$#9@(aa+w+if#edp*'
+DJANGO_ENV = os.getenv('DJANGO_ENV', 'dev')
+load_dotenv(BASE_DIR / f'.env.{DJANGO_ENV}')
 
-DEBUG = True
+SECRET_KEY = os.getenv('SECRET_KEY')
+
+DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
 if DEBUG:
     ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 else:
-    ALLOWED_HOSTS = [ 'www.ergogroupapp.com']
+    ALLOWED_HOSTS = ['www.ergogroupapp.com']
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8080",
@@ -77,43 +76,16 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
-if DEBUG:
-    '''
-        BANCO DE DADOS DE DESENVOLVIMENTO
-    '''
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.mysql',
-            'NAME': 'ordens_servicos_dev', 
-            'USER': 'root',       
-            'PASSWORD': '101508',     
-            'HOST': 'localhost',           
-            'PORT': '3306',         
-        }
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': os.getenv('DB_NAME'),
+        'USER': os.getenv('DB_USER'),
+        'PASSWORD': os.getenv('DB_PASSWORD'),
+        'HOST': os.getenv('DB_HOST', 'localhost'),
+        'PORT': os.getenv('DB_PORT', '3306'),
     }
-else:
-
-    '''
-        BANDO DE DADOS DE PRODUÇÃO
-    '''
-    DATABASES = {
-        # 'default': {
-        #     'ENGINE': 'django.db.backends.mysql',
-        #     'NAME': 'ErgoGroup$ErgoGroupApp',
-        #     'USER': 'ErgoGroup',
-        #     'PASSWORD': 'Ergo@2025',
-        #     'HOST': 'ErgoGroup.mysql.pythonanywhere-services.com',
-        #     'PORT': '3306',
-        # },
-        'default': {
-            'ENGINE': 'django.db.backends.mysql',
-            'NAME': 'ErgoGroup$ergoapp_v3',
-            'USER': 'ErgoGroup',
-            'PASSWORD': 'Ergo@2025',
-            'HOST': 'ErgoGroup.mysql.pythonanywhere-services.com',
-            'PORT': '3306',
-        }
-    }
+}
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -130,9 +102,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-# Internationalization
-# https://docs.djangoproject.com/en/5.1/topics/i18n/
-
 LANGUAGE_CODE = 'pt-br'
 USE_L10N = True
 
@@ -141,9 +110,6 @@ TIME_ZONE = 'America/Sao_Paulo'
 USE_I18N = True
 
 USE_TZ = True
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = '/static/'
 
@@ -159,21 +125,15 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 LOGIN_URL = 'login'
 
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-DEFAULT_FROM_EMAIL = "nao-responder@ergogroupapp.com"
-if DEBUG:
-    EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
-else:
-    EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
-EMAIL_HOST_USER = 'nao-responder@ergogroupapp.com'
-EMAIL_HOST_PASSWORD = 'Ergo@2025'  # Certifique-se de que a senha esteja correta
-EMAIL_USE_TLS = True
-EMAIL_PORT = 587
-EMAIL_HOST = 'smtp.hostinger.com'  # Host SMTP da Hostinger
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'nao-responder@ergogroupapp.com')
+EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.hostinger.com')
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True') == 'True'
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
@@ -205,7 +165,6 @@ SPECTACULAR_SETTINGS = {
     'SERVE_INCLUDE_SCHEMA': False,
     'COMPONENT_SPLIT_REQUEST': True,
     'ENUM_NAME_OVERRIDES': {
-        # Status (OS) e StatusTarefa têm valores idênticos — mapear um; o outro é deduplucado automaticamente
         'StatusOSETarefaEnum': 'apps.ordem_servico.models.ordem_servico.Status',
         'StatusServicoEnum':   'apps.servicos.models.servico.StatusServico',
         'StatusMiniOSEnum':    'apps.tarefas.models.mini_os.StatusMiniOS',
