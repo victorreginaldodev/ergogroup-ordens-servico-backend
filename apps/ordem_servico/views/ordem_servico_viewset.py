@@ -5,6 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
 
+from apps.contas.models.choices import TipoUsuario
 from apps.ordem_servico.models import OrdemServico
 from apps.ordem_servico.serializers import (
     OrdemServicoListSerializer,
@@ -80,6 +81,11 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = super().get_queryset().order_by('faturada', '-data_criacao')
+        user = self.request.user
+
+        if user.tipo_usuario == TipoUsuario.TECNICO:
+            queryset = queryset.filter(servicos__tarefas__responsavel=user).distinct()
+
         q = self.request.query_params.get('q', '').strip()
         cliente_id = self.request.query_params.get('cliente', '').strip()
         concluida = self.request.query_params.get('concluida', '').strip()

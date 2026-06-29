@@ -46,6 +46,29 @@ def usuario_pode_ver_valores(user) -> bool:
     return user.is_superuser or user.tipo_usuario not in TIPOS_SEM_ACESSO_A_VALORES
 
 
+ROLES_PODEM_MODIFICAR_QUALQUER_TAREFA = {
+    TipoUsuario.DIRETOR,
+    TipoUsuario.GESTOR_TECNICO,
+    TipoUsuario.SUB_GESTOR_TECNICO,
+}
+
+
+class PodeModificarTarefa(BasePermission):
+    """Apenas o responsável pode modificar a tarefa. Exceções: Diretor, Líder Técnico e Sub-Líder Técnico."""
+
+    def has_object_permission(self, request, view, obj):
+        if request.method in ('GET', 'HEAD', 'OPTIONS'):
+            return True
+        if request.user.is_superuser:
+            return True
+        if request.user.tipo_usuario in ROLES_PODEM_MODIFICAR_QUALQUER_TAREFA:
+            return True
+        if obj.responsavel != request.user:
+            self.message = 'Apenas o responsável pela tarefa pode modificá-la.'
+            return False
+        return True
+
+
 class PodeVerValoresFinanceiros(BasePermission):
     """Bloqueia perfis sem acesso a valores monetários nos indicadores."""
     message = 'Seu perfil não tem acesso a valores financeiros.'

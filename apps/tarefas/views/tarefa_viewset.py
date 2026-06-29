@@ -3,6 +3,7 @@ from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
 
 from apps.contas.models.choices import TipoUsuario
+from apps.contas.permissions import PodeModificarTarefa
 from apps.tarefas.models import Tarefa
 from apps.tarefas.models.tarefa import StatusTarefa
 from apps.tarefas.serializers import TarefaListSerializer, TarefaSerializer
@@ -60,7 +61,7 @@ class TarefaViewSet(viewsets.ModelViewSet):
         'servico__repositorio',
         'servico__ordem_servico__cliente',
     ).all()
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, PodeModificarTarefa]
 
     def get_serializer_class(self):
         if self.action == 'list':
