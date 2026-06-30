@@ -14,7 +14,7 @@ DEBUG = os.getenv('DEBUG', 'True') == 'True'
 if DEBUG:
     ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 else:
-    ALLOWED_HOSTS = ['www.ergogroupapp.com']
+    ALLOWED_HOSTS = ['os.ergogroupapp.com', ]
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8080",
