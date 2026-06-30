@@ -81,6 +81,7 @@ class ProdutividadeView(APIView):
 
         return {
             'os_criacao_para_encerramento_dias': _media_dias(todos_pares),
+            'os_criacao_para_conclusao_dias': _media_dias_criacao_para_conclusao_os(),
             'os_total_com_data': len(todos_pares),
             'os_distribuicao_tempo': _distribuicao_tempo_os(todos_pares),
             'servicos_inicio_para_fim_dias': servico_media,
@@ -211,11 +212,28 @@ def _bloco_cancelamento(queryset, status_cancelado) -> dict:
     }
 
 
-def _media_dias(pares_datas) -> float | None:
-    diffs = [(fim - inicio).days for inicio, fim in pares_datas if inicio and fim]
+def _media_dias(pares_datas, inclusivo=False) -> float | None:
+    diffs = [
+        (fim - inicio).days + (1 if inclusivo else 0)
+        for inicio, fim in pares_datas
+        if inicio and fim
+    ]
     if not diffs:
         return None
     return round(sum(diffs) / len(diffs), 1)
+
+
+def _media_dias_criacao_para_conclusao_os() -> float | None:
+    pares = (
+        (
+            timezone.localtime(criada_em).date(),
+            timezone.localtime(conclusao_em).date(),
+        )
+        for criada_em, conclusao_em in OrdemServico.objects
+        .filter(liberada_para_faturamento_em__isnull=False)
+        .values_list('criada_em', 'liberada_para_faturamento_em')
+    )
+    return _media_dias(pares, inclusivo=True)
 
 
 def _tempo_por_repositorio() -> list[dict]:

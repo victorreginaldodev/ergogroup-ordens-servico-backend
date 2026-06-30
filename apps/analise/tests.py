@@ -235,6 +235,7 @@ class ProdutividadeViewTests(AnaliseTestCase):
         # tarefas com data_inicio: 0, 0, 0 (chain/outro/wip) e 4 (lead_time) -> media 1.0.
         tempos = response.data['tempos_medios']
         self.assertEqual(tempos['os_criacao_para_encerramento_dias'], 2.5)
+        self.assertEqual(tempos['os_criacao_para_conclusao_dias'], 1.0)
         self.assertEqual(tempos['servicos_inicio_para_fim_dias'], 1.5)
         self.assertEqual(tempos['tarefa_criacao_para_inicio_dias'], 1.0)
 

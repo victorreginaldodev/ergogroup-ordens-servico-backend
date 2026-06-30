@@ -20,6 +20,7 @@ class TempoPorRepositorioSerializer(serializers.Serializer):
 
 class TemposMediosSerializer(serializers.Serializer):
     os_criacao_para_encerramento_dias = serializers.FloatField(allow_null=True)
+    os_criacao_para_conclusao_dias = serializers.FloatField(allow_null=True)
     os_total_com_data = serializers.IntegerField()
     os_distribuicao_tempo = DistribuicaoTempoOSSerializer()
     servicos_inicio_para_fim_dias = serializers.FloatField(allow_null=True)

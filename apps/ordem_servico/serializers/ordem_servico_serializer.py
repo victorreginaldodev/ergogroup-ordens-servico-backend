@@ -12,6 +12,8 @@ class OrdemServicoListSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     prioridade_display = serializers.CharField(source='get_prioridade_display', read_only=True)
     liberada_para_faturamento_por_nome = serializers.SerializerMethodField()
+    dias_em_aberto = serializers.IntegerField(read_only=True, allow_null=True)
+    dias_entre_criacao_e_conclusao = serializers.IntegerField(read_only=True, allow_null=True)
 
     class Meta:
         model = OrdemServico
@@ -21,7 +23,8 @@ class OrdemServicoListSerializer(serializers.ModelSerializer):
             'status_display', 'prioridade', 'prioridade_display',
             'concluida', 'faturada', 'cobranca_imediata', 'contrato',
             'liberada_para_faturamento', 'liberada_para_faturamento_em',
-            'liberada_para_faturamento_por_nome',
+            'liberada_para_faturamento_por_nome', 'dias_em_aberto',
+            'dias_entre_criacao_e_conclusao',
         ]
 
     @extend_schema_field(serializers.CharField(allow_null=True))
@@ -43,6 +46,8 @@ class OrdemServicoSerializer(serializers.ModelSerializer):
     faturada_por_nome = serializers.SerializerMethodField()
     data_conclusao_os = serializers.SerializerMethodField()
     finalizador_nome = serializers.SerializerMethodField()
+    dias_em_aberto = serializers.IntegerField(read_only=True, allow_null=True)
+    dias_entre_criacao_e_conclusao = serializers.IntegerField(read_only=True, allow_null=True)
 
     class Meta:
         model = OrdemServico
@@ -61,12 +66,13 @@ class OrdemServicoSerializer(serializers.ModelSerializer):
             'liberada_para_faturamento_por', 'liberada_para_faturamento_por_nome',
             'data_atualizacao', 'atualizado_por',
             'data_conclusao_os', 'finalizador_nome',
+            'dias_em_aberto', 'dias_entre_criacao_e_conclusao',
         ]
         read_only_fields = [
             'status', 'concluida', 'criada_em', 'data_atualizacao',
             'criado_por', 'atualizado_por', 'liberada_para_faturamento',
             'liberada_para_faturamento_em', 'liberada_para_faturamento_por',
-            'faturada_por',
+            'faturada_por', 'dias_em_aberto', 'dias_entre_criacao_e_conclusao',
         ]
 
     def validate(self, attrs):

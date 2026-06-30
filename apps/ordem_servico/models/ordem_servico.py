@@ -183,7 +183,28 @@ class OrdemServico(models.Model):
                 setattr(self, campo, valor)
 
         return self.concluida
+    
+    
+    @property
+    def dias_em_aberto(self):
+        if self.status == Status.CONCLUIDA:
+            return None
 
+        data_base = self.criada_em.date() if self.criada_em else self.data_criacao
+        return (timezone.now().date() - data_base).days
+
+
+    @property
+    def dias_entre_criacao_e_conclusao(self):
+        if not self.liberada_para_faturamento_em:
+            return None
+
+        data_inicio = self.criada_em.date()
+        data_fim = self.liberada_para_faturamento_em.date()
+
+        return (data_fim - data_inicio).days + 1
+
+    
     def __str__(self):
         return f'OS #{self.pk} — {self.cliente}'
 
