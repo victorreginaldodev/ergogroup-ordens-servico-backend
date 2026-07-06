@@ -46,11 +46,28 @@ def criar_registro(RegistroAuditoria, *, entidade, objeto_id, objeto_repr, acao,
 
 
 def popular_auditoria_inicial(apps, schema_editor):
+    # Esta migration é histórica: rodou originalmente contra dados que já
+    # existiam antes do sistema de auditoria (backfill único). Num banco
+    # novo não há nada pré-existente pra popular, então nos protegemos
+    # checando se a tabela já existe antes de tentar usá-la — evita
+    # depender da ordem relativa com a migration ordens_servico.0001_initial
+    # (que rodaria bem depois cronologicamente desta, então não pode ser
+    # declarada como dependency sem violar o histórico de quem já aplicou
+    # esta migration há muito tempo).
+    with schema_editor.connection.cursor() as cursor:
+        cursor.execute(
+            "SELECT COUNT(*) FROM information_schema.tables "
+            "WHERE table_schema = DATABASE() AND table_name = %s",
+            ['ordens_servico_ordemservico'],
+        )
+        if cursor.fetchone()[0] == 0:
+            return
+
     RegistroAuditoria = apps.get_model('auditoria', 'RegistroAuditoria')
-    OrdemServico = apps.get_model('ordem_servico', 'OrdemServico')
-    Servico = apps.get_model('servicos', 'Servico')
-    Tarefa = apps.get_model('tarefas', 'Tarefa')
-    MiniOS = apps.get_model('tarefas', 'MiniOS')
+    OrdemServico = apps.get_model('ordens_servico', 'OrdemServico')
+    Servico = apps.get_model('ordens_servico', 'Servico')
+    Tarefa = apps.get_model('ordens_servico', 'Tarefa')
+    MiniOS = apps.get_model('ordens_servico', 'OrdemServicoOperacional')
 
     registros = []
 
@@ -75,23 +92,23 @@ def popular_auditoria_inicial(apps, schema_editor):
                 snap=snap,
                 ordem_servico_id=ordem.pk,
             ))
-        if ordem.liberada_para_faturamento:
+        if ordem.liberada_para_cobranca:
             registros.append(criar_registro(
                 RegistroAuditoria,
                 entidade='ordem_servico',
                 objeto_id=ordem.pk,
                 objeto_repr=f'OS #{ordem.pk}',
-                acao='liberacao_faturamento',
+                acao='liberacao_cobranca',
                 snap=snap,
                 ordem_servico_id=ordem.pk,
             ))
-        if ordem.faturada:
+        if ordem.cobranca_realizada:
             registros.append(criar_registro(
                 RegistroAuditoria,
                 entidade='ordem_servico',
                 objeto_id=ordem.pk,
                 objeto_repr=f'OS #{ordem.pk}',
-                acao='faturamento',
+                acao='cobranca_realizada',
                 snap=snap,
                 ordem_servico_id=ordem.pk,
             ))
@@ -210,13 +227,13 @@ def popular_auditoria_inicial(apps, schema_editor):
                 snap=snap,
                 mini_os_id=mini_os.pk,
             ))
-        if mini_os.faturada:
+        if mini_os.cobranca_realizada:
             registros.append(criar_registro(
                 RegistroAuditoria,
                 entidade='mini_os',
                 objeto_id=mini_os.pk,
                 objeto_repr=f'Mini OS #{mini_os.pk}',
-                acao='faturamento',
+                acao='cobranca_realizada',
                 snap=snap,
                 mini_os_id=mini_os.pk,
             ))
@@ -228,9 +245,6 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('auditoria', '0001_initial'),
-        ('ordem_servico', '0006_ordemservico_contrato'),
-        ('servicos', '0002_rastreio_status_servico'),
-        ('tarefas', '0003_minios_cobranca'),
     ]
 
     operations = [
