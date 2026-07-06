@@ -14,6 +14,8 @@ class DistribuicaoTempoOSSerializer(serializers.Serializer):
 class TempoPorCatalogoSerializer(serializers.Serializer):
     catalogo_id = serializers.IntegerField()
     catalogo_nome = serializers.CharField()
+    horas_estimadas = serializers.DecimalField(max_digits=6, decimal_places=2, allow_null=True)
+    complexidade = serializers.IntegerField(allow_null=True)
     total_concluidos = serializers.IntegerField()
     media_dias = serializers.FloatField()
 
@@ -44,9 +46,15 @@ class TecnicoProdutividadeSerializer(serializers.Serializer):
     tecnico_nome = serializers.CharField(allow_null=True)
     tarefas_concluidas = serializers.IntegerField()
     tempo_medio_tarefa_dias = serializers.FloatField(allow_null=True)
+    complexidade_media_concluidas = serializers.FloatField(allow_null=True)
+    horas_estimadas_entregues = serializers.DecimalField(max_digits=8, decimal_places=2)
     mini_os_concluidas = serializers.IntegerField()
     tarefas_em_aberto = serializers.IntegerField()
     mini_os_em_aberto = serializers.IntegerField()
+    tarefas_atrasadas = serializers.IntegerField()
+    mini_os_atrasadas = serializers.IntegerField()
+    tarefas_alta_prioridade_abertas = serializers.IntegerField()
+    mini_os_alta_prioridade_abertas = serializers.IntegerField()
     tarefas_concluidas_por_mes = MesSerializer(many=True)
     mini_os_concluidas_por_mes = MesSerializer(many=True)
 

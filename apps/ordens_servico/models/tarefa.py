@@ -2,6 +2,8 @@ from django.db import models
 from django.conf import settings
 from django.utils import timezone
 
+from apps.ordens_servico.models.ordem_servico import Prioridade
+
 
 class StatusTarefa(models.TextChoices):
     ABERTA = 'aberta', 'Aberta'
@@ -22,6 +24,9 @@ class Tarefa(models.Model):
         related_name='tarefas',
     )
     descricao = models.TextField(null=True, blank=True)
+    prioridade = models.CharField(max_length=10, choices=Prioridade.choices, default=Prioridade.BAIXA)
+    prazo = models.DateField(null=True, blank=True)
+    horas_estimadas = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
     data_inicio = models.DateField(null=True, blank=True)
     data_termino = models.DateField(null=True, blank=True)
     status = models.CharField(max_length=15, choices=StatusTarefa.choices, default=StatusTarefa.ABERTA)
@@ -35,6 +40,12 @@ class Tarefa(models.Model):
 
     def __str__(self):
         return f'Tarefa #{self.pk} — {self.responsavel}'
+
+    @property
+    def horas_estimadas_efetivas(self):
+        if self.horas_estimadas is not None:
+            return self.horas_estimadas
+        return self.servico.horas_estimadas_efetivas
 
     def save(self, *args, **kwargs):
         from apps.ordens_servico.models import Servico

@@ -5,7 +5,7 @@ from apps.ordens_servico.models import OrdemServico, Servico, Tarefa, OrdemServi
 @admin.register(OrdemServico)
 class OrdemServicoAdmin(admin.ModelAdmin):
     list_display = [
-        'id', 'cliente', 'data_venda', 'status', 'prioridade',
+        'id', 'cliente', 'data_venda', 'status', 'prioridade', 'prazo',
         'valor', 'forma_pagamento', 'contrato', 'liberada_para_cobranca',
         'cobranca_realizada', 'cobranca_realizada_por',
     ]
@@ -25,8 +25,11 @@ class OrdemServicoAdmin(admin.ModelAdmin):
 
 @admin.register(Servico)
 class ServicoAdmin(admin.ModelAdmin):
-    list_display = ['id', 'ordem_servico', 'catalogo', 'status', 'data_inicio', 'data_termino', 'terminado_por']
-    list_filter = ['status']
+    list_display = [
+        'id', 'ordem_servico', 'catalogo', 'status', 'prioridade', 'prazo',
+        'horas_estimadas', 'complexidade', 'data_inicio', 'data_termino', 'terminado_por',
+    ]
+    list_filter = ['status', 'prioridade', 'complexidade']
     search_fields = ['descricao', 'ordem_servico__cliente__nome']
     raw_id_fields = ['ordem_servico', 'catalogo', 'terminado_por']
     readonly_fields = [
@@ -37,8 +40,11 @@ class ServicoAdmin(admin.ModelAdmin):
 
 @admin.register(Tarefa)
 class TarefaAdmin(admin.ModelAdmin):
-    list_display = ['id', 'servico', 'responsavel', 'status', 'data_inicio', 'data_termino']
-    list_filter = ['status']
+    list_display = [
+        'id', 'servico', 'responsavel', 'status', 'prioridade', 'prazo',
+        'horas_estimadas', 'data_inicio', 'data_termino',
+    ]
+    list_filter = ['status', 'prioridade']
     search_fields = ['descricao', 'responsavel__nome_completo']
     raw_id_fields = ['servico', 'responsavel']
     readonly_fields = ['data_inicio', 'data_termino', 'criada_em', 'atualizado_em']
@@ -48,9 +54,10 @@ class TarefaAdmin(admin.ModelAdmin):
 class OrdemServicoOperacionalAdmin(admin.ModelAdmin):
     list_display = [
         'id', 'cliente', 'catalogo_operacional', 'responsavel', 'status',
+        'prioridade', 'prazo', 'horas_estimadas', 'complexidade',
         'gera_cobranca', 'cobranca_realizada', 'cobranca_realizada_por', 'data_recebimento',
     ]
-    list_filter = ['status', 'cobranca_realizada', 'revisao_cliente', 'gera_cobranca']
+    list_filter = ['status', 'prioridade', 'complexidade', 'cobranca_realizada', 'revisao_cliente', 'gera_cobranca']
     search_fields = ['cliente__nome', 'catalogo_operacional__nome', 'responsavel__nome_completo']
     raw_id_fields = ['cliente', 'catalogo_operacional', 'responsavel', 'liberada_cobranca_por', 'cobranca_realizada_por']
     readonly_fields = [

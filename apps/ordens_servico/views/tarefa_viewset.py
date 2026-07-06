@@ -1,10 +1,11 @@
+from django.utils import timezone
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
 
 from apps.contas.models.choices import TipoUsuario
 from apps.contas.permissions import PodeModificarTarefa
-from apps.ordens_servico.models import Tarefa
+from apps.ordens_servico.models import Tarefa, Prioridade
 from apps.ordens_servico.models.tarefa import StatusTarefa
 from apps.ordens_servico.serializers import TarefaListSerializer, TarefaSerializer
 
@@ -20,6 +21,9 @@ from apps.ordens_servico.serializers import TarefaListSerializer, TarefaSerializ
             OpenApiParameter('servico', int, description='Filtrar pelo ID do serviço.'),
             OpenApiParameter('responsavel', int, description='Filtrar pelo ID do responsável.'),
             OpenApiParameter('status', str, description='Filtrar por status.', enum=StatusTarefa),
+            OpenApiParameter('prioridade', str, description='Filtrar por prioridade.', enum=Prioridade),
+            OpenApiParameter('atrasada', str, description='Se "true", retorna apenas tarefas com prazo vencido e não concluídas/canceladas.', enum=['true']),
+            OpenApiParameter('ordering', str, description='Ordenar por prazo. Use "prazo" ou "-prazo".', enum=['prazo', '-prazo']),
         ],
     ),
     create=extend_schema(
@@ -78,6 +82,9 @@ class TarefaViewSet(viewsets.ModelViewSet):
         servico_id = self.request.query_params.get('servico', '').strip()
         responsavel_id = self.request.query_params.get('responsavel', '').strip()
         status_param = self.request.query_params.get('status', '').strip()
+        prioridade_param = self.request.query_params.get('prioridade', '').strip()
+        atrasada_param = self.request.query_params.get('atrasada', '').strip()
+        ordering_param = self.request.query_params.get('ordering', '').strip()
 
         if servico_id:
             queryset = queryset.filter(servico_id=servico_id)
@@ -85,5 +92,13 @@ class TarefaViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(responsavel_id=responsavel_id)
         if status_param:
             queryset = queryset.filter(status=status_param)
+        if prioridade_param:
+            queryset = queryset.filter(prioridade=prioridade_param)
+        if atrasada_param == 'true':
+            queryset = queryset.filter(prazo__lt=timezone.localdate()).exclude(
+                status__in=[StatusTarefa.CONCLUIDA, StatusTarefa.CANCELADA]
+            )
+        if ordering_param in ('prazo', '-prazo'):
+            queryset = queryset.order_by(ordering_param)
 
         return queryset

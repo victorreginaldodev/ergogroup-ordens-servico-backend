@@ -10,7 +10,8 @@ class SubitemCatalogoInline(admin.TabularInline):
 
 @admin.register(Catalogo)
 class CatalogoAdmin(admin.ModelAdmin):
-    list_display = ['nome', 'descricao']
+    list_display = ['nome', 'descricao', 'horas_estimadas', 'complexidade']
+    list_filter = ['complexidade']
     search_fields = ['nome']
     inlines = [SubitemCatalogoInline]
 
@@ -26,5 +27,6 @@ class SubitemCatalogoAdmin(admin.ModelAdmin):
 
 @admin.register(CatalogoOperacional)
 class CatalogoOperacionalAdmin(admin.ModelAdmin):
-    list_display = ['nome', 'descricao']
+    list_display = ['nome', 'descricao', 'horas_estimadas', 'complexidade']
+    list_filter = ['complexidade']
     search_fields = ['nome']

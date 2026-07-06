@@ -1,10 +1,11 @@
+from django.utils import timezone
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
 
-from apps.ordens_servico.models import Servico
+from apps.ordens_servico.models import Servico, Prioridade
 from apps.ordens_servico.models.servico import StatusServico
 from apps.ordens_servico.serializers import ServicoListSerializer, ServicoSerializer
 
@@ -20,6 +21,9 @@ from apps.ordens_servico.serializers import ServicoListSerializer, ServicoSerial
             OpenApiParameter('ordem_servico', int, description='Filtrar pelo ID da ordem de serviço.'),
             OpenApiParameter('status', str, description='Filtrar por status.', enum=StatusServico),
             OpenApiParameter('catalogo', int, description='Filtrar pelo ID do catálogo.'),
+            OpenApiParameter('prioridade', str, description='Filtrar por prioridade.', enum=Prioridade),
+            OpenApiParameter('atrasada', str, description='Se "true", retorna apenas serviços com prazo vencido e não concluídos/cancelados.', enum=['true']),
+            OpenApiParameter('ordering', str, description='Ordenar por prazo. Use "prazo" ou "-prazo".', enum=['prazo', '-prazo']),
         ],
     ),
     create=extend_schema(
@@ -71,6 +75,9 @@ class ServicoViewSet(viewsets.ModelViewSet):
         ordem_id = self.request.query_params.get('ordem_servico', '').strip()
         status_param = self.request.query_params.get('status', '').strip()
         catalogo_id = self.request.query_params.get('catalogo', '').strip()
+        prioridade_param = self.request.query_params.get('prioridade', '').strip()
+        atrasada_param = self.request.query_params.get('atrasada', '').strip()
+        ordering_param = self.request.query_params.get('ordering', '').strip()
 
         if ordem_id:
             queryset = queryset.filter(ordem_servico_id=ordem_id)
@@ -78,6 +85,14 @@ class ServicoViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(status=status_param)
         if catalogo_id:
             queryset = queryset.filter(catalogo_id=catalogo_id)
+        if prioridade_param:
+            queryset = queryset.filter(prioridade=prioridade_param)
+        if atrasada_param == 'true':
+            queryset = queryset.filter(prazo__lt=timezone.localdate()).exclude(
+                status__in=[StatusServico.CONCLUIDA, StatusServico.CANCELADO]
+            )
+        if ordering_param in ('prazo', '-prazo'):
+            queryset = queryset.order_by(ordering_param)
 
         return queryset
 

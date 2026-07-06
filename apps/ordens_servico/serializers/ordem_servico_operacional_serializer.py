@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from drf_spectacular.utils import extend_schema_field
 
 from apps.ordens_servico.models import OrdemServicoOperacional
-from apps.catalogo.models import CatalogoOperacional
+from apps.catalogo.models import CatalogoOperacional, Complexidade
 from apps.clientes.models import Cliente
 from apps.clientes.serializers import ClienteListSerializer
 from apps.catalogo.serializers import CatalogoOperacionalSerializer
@@ -16,6 +16,10 @@ class OrdemServicoOperacionalListSerializer(serializers.ModelSerializer):
     catalogo_operacional_nome = serializers.CharField(source='catalogo_operacional.nome', read_only=True)
     responsavel_nome = serializers.CharField(source='responsavel.nome_completo', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
+    prioridade_display = serializers.CharField(source='get_prioridade_display', read_only=True)
+    complexidade_display = serializers.SerializerMethodField()
+    horas_estimadas_efetivas = serializers.DecimalField(max_digits=6, decimal_places=2, read_only=True, allow_null=True)
+    complexidade_efetiva = serializers.IntegerField(read_only=True, allow_null=True)
     liberada_cobranca_por_nome = serializers.SerializerMethodField()
     cobranca_realizada_por_nome = serializers.SerializerMethodField()
 
@@ -24,12 +28,21 @@ class OrdemServicoOperacionalListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'cliente', 'cliente_nome', 'catalogo_operacional', 'catalogo_operacional_nome',
             'responsavel', 'responsavel_nome', 'status', 'status_display',
+            'prioridade', 'prioridade_display', 'prazo',
+            'horas_estimadas', 'horas_estimadas_efetivas',
+            'complexidade', 'complexidade_display', 'complexidade_efetiva',
             'revisao_cliente', 'gera_cobranca', 'data_liberacao_cobranca',
             'liberada_cobranca_por', 'liberada_cobranca_por_nome',
             'cobranca_realizada', 'numero_nf', 'cobranca_realizada_por', 'cobranca_realizada_por_nome',
             'data_recebimento', 'data_inicio', 'data_termino',
             'criada_em', 'atualizado_em',
         ]
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_complexidade_display(self, obj):
+        if obj.complexidade_efetiva is None:
+            return None
+        return Complexidade(obj.complexidade_efetiva).label
 
     @extend_schema_field(serializers.CharField(allow_null=True))
     def get_liberada_cobranca_por_nome(self, obj):
@@ -51,6 +64,10 @@ class OrdemServicoOperacionalSerializer(serializers.ModelSerializer):
     catalogo_operacional_detail = CatalogoOperacionalSerializer(source='catalogo_operacional', read_only=True)
     responsavel_nome = serializers.CharField(source='responsavel.nome_completo', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
+    prioridade_display = serializers.CharField(source='get_prioridade_display', read_only=True)
+    complexidade_display = serializers.SerializerMethodField()
+    horas_estimadas_efetivas = serializers.DecimalField(max_digits=6, decimal_places=2, read_only=True, allow_null=True)
+    complexidade_efetiva = serializers.IntegerField(read_only=True, allow_null=True)
     liberada_cobranca_por_nome = serializers.SerializerMethodField()
     cobranca_realizada_por_nome = serializers.SerializerMethodField()
 
@@ -63,6 +80,9 @@ class OrdemServicoOperacionalSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'cliente', 'cliente_detail', 'catalogo_operacional', 'catalogo_operacional_detail',
             'responsavel', 'responsavel_nome', 'quantidade', 'descricao',
+            'prioridade', 'prioridade_display', 'prazo',
+            'horas_estimadas', 'horas_estimadas_efetivas',
+            'complexidade', 'complexidade_display', 'complexidade_efetiva',
             'data_recebimento', 'data_inicio', 'data_termino',
             'status', 'status_display', 'revisao_cliente', 'gera_cobranca',
             'data_liberacao_cobranca', 'liberada_cobranca_por',
@@ -75,6 +95,12 @@ class OrdemServicoOperacionalSerializer(serializers.ModelSerializer):
             'gera_cobranca', 'data_liberacao_cobranca',
             'liberada_cobranca_por', 'cobranca_realizada_por',
         ]
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_complexidade_display(self, obj):
+        if obj.complexidade_efetiva is None:
+            return None
+        return Complexidade(obj.complexidade_efetiva).label
 
     @extend_schema_field(serializers.CharField(allow_null=True))
     def get_liberada_cobranca_por_nome(self, obj):

@@ -31,6 +31,7 @@ class OrdemServico(models.Model):
     concluida = models.BooleanField(default=False)
     status = models.CharField(max_length=15, choices=Status.choices, default=Status.ABERTA)
     prioridade = models.CharField(max_length=10, choices=Prioridade.choices, default=Prioridade.BAIXA)
+    prazo = models.DateField(null=True, blank=True)
 
     # Dados da cobrança
     valor = models.DecimalField(max_digits=10, decimal_places=2, default=0)

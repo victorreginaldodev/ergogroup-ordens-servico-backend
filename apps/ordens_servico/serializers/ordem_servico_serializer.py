@@ -20,7 +20,7 @@ class OrdemServicoListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'cliente', 'cliente_nome', 'data_venda', 'valor',
             'forma_pagamento', 'forma_pagamento_display', 'status',
-            'status_display', 'prioridade', 'prioridade_display',
+            'status_display', 'prioridade', 'prioridade_display', 'prazo',
             'concluida', 'cobranca_realizada', 'cobranca_imediata', 'contrato',
             'liberada_para_cobranca', 'liberada_para_cobranca_em',
             'liberada_para_cobranca_por_nome', 'dias_em_aberto',
@@ -54,7 +54,7 @@ class OrdemServicoSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'cliente', 'cliente_detail',
             'criado_por', 'criado_por_nome', 'data_venda', 'criada_em',
-            'status', 'status_display', 'prioridade', 'prioridade_display', 'valor',
+            'status', 'status_display', 'prioridade', 'prioridade_display', 'prazo', 'valor',
             'forma_pagamento', 'forma_pagamento_display', 'quantidade_parcelas',
             'cobranca_imediata', 'data_acordada_cobranca', 'nome_contato_envio_nf', 'contato_envio_nf',
             'contrato', 'objeto_contrato', 'contrato_data_inicio',

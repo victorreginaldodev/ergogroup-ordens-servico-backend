@@ -11,7 +11,7 @@ from drf_spectacular.utils import extend_schema
 from apps.analise.serializers import ProdutividadeResponseSerializer
 from apps.analise.utils import gerar_intervalo_meses, preencher_meses
 from apps.contas.models.choices import TipoUsuario
-from apps.ordens_servico.models import OrdemServico
+from apps.ordens_servico.models import OrdemServico, Prioridade
 from apps.ordens_servico.models.ordem_servico import Status as StatusOS
 from apps.ordens_servico.models import Servico
 from apps.ordens_servico.models.servico import StatusServico
@@ -103,6 +103,8 @@ class ProdutividadeView(APIView):
         }
 
     def _por_tecnico(self, data_inicio, meses, usuario):
+        hoje = timezone.localdate()
+
         # Histórico completo — para KPIs absolutos e tempo médio
         tarefas_hist_qs = Tarefa.objects.filter(
             status=StatusTarefa.CONCLUIDA,
@@ -122,6 +124,10 @@ class ProdutividadeView(APIView):
         minios_abertas_qs = OrdemServicoOperacional.objects.filter(
             status__in=[StatusOrdemServicoOperacional.NAO_INICIADO, StatusOrdemServicoOperacional.EM_ANDAMENTO],
         )
+        tarefas_atrasadas_qs = tarefas_abertas_qs.filter(prazo__isnull=False, prazo__lt=hoje)
+        minios_atrasadas_qs = minios_abertas_qs.filter(prazo__isnull=False, prazo__lt=hoje)
+        tarefas_alta_prioridade_qs = tarefas_abertas_qs.filter(prioridade=Prioridade.ALTA)
+        minios_alta_prioridade_qs = minios_abertas_qs.filter(prioridade=Prioridade.ALTA)
 
         if usuario.tipo_usuario == TipoUsuario.TECNICO:
             tarefas_hist_qs        = tarefas_hist_qs.filter(responsavel=usuario)
@@ -130,20 +136,41 @@ class ProdutividadeView(APIView):
             minios_concluidas_qs   = minios_concluidas_qs.filter(responsavel=usuario)
             tarefas_abertas_qs     = tarefas_abertas_qs.filter(responsavel=usuario)
             minios_abertas_qs      = minios_abertas_qs.filter(responsavel=usuario)
+            tarefas_atrasadas_qs   = tarefas_atrasadas_qs.filter(responsavel=usuario)
+            minios_atrasadas_qs    = minios_atrasadas_qs.filter(responsavel=usuario)
+            tarefas_alta_prioridade_qs = tarefas_alta_prioridade_qs.filter(responsavel=usuario)
+            minios_alta_prioridade_qs  = minios_alta_prioridade_qs.filter(responsavel=usuario)
 
         dados = {}
         duracoes_por_tecnico = {}
+        complexidades_por_tecnico = {}
+        horas_entregues_por_tecnico = {}
         tarefas_concluidas_por_mes = _mapa_por_responsavel_e_mes(tarefas_concluidas_qs, 'data_termino')
         minios_concluidas_por_mes  = _mapa_por_responsavel_e_mes(minios_concluidas_qs, 'data_termino')
 
         # KPIs e tempo médio usam o histórico completo
-        for responsavel_id, nome, inicio, termino in tarefas_hist_qs.values_list(
+        for (
+            responsavel_id, nome, inicio, termino, complexidade_servico, complexidade_catalogo,
+            horas_tarefa, horas_servico, horas_catalogo,
+        ) in tarefas_hist_qs.values_list(
             'responsavel_id', 'responsavel__nome_completo', 'data_inicio', 'data_termino',
+            'servico__complexidade', 'servico__catalogo__complexidade',
+            'horas_estimadas', 'servico__horas_estimadas', 'servico__catalogo__horas_estimadas',
         ):
             entry = dados.setdefault(responsavel_id, _linha_tecnico(responsavel_id, nome))
             entry['tarefas_concluidas'] += 1
             if inicio and termino:
                 duracoes_por_tecnico.setdefault(responsavel_id, []).append((termino - inicio).days)
+            complexidade_efetiva = complexidade_servico if complexidade_servico is not None else complexidade_catalogo
+            if complexidade_efetiva is not None:
+                complexidades_por_tecnico.setdefault(responsavel_id, []).append(complexidade_efetiva)
+            horas_efetivas = horas_tarefa if horas_tarefa is not None else (
+                horas_servico if horas_servico is not None else horas_catalogo
+            )
+            if horas_efetivas is not None:
+                horas_entregues_por_tecnico[responsavel_id] = (
+                    horas_entregues_por_tecnico.get(responsavel_id, 0) + horas_efetivas
+                )
 
         for responsavel_id, nome in minios_hist_qs.values_list('responsavel_id', 'responsavel__nome_completo'):
             entry = dados.setdefault(responsavel_id, _linha_tecnico(responsavel_id, nome))
@@ -161,11 +188,40 @@ class ProdutividadeView(APIView):
             )
             entry['mini_os_em_aberto'] = item['total']
 
+        for item in tarefas_atrasadas_qs.values('responsavel_id', 'responsavel__nome_completo').annotate(total=Count('id')):
+            entry = dados.setdefault(
+                item['responsavel_id'], _linha_tecnico(item['responsavel_id'], item['responsavel__nome_completo'])
+            )
+            entry['tarefas_atrasadas'] = item['total']
+
+        for item in minios_atrasadas_qs.values('responsavel_id', 'responsavel__nome_completo').annotate(total=Count('id')):
+            entry = dados.setdefault(
+                item['responsavel_id'], _linha_tecnico(item['responsavel_id'], item['responsavel__nome_completo'])
+            )
+            entry['mini_os_atrasadas'] = item['total']
+
+        for item in tarefas_alta_prioridade_qs.values('responsavel_id', 'responsavel__nome_completo').annotate(total=Count('id')):
+            entry = dados.setdefault(
+                item['responsavel_id'], _linha_tecnico(item['responsavel_id'], item['responsavel__nome_completo'])
+            )
+            entry['tarefas_alta_prioridade_abertas'] = item['total']
+
+        for item in minios_alta_prioridade_qs.values('responsavel_id', 'responsavel__nome_completo').annotate(total=Count('id')):
+            entry = dados.setdefault(
+                item['responsavel_id'], _linha_tecnico(item['responsavel_id'], item['responsavel__nome_completo'])
+            )
+            entry['mini_os_alta_prioridade_abertas'] = item['total']
+
         for responsavel_id, entry in dados.items():
             duracoes = duracoes_por_tecnico.get(responsavel_id) or []
             entry['tempo_medio_tarefa_dias'] = (
                 round(sum(duracoes) / len(duracoes), 1) if duracoes else None
             )
+            complexidades = complexidades_por_tecnico.get(responsavel_id) or []
+            entry['complexidade_media_concluidas'] = (
+                round(sum(complexidades) / len(complexidades), 1) if complexidades else None
+            )
+            entry['horas_estimadas_entregues'] = horas_entregues_por_tecnico.get(responsavel_id, 0)
             entry['tarefas_concluidas_por_mes'] = preencher_meses(
                 meses, tarefas_concluidas_por_mes.get(responsavel_id, {})
             )
@@ -194,9 +250,15 @@ def _linha_tecnico(responsavel_id, nome):
         'tecnico_nome': nome,
         'tarefas_concluidas': 0,
         'tempo_medio_tarefa_dias': None,
+        'complexidade_media_concluidas': None,
+        'horas_estimadas_entregues': 0,
         'mini_os_concluidas': 0,
         'tarefas_em_aberto': 0,
         'mini_os_em_aberto': 0,
+        'tarefas_atrasadas': 0,
+        'mini_os_atrasadas': 0,
+        'tarefas_alta_prioridade_abertas': 0,
+        'mini_os_alta_prioridade_abertas': 0,
         'tarefas_concluidas_por_mes': [],
         'mini_os_concluidas_por_mes': [],
     }
@@ -245,20 +307,30 @@ def _tempo_por_catalogo() -> list[dict]:
             data_inicio__isnull=False,
             data_termino__isnull=False,
         )
-        .values_list('catalogo_id', 'catalogo__nome', 'data_inicio', 'data_termino')
+        .values_list(
+            'catalogo_id', 'catalogo__nome', 'catalogo__horas_estimadas', 'catalogo__complexidade',
+            'data_inicio', 'data_termino',
+        )
     )
     mapa: dict[int, dict] = {}
-    for cat_id, cat_nome, inicio, termino in rows:
+    for cat_id, cat_nome, horas_estimadas, complexidade, inicio, termino in rows:
         dias = (termino - inicio).days
         if dias < 0:
             continue
-        entry = mapa.setdefault(cat_id, {'nome': cat_nome, 'dias': []})
+        entry = mapa.setdefault(cat_id, {
+            'nome': cat_nome,
+            'horas_estimadas': horas_estimadas,
+            'complexidade': complexidade,
+            'dias': [],
+        })
         entry['dias'].append(dias)
     resultado = sorted(
         [
             {
                 'catalogo_id': cat_id,
                 'catalogo_nome': data['nome'],
+                'horas_estimadas': data['horas_estimadas'],
+                'complexidade': data['complexidade'],
                 'total_concluidos': len(data['dias']),
                 'media_dias': round(sum(data['dias']) / len(data['dias']), 1),
             }

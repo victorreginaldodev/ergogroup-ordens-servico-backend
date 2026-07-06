@@ -1,4 +1,5 @@
 from datetime import timedelta
+from decimal import Decimal
 
 from django.urls import reverse
 from django.utils import timezone
@@ -8,9 +9,9 @@ from rest_framework.test import APITestCase
 from apps.clientes.models import Cliente
 from apps.contas.models import Usuario
 from apps.contas.models.choices import TipoUsuario
-from apps.ordens_servico.models import OrdemServico
+from apps.ordens_servico.models import OrdemServico, Prioridade
 from apps.ordens_servico.models import Servico
-from apps.catalogo.models.catalogo import Catalogo
+from apps.catalogo.models.catalogo import Catalogo, Complexidade
 from apps.ordens_servico.models.servico import StatusServico
 from apps.ordens_servico.models import Tarefa, OrdemServicoOperacional
 from apps.catalogo.models import CatalogoOperacional
@@ -66,7 +67,9 @@ class AnaliseTestCase(APITestCase):
         )
 
         # Cadeia OS -> Servico -> Tarefa para indicadores de produtividade/tempo.
-        catalogo = Catalogo.objects.create(nome='Catalogo Teste')
+        catalogo = Catalogo.objects.create(
+            nome='Catalogo Teste', horas_estimadas=Decimal('4.00'), complexidade=Complexidade.ALTA,
+        )
         self.os_chain = OrdemServico.objects.create(
             cliente=self.cliente,
             data_venda=self.hoje - timedelta(days=5),
@@ -126,6 +129,7 @@ class AnaliseTestCase(APITestCase):
         self.tarefa_wip = Tarefa.objects.create(
             servico=servico_wip, responsavel=self.tecnico,
             descricao='Tarefa em andamento', status=StatusTarefa.EM_ANDAMENTO,
+            prazo=self.hoje - timedelta(days=1), prioridade=Prioridade.ALTA,
         )
         self.oso_wip = OrdemServicoOperacional.objects.create(
             cliente=self.cliente, catalogo_operacional=catalogo_operacional, responsavel=self.tecnico,
@@ -140,6 +144,7 @@ class AnaliseTestCase(APITestCase):
         self.tarefa_lead_time = Tarefa.objects.create(
             servico=servico_lead_time, responsavel=self.tecnico,
             descricao='Tarefa com espera', status=StatusTarefa.EM_ANDAMENTO,
+            prazo=self.hoje + timedelta(days=5), prioridade=Prioridade.ALTA,
         )
         Tarefa.objects.filter(pk=self.tarefa_lead_time.pk).update(
             criada_em=timezone.now() - timedelta(days=4),
@@ -272,3 +277,22 @@ class ProdutividadeViewTests(AnaliseTestCase):
         # tarefa_wip e tarefa_lead_time estao em andamento; oso_wip tambem.
         self.assertEqual(linha['tarefas_em_aberto'], 2)
         self.assertEqual(linha['mini_os_em_aberto'], 1)
+        # tarefa_wip tem prazo no passado; tarefa_lead_time tem prazo no futuro.
+        self.assertEqual(linha['tarefas_atrasadas'], 1)
+        # tarefa_wip e tarefa_lead_time sao alta prioridade (atrasada ou nao).
+        self.assertEqual(linha['tarefas_alta_prioridade_abertas'], 2)
+        # unica tarefa concluida (tarefa_chain) usa um catalogo com complexidade ALTA (3).
+        self.assertEqual(linha['complexidade_media_concluidas'], 3.0)
+        # tarefa_chain nao tem horas_estimadas propria; cai no servico_chain, que cai no
+        # catalogo (horas_estimadas=4.00).
+        self.assertEqual(Decimal(str(linha['horas_estimadas_entregues'])), Decimal('4.00'))
+
+    def test_tempo_por_catalogo_expoe_horas_estimadas_e_complexidade(self):
+        self._login(self.usuarios[TipoUsuario.GESTOR_TECNICO])
+        response = self.client.get(self.url)
+
+        tempo_por_catalogo = response.data['tempos_medios']['tempo_por_catalogo']
+        self.assertEqual(len(tempo_por_catalogo), 1)
+        entrada = tempo_por_catalogo[0]
+        self.assertEqual(Decimal(str(entrada['horas_estimadas'])), Decimal('4.00'))
+        self.assertEqual(entrada['complexidade'], Complexidade.ALTA)

@@ -3,10 +3,11 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.db.models import Q
+from django.utils import timezone
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
 
 from apps.contas.models.choices import TipoUsuario
-from apps.ordens_servico.models import OrdemServicoOperacional
+from apps.ordens_servico.models import OrdemServicoOperacional, Prioridade
 from apps.ordens_servico.models.ordem_servico_operacional import StatusOrdemServicoOperacional
 from apps.ordens_servico.serializers import (
     OrdemServicoOperacionalListSerializer,
@@ -28,6 +29,9 @@ from apps.ordens_servico.serializers import (
             OpenApiParameter('responsavel', int, description='Filtrar pelo ID do responsável.'),
             OpenApiParameter('status', str, description='Filtrar por status.', enum=StatusOrdemServicoOperacional),
             OpenApiParameter('cobranca_realizada', str, description='Filtrar por status de cobrança.', enum=['true', 'false']),
+            OpenApiParameter('prioridade', str, description='Filtrar por prioridade.', enum=Prioridade),
+            OpenApiParameter('atrasada', str, description='Se "true", retorna apenas OSOs com prazo vencido e não finalizadas.', enum=['true']),
+            OpenApiParameter('ordering', str, description='Ordenar por prazo. Use "prazo" ou "-prazo".', enum=['prazo', '-prazo']),
         ],
     ),
     create=extend_schema(
@@ -89,6 +93,9 @@ class OrdemServicoOperacionalViewSet(viewsets.ModelViewSet):
         responsavel_id = self.request.query_params.get('responsavel', '').strip()
         status_param = self.request.query_params.get('status', '').strip()
         cobranca_realizada = self.request.query_params.get('cobranca_realizada', '').strip()
+        prioridade_param = self.request.query_params.get('prioridade', '').strip()
+        atrasada_param = self.request.query_params.get('atrasada', '').strip()
+        ordering_param = self.request.query_params.get('ordering', '').strip()
 
         if q:
             queryset = queryset.filter(
@@ -102,6 +109,14 @@ class OrdemServicoOperacionalViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(status=status_param)
         if cobranca_realizada in ('true', 'false'):
             queryset = queryset.filter(cobranca_realizada=(cobranca_realizada == 'true'))
+        if prioridade_param:
+            queryset = queryset.filter(prioridade=prioridade_param)
+        if atrasada_param == 'true':
+            queryset = queryset.filter(prazo__lt=timezone.localdate()).exclude(
+                status=StatusOrdemServicoOperacional.FINALIZADA
+            )
+        if ordering_param in ('prazo', '-prazo'):
+            queryset = queryset.order_by(ordering_param)
 
         return queryset
 
