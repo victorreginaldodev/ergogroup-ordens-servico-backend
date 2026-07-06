@@ -9,12 +9,10 @@ from apps.auditoria.utils import (
     registrar_evento_modelo,
     snapshot_modelo,
 )
-from apps.ordem_servico.models import OrdemServico
-from apps.servicos.models import Servico
-from apps.tarefas.models import MiniOS, Tarefa
+from apps.ordens_servico.models import OrdemServico, Servico, Tarefa, OrdemServicoOperacional
 
 
-MODELOS_AUDITADOS = (OrdemServico, Servico, Tarefa, MiniOS)
+MODELOS_AUDITADOS = (OrdemServico, Servico, Tarefa, OrdemServicoOperacional)
 
 
 @receiver(pre_save)

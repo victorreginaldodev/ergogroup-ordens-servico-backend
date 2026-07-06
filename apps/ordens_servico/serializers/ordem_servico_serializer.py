@@ -1,0 +1,166 @@
+from rest_framework import serializers
+from drf_spectacular.utils import extend_schema_field
+
+from apps.ordens_servico.models import OrdemServico
+from apps.clientes.models import Cliente
+from apps.clientes.serializers import ClienteListSerializer, ClienteSerializer
+
+
+class OrdemServicoListSerializer(serializers.ModelSerializer):
+    cliente_nome = serializers.CharField(source='cliente.nome', read_only=True)
+    forma_pagamento_display = serializers.CharField(source='get_forma_pagamento_display', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    prioridade_display = serializers.CharField(source='get_prioridade_display', read_only=True)
+    liberada_para_cobranca_por_nome = serializers.SerializerMethodField()
+    dias_em_aberto = serializers.IntegerField(read_only=True, allow_null=True)
+    dias_entre_criacao_e_conclusao = serializers.IntegerField(read_only=True, allow_null=True)
+
+    class Meta:
+        model = OrdemServico
+        fields = [
+            'id', 'cliente', 'cliente_nome', 'data_venda', 'valor',
+            'forma_pagamento', 'forma_pagamento_display', 'status',
+            'status_display', 'prioridade', 'prioridade_display',
+            'concluida', 'cobranca_realizada', 'cobranca_imediata', 'contrato',
+            'liberada_para_cobranca', 'liberada_para_cobranca_em',
+            'liberada_para_cobranca_por_nome', 'dias_em_aberto',
+            'dias_entre_criacao_e_conclusao',
+        ]
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_liberada_para_cobranca_por_nome(self, obj):
+        if not obj.liberada_para_cobranca_por:
+            return None
+        usuario = obj.liberada_para_cobranca_por
+        return usuario.nome_completo or usuario.get_full_name() or usuario.username
+
+
+class OrdemServicoSerializer(serializers.ModelSerializer):
+    cliente_detail = ClienteSerializer(source='cliente', read_only=True)
+    cliente = serializers.PrimaryKeyRelatedField(queryset=Cliente.objects.all())
+    forma_pagamento_display = serializers.CharField(source='get_forma_pagamento_display', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    prioridade_display = serializers.CharField(source='get_prioridade_display', read_only=True)
+    criado_por_nome = serializers.SerializerMethodField()
+    liberada_para_cobranca_por_nome = serializers.SerializerMethodField()
+    cobranca_realizada_por_nome = serializers.SerializerMethodField()
+    data_conclusao_os = serializers.SerializerMethodField()
+    finalizador_nome = serializers.SerializerMethodField()
+    dias_em_aberto = serializers.IntegerField(read_only=True, allow_null=True)
+    dias_entre_criacao_e_conclusao = serializers.IntegerField(read_only=True, allow_null=True)
+
+    class Meta:
+        model = OrdemServico
+        fields = [
+            'id', 'cliente', 'cliente_detail',
+            'criado_por', 'criado_por_nome', 'data_venda', 'criada_em',
+            'status', 'status_display', 'prioridade', 'prioridade_display', 'valor',
+            'forma_pagamento', 'forma_pagamento_display', 'quantidade_parcelas',
+            'cobranca_imediata', 'data_acordada_cobranca', 'nome_contato_envio_nf', 'contato_envio_nf',
+            'contrato', 'objeto_contrato', 'contrato_data_inicio',
+            'contrato_data_fim', 'gestor_contrato_nome',
+            'gestor_contrato_email', 'gestor_contrato_telefone',
+            'observacao', 'concluida', 'cobranca_realizada', 'numero_nf', 'data_cobranca',
+            'cobranca_realizada_por', 'cobranca_realizada_por_nome',
+            'liberada_para_cobranca', 'liberada_para_cobranca_em',
+            'liberada_para_cobranca_por', 'liberada_para_cobranca_por_nome',
+            'data_atualizacao', 'atualizado_por',
+            'data_conclusao_os', 'finalizador_nome',
+            'dias_em_aberto', 'dias_entre_criacao_e_conclusao',
+        ]
+        read_only_fields = [
+            'status', 'concluida', 'criada_em', 'data_atualizacao',
+            'criado_por', 'atualizado_por', 'liberada_para_cobranca',
+            'liberada_para_cobranca_em', 'liberada_para_cobranca_por',
+            'cobranca_realizada_por', 'dias_em_aberto', 'dias_entre_criacao_e_conclusao',
+        ]
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        contrato = attrs.get('contrato', getattr(self.instance, 'contrato', False))
+
+        if contrato:
+            campos_obrigatorios = {
+                'objeto_contrato': 'Informe o objeto do contrato.',
+                'contrato_data_inicio': 'Informe a data de início do contrato.',
+                'contrato_data_fim': 'Informe a data de fim do contrato.',
+            }
+            erros = {}
+            for campo, mensagem in campos_obrigatorios.items():
+                valor = attrs.get(campo, getattr(self.instance, campo, None))
+                if not valor:
+                    erros[campo] = mensagem
+
+            data_inicio = attrs.get('contrato_data_inicio', getattr(self.instance, 'contrato_data_inicio', None))
+            data_fim = attrs.get('contrato_data_fim', getattr(self.instance, 'contrato_data_fim', None))
+            if data_inicio and data_fim and data_fim < data_inicio:
+                erros['contrato_data_fim'] = 'A data de fim não pode ser anterior à data de início.'
+
+            if erros:
+                raise serializers.ValidationError(erros)
+
+        return attrs
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_criado_por_nome(self, obj):
+        if not obj.criado_por:
+            return None
+        return obj.criado_por.nome_completo or obj.criado_por.get_full_name() or obj.criado_por.username
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_liberada_para_cobranca_por_nome(self, obj):
+        if not obj.liberada_para_cobranca_por:
+            return None
+        usuario = obj.liberada_para_cobranca_por
+        return usuario.nome_completo or usuario.get_full_name() or usuario.username
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_cobranca_realizada_por_nome(self, obj):
+        if not obj.cobranca_realizada_por:
+            return None
+        usuario = obj.cobranca_realizada_por
+        return usuario.nome_completo or usuario.get_full_name() or usuario.username
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_data_conclusao_os(self, obj):
+        ultimo_servico = obj.servicos.filter(status='concluida').order_by('-data_termino', '-data_conclusao', '-id').first()
+        if not ultimo_servico:
+            return None
+        data_conclusao = ultimo_servico.data_termino or ultimo_servico.data_conclusao
+        return str(data_conclusao) if data_conclusao else None
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_finalizador_nome(self, obj):
+        if obj.liberada_para_cobranca_por:
+            usuario = obj.liberada_para_cobranca_por
+            return usuario.nome_completo or usuario.get_full_name() or usuario.username
+        ultimo_servico = obj.servicos.filter(status='concluida').order_by('-data_termino', '-data_conclusao', '-id').first()
+        if not ultimo_servico or not ultimo_servico.terminado_por:
+            return None
+        usuario = ultimo_servico.terminado_por
+        return usuario.nome_completo or usuario.get_full_name() or usuario.username
+
+    def create(self, validated_data):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            validated_data['criado_por'] = request.user
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            validated_data['atualizado_por'] = request.user
+            if validated_data.get('cobranca_realizada') is True and not instance.cobranca_realizada:
+                validated_data['cobranca_realizada_por'] = request.user
+        return super().update(instance, validated_data)
+
+
+class RegistrarCobrancaRequestSerializer(serializers.Serializer):
+    numero_nf = serializers.IntegerField(required=False, allow_null=True)
+    data_cobranca = serializers.DateField(required=False, allow_null=True)
+
+
+class LiberadaCobrancaSerializer(serializers.Serializer):
+    liberada = serializers.BooleanField()
+    liberada_em = serializers.DateTimeField(allow_null=True)
+    liberada_por = serializers.IntegerField(allow_null=True)

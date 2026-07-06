@@ -1,3 +1,0 @@
-from .repositorio_mini_os_viewset import RepositorioMiniOSViewSet
-from .tarefa_viewset import TarefaViewSet
-from .mini_os_viewset import MiniOSViewSet

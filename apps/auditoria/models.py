@@ -15,9 +15,13 @@ class AcaoAuditoria(models.TextChoices):
     EXCLUSAO = 'exclusao', 'Exclusão'
     STATUS = 'status', 'Mudança de Status'
     PROPAGACAO_STATUS = 'propagacao_status', 'Propagação de Status'
+    # Mantidos para preservar o rótulo de exibição de registros históricos —
+    # não são mais emitidos por classificar_acao() após o domínio faturamento
+    # virar cobranca (ver LIBERACAO_COBRANCA e COBRANCA_REALIZADA).
     LIBERACAO_FATURAMENTO = 'liberacao_faturamento', 'Liberação para Faturamento'
     FATURAMENTO = 'faturamento', 'Faturamento'
     LIBERACAO_COBRANCA = 'liberacao_cobranca', 'Liberação de Cobrança'
+    COBRANCA_REALIZADA = 'cobranca_realizada', 'Cobrança Realizada'
     CONTRATO = 'contrato', 'Contrato'
     BACKFILL = 'backfill', 'Backfill'
 

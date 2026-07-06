@@ -8,13 +8,14 @@ from rest_framework.test import APITestCase
 from apps.clientes.models import Cliente
 from apps.contas.models import Usuario
 from apps.contas.models.choices import TipoUsuario
-from apps.ordem_servico.models import OrdemServico
-from apps.servicos.models import Servico
-from apps.servicos.models.repositorio import Repositorio
-from apps.servicos.models.servico import StatusServico
-from apps.tarefas.models import Tarefa, MiniOS, RepositorioMiniOS
-from apps.tarefas.models.tarefa import StatusTarefa
-from apps.tarefas.models.mini_os import StatusMiniOS
+from apps.ordens_servico.models import OrdemServico
+from apps.ordens_servico.models import Servico
+from apps.catalogo.models.catalogo import Catalogo
+from apps.ordens_servico.models.servico import StatusServico
+from apps.ordens_servico.models import Tarefa, OrdemServicoOperacional
+from apps.catalogo.models import CatalogoOperacional
+from apps.ordens_servico.models.tarefa import StatusTarefa
+from apps.ordens_servico.models.ordem_servico_operacional import StatusOrdemServicoOperacional
 
 
 PERFIS_SEM_VALORES = [
@@ -51,29 +52,29 @@ class AnaliseTestCase(APITestCase):
         self.cliente = Cliente.objects.create(nome='Cliente Financeiro')
 
         # OS financeiras "soltas" (sem servicos/tarefas), para testar somas e redação de valores.
-        self.os_faturada = OrdemServico.objects.create(
-            cliente=self.cliente, data_criacao=self.hoje, valor=1000,
-            faturada=True, liberada_para_faturamento=True,
+        self.os_cobranca_realizada = OrdemServico.objects.create(
+            cliente=self.cliente, data_venda=self.hoje, valor=1000,
+            cobranca_realizada=True, liberada_para_cobranca=True,
         )
         self.os_liberada = OrdemServico.objects.create(
-            cliente=self.cliente, data_criacao=self.hoje, valor=500,
-            faturada=False, liberada_para_faturamento=True,
+            cliente=self.cliente, data_venda=self.hoje, valor=500,
+            cobranca_realizada=False, liberada_para_cobranca=True,
         )
         self.os_sem_liberacao = OrdemServico.objects.create(
-            cliente=self.cliente, data_criacao=self.hoje, valor=300,
-            faturada=False, liberada_para_faturamento=False,
+            cliente=self.cliente, data_venda=self.hoje, valor=300,
+            cobranca_realizada=False, liberada_para_cobranca=False,
         )
 
         # Cadeia OS -> Servico -> Tarefa para indicadores de produtividade/tempo.
-        repositorio = Repositorio.objects.create(nome='Repositorio Teste')
+        catalogo = Catalogo.objects.create(nome='Catalogo Teste')
         self.os_chain = OrdemServico.objects.create(
             cliente=self.cliente,
-            data_criacao=self.hoje - timedelta(days=5),
+            data_venda=self.hoje - timedelta(days=5),
             valor=0,
         )
         self.servico_chain = Servico.objects.create(
             ordem_servico=self.os_chain,
-            repositorio=repositorio,
+            catalogo=catalogo,
             descricao='Servico de teste',
         )
         self.tarefa_chain = Tarefa.objects.create(
@@ -94,11 +95,11 @@ class AnaliseTestCase(APITestCase):
 
         # Segunda cadeia, para validar que um técnico só vê a própria linha.
         self.os_chain_outro = OrdemServico.objects.create(
-            cliente=self.cliente, data_criacao=self.hoje, valor=0,
+            cliente=self.cliente, data_venda=self.hoje, valor=0,
         )
         self.servico_chain_outro = Servico.objects.create(
             ordem_servico=self.os_chain_outro,
-            repositorio=repositorio,
+            catalogo=catalogo,
             descricao='Servico de outro tecnico',
         )
         Tarefa.objects.create(
@@ -108,33 +109,33 @@ class AnaliseTestCase(APITestCase):
             status=StatusTarefa.CONCLUIDA,
         )
 
-        repositorio_mini_os = RepositorioMiniOS.objects.create(nome='Servico Mini OS Teste')
-        self.mini_os = MiniOS.objects.create(
+        catalogo_operacional = CatalogoOperacional.objects.create(nome='Catalogo Operacional Teste')
+        self.oso = OrdemServicoOperacional.objects.create(
             cliente=self.cliente,
-            servico=repositorio_mini_os,
+            catalogo_operacional=catalogo_operacional,
             responsavel=self.tecnico,
             data_recebimento=self.hoje,
-            status=StatusMiniOS.FINALIZADA,
+            status=StatusOrdemServicoOperacional.FINALIZADA,
         )
 
-        # Carga de trabalho atual (WIP) do tecnico: uma tarefa e uma mini OS em andamento.
-        os_wip = OrdemServico.objects.create(cliente=self.cliente, data_criacao=self.hoje, valor=0)
+        # Carga de trabalho atual (WIP) do tecnico: uma tarefa e uma OS operacional em andamento.
+        os_wip = OrdemServico.objects.create(cliente=self.cliente, data_venda=self.hoje, valor=0)
         servico_wip = Servico.objects.create(
-            ordem_servico=os_wip, repositorio=repositorio, descricao='Servico em andamento',
+            ordem_servico=os_wip, catalogo=catalogo, descricao='Servico em andamento',
         )
         self.tarefa_wip = Tarefa.objects.create(
             servico=servico_wip, responsavel=self.tecnico,
             descricao='Tarefa em andamento', status=StatusTarefa.EM_ANDAMENTO,
         )
-        self.mini_os_wip = MiniOS.objects.create(
-            cliente=self.cliente, servico=repositorio_mini_os, responsavel=self.tecnico,
-            data_recebimento=self.hoje, status=StatusMiniOS.EM_ANDAMENTO,
+        self.oso_wip = OrdemServicoOperacional.objects.create(
+            cliente=self.cliente, catalogo_operacional=catalogo_operacional, responsavel=self.tecnico,
+            data_recebimento=self.hoje, status=StatusOrdemServicoOperacional.EM_ANDAMENTO,
         )
 
         # Tarefa que esperou 4 dias antes de ser iniciada, para medir o tempo de resposta.
-        os_lead_time = OrdemServico.objects.create(cliente=self.cliente, data_criacao=self.hoje, valor=0)
+        os_lead_time = OrdemServico.objects.create(cliente=self.cliente, data_venda=self.hoje, valor=0)
         servico_lead_time = Servico.objects.create(
-            ordem_servico=os_lead_time, repositorio=repositorio, descricao='Servico com espera',
+            ordem_servico=os_lead_time, catalogo=catalogo, descricao='Servico com espera',
         )
         self.tarefa_lead_time = Tarefa.objects.create(
             servico=servico_lead_time, responsavel=self.tecnico,
@@ -145,16 +146,16 @@ class AnaliseTestCase(APITestCase):
         )
 
         # Tarefa e servico cancelados, para a taxa de cancelamento.
-        os_cancelamento = OrdemServico.objects.create(cliente=self.cliente, data_criacao=self.hoje, valor=0)
+        os_cancelamento = OrdemServico.objects.create(cliente=self.cliente, data_venda=self.hoje, valor=0)
         servico_tarefa_cancelada = Servico.objects.create(
-            ordem_servico=os_cancelamento, repositorio=repositorio, descricao='Servico da tarefa cancelada',
+            ordem_servico=os_cancelamento, catalogo=catalogo, descricao='Servico da tarefa cancelada',
         )
         self.tarefa_cancelada = Tarefa.objects.create(
             servico=servico_tarefa_cancelada, responsavel=self.tecnico,
             descricao='Tarefa cancelada', status=StatusTarefa.CANCELADA,
         )
         self.servico_cancelado = Servico.objects.create(
-            ordem_servico=os_cancelamento, repositorio=repositorio,
+            ordem_servico=os_cancelamento, catalogo=catalogo,
             descricao='Servico cancelado', status=StatusServico.CANCELADO,
         )
 
@@ -180,8 +181,8 @@ class AnaliseDadosViewTests(AnaliseTestCase):
         self.assertEqual(len(mais_vendas), 1)
         self.assertEqual(mais_vendas[0]['total_valor_vendas'], 1800)
 
-        mais_faturamento = response.data['clientes']['mais_faturamento']
-        self.assertEqual(mais_faturamento[0]['total_valor_faturado'], 1000)
+        mais_cobranca = response.data['clientes']['mais_cobranca']
+        self.assertEqual(mais_cobranca[0]['total_valor_cobrado'], 1000)
 
     def test_perfis_restritos_nao_veem_valores(self):
         for tipo in PERFIS_SEM_VALORES:
@@ -215,8 +216,8 @@ class FinanceiroKPIsViewTests(AnaliseTestCase):
         response = self.client.get(self.url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['total_faturado'], 1000)
-        self.assertEqual(response.data['total_para_faturar'], 500)
+        self.assertEqual(response.data['total_cobrado'], 1000)
+        self.assertEqual(response.data['total_para_cobrar'], 500)
         self.assertEqual(response.data['total_sem_liberacao'], 300)
 
 
@@ -268,6 +269,6 @@ class ProdutividadeViewTests(AnaliseTestCase):
         self.assertEqual(linha['tarefas_concluidas'], 1)
         self.assertEqual(linha['mini_os_concluidas'], 1)
         self.assertEqual(linha['tempo_medio_tarefa_dias'], 3.0)
-        # tarefa_wip e tarefa_lead_time estao em andamento; mini_os_wip tambem.
+        # tarefa_wip e tarefa_lead_time estao em andamento; oso_wip tambem.
         self.assertEqual(linha['tarefas_em_aberto'], 2)
         self.assertEqual(linha['mini_os_em_aberto'], 1)

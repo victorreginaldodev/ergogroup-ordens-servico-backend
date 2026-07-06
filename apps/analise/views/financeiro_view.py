@@ -6,7 +6,7 @@ from drf_spectacular.utils import extend_schema, OpenApiResponse
 
 from apps.analise.serializers import FinanceiroKPIsSerializer
 from apps.contas.permissions import PodeVerValoresFinanceiros
-from apps.ordem_servico.models import OrdemServico
+from apps.ordens_servico.models import OrdemServico
 
 
 class FinanceiroKPIsView(APIView):
@@ -16,9 +16,9 @@ class FinanceiroKPIsView(APIView):
         summary='KPIs financeiros',
         description=(
             'Retorna três totalizadores:\n'
-            '- **total_faturado**: soma das OS já faturadas.\n'
-            '- **total_para_faturar**: soma das OS liberadas e ainda não faturadas.\n'
-            '- **total_sem_liberacao**: soma das OS em aberto sem liberação para faturamento.\n\n'
+            '- **total_cobrado**: soma das OS com cobrança já realizada.\n'
+            '- **total_para_cobrar**: soma das OS liberadas e ainda não cobradas.\n'
+            '- **total_sem_liberacao**: soma das OS em aberto sem liberação para cobrança.\n\n'
             'Indisponível (403) para os perfis Sub-Líder Técnico, Técnico, '
             'Gestor Administrativo e Administrativo.'
         ),
@@ -30,22 +30,22 @@ class FinanceiroKPIsView(APIView):
     def get(self, request):
         qs = OrdemServico.objects.all()
 
-        liberadas = qs.filter(faturada=False, liberada_para_faturamento=True)
+        liberadas = qs.filter(cobranca_realizada=False, liberada_para_cobranca=True)
 
-        total_faturado = (
-            qs.filter(faturada=True).aggregate(total=Sum('valor'))['total'] or 0
+        total_cobrado = (
+            qs.filter(cobranca_realizada=True).aggregate(total=Sum('valor'))['total'] or 0
         )
-        total_para_faturar = (
+        total_para_cobrar = (
             liberadas.aggregate(total=Sum('valor'))['total'] or 0
         )
         total_sem_liberacao = (
-            qs.filter(faturada=False)
+            qs.filter(cobranca_realizada=False)
             .exclude(pk__in=liberadas.values('pk'))
             .aggregate(total=Sum('valor'))['total'] or 0
         )
 
         return Response({
-            'total_faturado': total_faturado,
-            'total_para_faturar': total_para_faturar,
+            'total_cobrado': total_cobrado,
+            'total_para_cobrar': total_para_cobrar,
             'total_sem_liberacao': total_sem_liberacao,
         })

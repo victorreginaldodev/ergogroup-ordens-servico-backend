@@ -11,13 +11,13 @@ from drf_spectacular.utils import extend_schema
 from apps.analise.serializers import ProdutividadeResponseSerializer
 from apps.analise.utils import gerar_intervalo_meses, preencher_meses
 from apps.contas.models.choices import TipoUsuario
-from apps.ordem_servico.models import OrdemServico
-from apps.ordem_servico.models.ordem_servico import Status as StatusOS
-from apps.servicos.models import Servico
-from apps.servicos.models.servico import StatusServico
-from apps.tarefas.models import Tarefa, MiniOS
-from apps.tarefas.models.tarefa import StatusTarefa
-from apps.tarefas.models.mini_os import StatusMiniOS
+from apps.ordens_servico.models import OrdemServico
+from apps.ordens_servico.models.ordem_servico import Status as StatusOS
+from apps.ordens_servico.models import Servico
+from apps.ordens_servico.models.servico import StatusServico
+from apps.ordens_servico.models import Tarefa, OrdemServicoOperacional
+from apps.ordens_servico.models.tarefa import StatusTarefa
+from apps.ordens_servico.models.ordem_servico_operacional import StatusOrdemServicoOperacional
 
 
 class ProdutividadeView(APIView):
@@ -49,7 +49,7 @@ class ProdutividadeView(APIView):
     # ------------------------------------------------------------------ #
 
     def _tempos_medios(self, data_inicio):
-        # Todos os pares (criacao, fim_real) de OS concluídas — sem filtro de data.
+        # Todos os pares (venda, fim_real) de OS concluídas — sem filtro de data.
         # A distribuição e a média global precisam refletir o histórico completo do banco.
         todos_pares = list(
             OrdemServico.objects
@@ -61,7 +61,7 @@ class ProdutividadeView(APIView):
                 )
             )
             .filter(data_fim_real__isnull=False)
-            .values_list('data_criacao', 'data_fim_real')
+            .values_list('data_venda', 'data_fim_real')
         )
 
         servicos_concluidos = Servico.objects.filter(
@@ -86,7 +86,7 @@ class ProdutividadeView(APIView):
             'os_distribuicao_tempo': _distribuicao_tempo_os(todos_pares),
             'servicos_inicio_para_fim_dias': servico_media,
             'tarefa_criacao_para_inicio_dias': lead_time_media,
-            'tempo_por_repositorio': _tempo_por_repositorio(),
+            'tempo_por_catalogo': _tempo_por_catalogo(),
         }
 
     def _taxa_cancelamento(self, data_inicio):
@@ -108,8 +108,8 @@ class ProdutividadeView(APIView):
             status=StatusTarefa.CONCLUIDA,
             data_termino__isnull=False,
         )
-        minios_hist_qs = MiniOS.objects.filter(
-            status=StatusMiniOS.FINALIZADA,
+        minios_hist_qs = OrdemServicoOperacional.objects.filter(
+            status=StatusOrdemServicoOperacional.FINALIZADA,
             data_termino__isnull=False,
         )
         # Últimos 12 meses — apenas para o gráfico mensal
@@ -119,8 +119,8 @@ class ProdutividadeView(APIView):
         tarefas_abertas_qs = Tarefa.objects.filter(
             status__in=[StatusTarefa.ABERTA, StatusTarefa.EM_ANDAMENTO],
         )
-        minios_abertas_qs = MiniOS.objects.filter(
-            status__in=[StatusMiniOS.NAO_INICIADO, StatusMiniOS.EM_ANDAMENTO],
+        minios_abertas_qs = OrdemServicoOperacional.objects.filter(
+            status__in=[StatusOrdemServicoOperacional.NAO_INICIADO, StatusOrdemServicoOperacional.EM_ANDAMENTO],
         )
 
         if usuario.tipo_usuario == TipoUsuario.TECNICO:
@@ -230,39 +230,39 @@ def _media_dias_criacao_para_conclusao_os() -> float | None:
             timezone.localtime(conclusao_em).date(),
         )
         for criada_em, conclusao_em in OrdemServico.objects
-        .filter(liberada_para_faturamento_em__isnull=False)
-        .values_list('criada_em', 'liberada_para_faturamento_em')
+        .filter(liberada_para_cobranca_em__isnull=False)
+        .values_list('criada_em', 'liberada_para_cobranca_em')
     )
     return _media_dias(pares, inclusivo=True)
 
 
-def _tempo_por_repositorio() -> list[dict]:
+def _tempo_por_catalogo() -> list[dict]:
     rows = (
         Servico.objects
         .filter(
             status=StatusServico.CONCLUIDA,
-            repositorio__isnull=False,
+            catalogo__isnull=False,
             data_inicio__isnull=False,
             data_termino__isnull=False,
         )
-        .values_list('repositorio_id', 'repositorio__nome', 'data_inicio', 'data_termino')
+        .values_list('catalogo_id', 'catalogo__nome', 'data_inicio', 'data_termino')
     )
     mapa: dict[int, dict] = {}
-    for rep_id, rep_nome, inicio, termino in rows:
+    for cat_id, cat_nome, inicio, termino in rows:
         dias = (termino - inicio).days
         if dias < 0:
             continue
-        entry = mapa.setdefault(rep_id, {'nome': rep_nome, 'dias': []})
+        entry = mapa.setdefault(cat_id, {'nome': cat_nome, 'dias': []})
         entry['dias'].append(dias)
     resultado = sorted(
         [
             {
-                'repositorio_id': rep_id,
-                'repositorio_nome': data['nome'],
+                'catalogo_id': cat_id,
+                'catalogo_nome': data['nome'],
                 'total_concluidos': len(data['dias']),
                 'media_dias': round(sum(data['dias']) / len(data['dias']), 1),
             }
-            for rep_id, data in mapa.items()
+            for cat_id, data in mapa.items()
             if data['dias']
         ],
         key=lambda x: x['media_dias'],

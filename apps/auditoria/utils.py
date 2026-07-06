@@ -16,7 +16,7 @@ ENTIDADE_POR_MODELO = {
     'ordemservico': EntidadeAuditada.ORDEM_SERVICO,
     'servico': EntidadeAuditada.SERVICO,
     'tarefa': EntidadeAuditada.TAREFA,
-    'minios': EntidadeAuditada.MINI_OS,
+    'ordemservicooperacional': EntidadeAuditada.MINI_OS,
 }
 
 
@@ -24,11 +24,11 @@ CAMPOS_CONTRATO = {
     'contrato', 'objeto_contrato', 'contrato_data_inicio', 'contrato_data_fim',
     'gestor_contrato_nome', 'gestor_contrato_email', 'gestor_contrato_telefone',
 }
-CAMPOS_FATURAMENTO = {'faturada', 'numero_nf', 'data_faturamento', 'faturada_por_id'}
-CAMPOS_LIBERACAO_FATURAMENTO = {
-    'liberada_para_faturamento',
-    'liberada_para_faturamento_em',
-    'liberada_para_faturamento_por_id',
+CAMPOS_COBRANCA_REALIZADA = {'cobranca_realizada', 'numero_nf', 'data_cobranca', 'cobranca_realizada_por_id'}
+CAMPOS_LIBERACAO_COBRANCA_OS = {
+    'liberada_para_cobranca',
+    'liberada_para_cobranca_em',
+    'liberada_para_cobranca_por_id',
 }
 CAMPOS_LIBERACAO_COBRANCA = {
     'gera_cobranca',
@@ -131,10 +131,10 @@ def classificar_acao(entidade, alteracoes):
     campos = set(alteracoes.keys())
     if entidade == EntidadeAuditada.ORDEM_SERVICO and campos & CAMPOS_CONTRATO:
         return AcaoAuditoria.CONTRATO
-    if entidade == EntidadeAuditada.ORDEM_SERVICO and campos & CAMPOS_LIBERACAO_FATURAMENTO:
-        return AcaoAuditoria.LIBERACAO_FATURAMENTO
-    if campos & CAMPOS_FATURAMENTO:
-        return AcaoAuditoria.FATURAMENTO
+    if entidade == EntidadeAuditada.ORDEM_SERVICO and campos & CAMPOS_LIBERACAO_COBRANCA_OS:
+        return AcaoAuditoria.LIBERACAO_COBRANCA
+    if campos & CAMPOS_COBRANCA_REALIZADA:
+        return AcaoAuditoria.COBRANCA_REALIZADA
     if entidade == EntidadeAuditada.MINI_OS and campos & CAMPOS_LIBERACAO_COBRANCA:
         return AcaoAuditoria.LIBERACAO_COBRANCA
     if 'status' in campos or 'concluida' in campos:
@@ -158,7 +158,7 @@ def ids_relacionados(instance):
             'servico_id': instance.servico_id,
             'tarefa_id': instance.pk,
         }
-    if model_name == 'minios':
+    if model_name == 'ordemservicooperacional':
         return {'mini_os_id': instance.pk}
     return {}
 

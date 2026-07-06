@@ -10,8 +10,8 @@ class ServicoPorStatusSerializer(serializers.Serializer):
 
 
 class ServicoPrincipalSerializer(serializers.Serializer):
-    repositorio_id = serializers.IntegerField()
-    repositorio_nome = serializers.CharField()
+    catalogo_id = serializers.IntegerField()
+    catalogo_nome = serializers.CharField()
     total = serializers.IntegerField()
 
 
@@ -65,10 +65,10 @@ class MiniOSAnaliseSerializer(serializers.Serializer):
     revisoes_por_cliente = RevisaoPorClienteSerializer(many=True)
 
 
-class ClienteFaturamentoSerializer(serializers.Serializer):
+class ClienteCobrancaSerializer(serializers.Serializer):
     cliente_id = serializers.IntegerField()
     cliente_nome = serializers.CharField()
-    total_valor_faturado = serializers.DecimalField(max_digits=14, decimal_places=2)
+    total_valor_cobrado = serializers.DecimalField(max_digits=14, decimal_places=2)
 
 
 class ClienteVendasSerializer(serializers.Serializer):
@@ -78,7 +78,7 @@ class ClienteVendasSerializer(serializers.Serializer):
 
 
 class ClientesAnaliseSerializer(serializers.Serializer):
-    mais_faturamento = ClienteFaturamentoSerializer(many=True)
+    mais_cobranca = ClienteCobrancaSerializer(many=True)
     mais_vendas = ClienteVendasSerializer(many=True)
 
 

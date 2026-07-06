@@ -9,9 +9,8 @@ urlpatterns = [
 
     path('api/contas/', include('apps.contas.urls')),
     path('api/clientes/', include('apps.clientes.urls')),
-    path('api/ordem-servico/', include('apps.ordem_servico.urls')),
-    path('api/servicos/', include('apps.servicos.urls')),
-    path('api/tarefas/', include('apps.tarefas.urls')),
+    path('api/catalogo/', include('apps.catalogo.urls')),
+    path('api/ordens-servico/', include('apps.ordens_servico.urls')),
     path('api/analise/', include('apps.analise.urls')),
     path('api/auditoria/', include('apps.auditoria.urls')),
 

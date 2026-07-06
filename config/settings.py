@@ -30,9 +30,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'apps.contas',
     'apps.clientes',
-    'apps.ordem_servico',
-    'apps.servicos',
-    'apps.tarefas',
+    'apps.catalogo',
+    'apps.ordens_servico',
     'apps.analise',
     'apps.auditoria',
     'rest_framework',
@@ -165,8 +164,8 @@ SPECTACULAR_SETTINGS = {
     'SERVE_INCLUDE_SCHEMA': False,
     'COMPONENT_SPLIT_REQUEST': True,
     'ENUM_NAME_OVERRIDES': {
-        'StatusOSETarefaEnum': 'apps.ordem_servico.models.ordem_servico.Status',
-        'StatusServicoEnum':   'apps.servicos.models.servico.StatusServico',
-        'StatusMiniOSEnum':    'apps.tarefas.models.mini_os.StatusMiniOS',
+        'StatusOSETarefaEnum': 'apps.ordens_servico.models.ordem_servico.Status',
+        'StatusServicoEnum':   'apps.ordens_servico.models.servico.StatusServico',
+        'StatusMiniOSEnum':    'apps.ordens_servico.models.ordem_servico_operacional.StatusOrdemServicoOperacional',
     },
 }

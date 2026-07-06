@@ -11,9 +11,9 @@ class DistribuicaoTempoOSSerializer(serializers.Serializer):
     acima_60 = serializers.IntegerField()
 
 
-class TempoPorRepositorioSerializer(serializers.Serializer):
-    repositorio_id = serializers.IntegerField()
-    repositorio_nome = serializers.CharField()
+class TempoPorCatalogoSerializer(serializers.Serializer):
+    catalogo_id = serializers.IntegerField()
+    catalogo_nome = serializers.CharField()
     total_concluidos = serializers.IntegerField()
     media_dias = serializers.FloatField()
 
@@ -25,7 +25,7 @@ class TemposMediosSerializer(serializers.Serializer):
     os_distribuicao_tempo = DistribuicaoTempoOSSerializer()
     servicos_inicio_para_fim_dias = serializers.FloatField(allow_null=True)
     tarefa_criacao_para_inicio_dias = serializers.FloatField(allow_null=True)
-    tempo_por_repositorio = TempoPorRepositorioSerializer(many=True)
+    tempo_por_catalogo = TempoPorCatalogoSerializer(many=True)
 
 
 class BlocoCancelamentoSerializer(serializers.Serializer):

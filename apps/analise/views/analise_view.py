@@ -10,12 +10,12 @@ from drf_spectacular.utils import extend_schema
 
 from apps.analise.serializers import AnaliseDadosResponseSerializer
 from apps.contas.permissions import usuario_pode_ver_valores
-from apps.ordem_servico.models import OrdemServico
-from apps.servicos.models import Servico
-from apps.servicos.models.servico import StatusServico
-from apps.tarefas.models import Tarefa, MiniOS
-from apps.tarefas.models.tarefa import StatusTarefa
-from apps.tarefas.models.mini_os import StatusMiniOS
+from apps.ordens_servico.models import OrdemServico
+from apps.ordens_servico.models import Servico
+from apps.ordens_servico.models.servico import StatusServico
+from apps.ordens_servico.models import Tarefa, OrdemServicoOperacional
+from apps.ordens_servico.models.tarefa import StatusTarefa
+from apps.ordens_servico.models.ordem_servico_operacional import StatusOrdemServicoOperacional
 
 from apps.analise.utils import agregar_por_mes, gerar_intervalo_meses, preencher_meses
 
@@ -27,7 +27,7 @@ class AnaliseDadosView(APIView):
         summary='Análise de dados',
         description=(
             'Métricas agregadas dos últimos 12 meses: ordens de serviço, '
-            'serviços, tarefas, mini OS e clientes.\n\n'
+            'serviços, tarefas, ordens de serviço operacionais e clientes.\n\n'
             'Os campos `ordens_servico.vendas_por_mes` e o bloco `clientes` '
             'envolvem valores monetários e são omitidos da resposta para os '
             'perfis Sub-Líder Técnico, Técnico, Gestor Administrativo e '
@@ -45,7 +45,7 @@ class AnaliseDadosView(APIView):
             'ordens_servico': self._ordens_servico(data_inicio, meses, pode_ver_valores, hoje),
             'servicos': self._servicos(data_inicio, meses),
             'tarefas': self._tarefas(data_inicio, meses),
-            'minios': self._minios(data_inicio, meses, hoje),
+            'minios': self._ordens_servico_operacionais(data_inicio, meses, hoje),
         }
         if pode_ver_valores:
             resultado['clientes'] = self._clientes()
@@ -63,8 +63,8 @@ class AnaliseDadosView(APIView):
             mes_anterior_inicio = date(hoje.year, hoje.month - 1, 1)
 
         abertas_map = agregar_por_mes(
-            qs.filter(data_criacao__gte=data_inicio),
-            campo_data='data_criacao',
+            qs.filter(data_venda__gte=data_inicio),
+            campo_data='data_venda',
         )
         ultimo_servico_data = (
             Servico.objects
@@ -97,10 +97,10 @@ class AnaliseDadosView(APIView):
             'total_nao_concluidas': qs.filter(concluida=False).count(),
             'abertas_por_mes': preencher_meses(meses, abertas_map),
             'concluidas_por_mes': preencher_meses(meses, concluidas_map),
-            'abertas_mes_atual': qs.filter(data_criacao__gte=mes_atual_inicio).count(),
+            'abertas_mes_atual': qs.filter(data_venda__gte=mes_atual_inicio).count(),
             'abertas_mes_anterior': qs.filter(
-                data_criacao__gte=mes_anterior_inicio,
-                data_criacao__lt=mes_atual_inicio,
+                data_venda__gte=mes_anterior_inicio,
+                data_venda__lt=mes_atual_inicio,
             ).count(),
             'concluidas_mes_atual': concluidas_com_data.filter(
                 data_conclusao__gte=mes_atual_inicio,
@@ -114,8 +114,8 @@ class AnaliseDadosView(APIView):
 
         if pode_ver_valores:
             vendas_map = agregar_por_mes(
-                qs.filter(data_criacao__gte=data_inicio),
-                campo_data='data_criacao',
+                qs.filter(data_venda__gte=data_inicio),
+                campo_data='data_venda',
                 agregacao=Sum('valor'),
             )
             resultado['vendas_por_mes'] = preencher_meses(meses, vendas_map, default=0)
@@ -130,8 +130,8 @@ class AnaliseDadosView(APIView):
         por_mes_map = agregar_por_mes(concluidos, campo_data='data_termino')
         principais = list(
             Servico.objects
-            .filter(repositorio__isnull=False)
-            .values('repositorio_id', 'repositorio__nome')
+            .filter(catalogo__isnull=False)
+            .values('catalogo_id', 'catalogo__nome')
             .annotate(total=Count('id'))
             .order_by('-total')
         )
@@ -148,8 +148,8 @@ class AnaliseDadosView(APIView):
             'concluidos_por_mes': preencher_meses(meses, por_mes_map),
             'principais_por_quantidade': [
                 {
-                    'repositorio_id': i['repositorio_id'],
-                    'repositorio_nome': i['repositorio__nome'],
+                    'catalogo_id': i['catalogo_id'],
+                    'catalogo_nome': i['catalogo__nome'],
                     'total': i['total'],
                 }
                 for i in principais
@@ -177,8 +177,8 @@ class AnaliseDadosView(APIView):
             'concluidas_por_mes': preencher_meses(meses, por_mes_map),
         }
 
-    def _minios(self, data_inicio, meses, hoje):
-        qs = MiniOS.objects.all()
+    def _ordens_servico_operacionais(self, data_inicio, meses, hoje):
+        qs = OrdemServicoOperacional.objects.all()
 
         mes_atual_inicio = date(hoje.year, hoje.month, 1)
         if hoje.month == 1:
@@ -202,7 +202,7 @@ class AnaliseDadosView(APIView):
 
         # data_termino é DateField → agregar_por_mes funciona diretamente
         finalizadas_qs = qs.filter(
-            status=StatusMiniOS.FINALIZADA,
+            status=StatusOrdemServicoOperacional.FINALIZADA,
             data_termino__isnull=False,
             data_termino__gte=data_inicio,
         )
@@ -242,14 +242,14 @@ class AnaliseDadosView(APIView):
         }
 
     def _clientes(self):
-        mais_faturamento = [
+        mais_cobranca = [
             {
                 'cliente_id': i['cliente_id'],
                 'cliente_nome': i['cliente__nome'],
-                'total_valor_faturado': i['total'] or 0,
+                'total_valor_cobrado': i['total'] or 0,
             }
             for i in (
-                OrdemServico.objects.filter(faturada=True)
+                OrdemServico.objects.filter(cobranca_realizada=True)
                 .values('cliente_id', 'cliente__nome')
                 .annotate(total=Sum('valor'))
                 .order_by('-total')[:5]
@@ -270,4 +270,4 @@ class AnaliseDadosView(APIView):
             )
             if i['cliente_id'] is not None
         ]
-        return {'mais_faturamento': mais_faturamento, 'mais_vendas': mais_vendas}
+        return {'mais_cobranca': mais_cobranca, 'mais_vendas': mais_vendas}
