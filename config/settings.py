@@ -163,6 +163,14 @@ SPECTACULAR_SETTINGS = {
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
     'COMPONENT_SPLIT_REQUEST': True,
+    # Por padrão o drf-spectacular libera schema/Swagger/Redoc com AllowAny,
+    # ignorando o IsAuthenticated global do projeto (REST_FRAMEWORK acima).
+    # Fixamos Basic Auth aqui (em vez de herdar JWT/sessão do DEFAULT_AUTHENTICATION_CLASSES)
+    # pra garantir que o navegador mostre a caixa nativa de usuário/senha ao abrir a
+    # documentação — com JWT primeiro na lista, o WWW-Authenticate vira "Bearer" e o
+    # navegador não abre prompt nenhum.
+    'SERVE_PERMISSIONS': ['rest_framework.permissions.IsAuthenticated'],
+    'SERVE_AUTHENTICATION': ['rest_framework.authentication.BasicAuthentication'],
     'ENUM_NAME_OVERRIDES': {
         'StatusOSETarefaEnum': 'apps.ordens_servico.models.ordem_servico.Status',
         'StatusServicoEnum':   'apps.ordens_servico.models.servico.StatusServico',
