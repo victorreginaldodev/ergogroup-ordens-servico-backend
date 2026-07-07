@@ -1,16 +1,18 @@
 from .shared import MesSerializer, MesDecimalSerializer
-from .analise_serializers import (
-    AnaliseDadosResponseSerializer,
+from .financeiro_serializers import (
+    FinanceiroAnaliseResponseSerializer,
+    ClienteCobrancaSerializer,
+    ClienteVendasSerializer,
+    ClientesAnaliseSerializer,
+)
+from .operacional_serializers import (
+    OperacionalAnaliseResponseSerializer,
     OrdensServicoAnaliseSerializer,
     ServicoAnaliseSerializer,
     TarefaAnaliseSerializer,
     MiniOSAnaliseSerializer,
-    ClientesAnaliseSerializer,
-)
-from .financeiro_serializers import FinanceiroKPIsSerializer
-from .produtividade_serializers import (
-    ProdutividadeResponseSerializer,
     TemposMediosSerializer,
     TaxaCancelamentoSerializer,
+    TaxaCumprimentoPrazoSerializer,
     TecnicoProdutividadeSerializer,
 )

@@ -1,51 +1,45 @@
-from django.db.models import Sum
+from datetime import date
+
+from django.utils import timezone
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 
-from apps.analise.serializers import FinanceiroKPIsSerializer
+from apps.analise.serializers import FinanceiroAnaliseResponseSerializer
+from apps.analise.services.financeiro import (
+    calcular_clientes,
+    calcular_kpis,
+    calcular_ticket_medio,
+    calcular_vendas_por_mes,
+)
+from apps.analise.utils import gerar_intervalo_meses
 from apps.contas.permissions import PodeVerValoresFinanceiros
-from apps.ordens_servico.models import OrdemServico
 
 
-class FinanceiroKPIsView(APIView):
+class FinanceiroAnaliseView(APIView):
     permission_classes = [IsAuthenticated, PodeVerValoresFinanceiros]
 
     @extend_schema(
-        summary='KPIs financeiros',
+        summary='Análise financeira',
         description=(
-            'Retorna três totalizadores:\n'
-            '- **total_cobrado**: soma das OS com cobrança já realizada.\n'
-            '- **total_para_cobrar**: soma das OS liberadas e ainda não cobradas.\n'
-            '- **total_sem_liberacao**: soma das OS em aberto sem liberação para cobrança.\n\n'
-            'Indisponível (403) para os perfis Sub-Líder Técnico, Técnico, '
-            'Gestor Administrativo e Administrativo.'
+            'KPIs de cobrança, ticket médio, vendas mensais e ranking de '
+            'clientes. Indisponível (403) para os perfis Sub-Líder Técnico, '
+            'Técnico, Gestor Administrativo e Administrativo.'
         ),
         responses={
-            200: FinanceiroKPIsSerializer,
+            200: FinanceiroAnaliseResponseSerializer,
             403: OpenApiResponse(description='Sem permissão para ver valores financeiros.'),
         },
     )
     def get(self, request):
-        qs = OrdemServico.objects.all()
-
-        liberadas = qs.filter(cobranca_realizada=False, liberada_para_cobranca=True)
-
-        total_cobrado = (
-            qs.filter(cobranca_realizada=True).aggregate(total=Sum('valor'))['total'] or 0
-        )
-        total_para_cobrar = (
-            liberadas.aggregate(total=Sum('valor'))['total'] or 0
-        )
-        total_sem_liberacao = (
-            qs.filter(cobranca_realizada=False)
-            .exclude(pk__in=liberadas.values('pk'))
-            .aggregate(total=Sum('valor'))['total'] or 0
-        )
+        hoje = timezone.now().date()
+        meses = gerar_intervalo_meses(hoje, 12)
+        data_inicio = date(meses[0]['ano'], meses[0]['mes'], 1)
 
         return Response({
-            'total_cobrado': total_cobrado,
-            'total_para_cobrar': total_para_cobrar,
-            'total_sem_liberacao': total_sem_liberacao,
+            **calcular_kpis(),
+            'ticket_medio': calcular_ticket_medio(),
+            'vendas_por_mes': calcular_vendas_por_mes(data_inicio, meses),
+            'clientes': calcular_clientes(),
         })

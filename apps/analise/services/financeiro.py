@@ -1,0 +1,68 @@
+from django.db.models import Avg, Sum
+
+from apps.analise.utils import agregar_por_mes, preencher_meses
+from apps.ordens_servico.models import OrdemServico
+
+
+def calcular_kpis() -> dict:
+    qs = OrdemServico.objects.all()
+    liberadas = qs.filter(cobranca_realizada=False, liberada_para_cobranca=True)
+
+    total_cobrado = qs.filter(cobranca_realizada=True).aggregate(total=Sum('valor'))['total'] or 0
+    total_para_cobrar = liberadas.aggregate(total=Sum('valor'))['total'] or 0
+    total_sem_liberacao = (
+        qs.filter(cobranca_realizada=False)
+        .exclude(pk__in=liberadas.values('pk'))
+        .aggregate(total=Sum('valor'))['total'] or 0
+    )
+
+    return {
+        'total_cobrado': total_cobrado,
+        'total_para_cobrar': total_para_cobrar,
+        'total_sem_liberacao': total_sem_liberacao,
+    }
+
+
+def calcular_ticket_medio():
+    return OrdemServico.objects.aggregate(media=Avg('valor'))['media']
+
+
+def calcular_vendas_por_mes(data_inicio, meses) -> list[dict]:
+    vendas_map = agregar_por_mes(
+        OrdemServico.objects.filter(data_venda__gte=data_inicio),
+        campo_data='data_venda',
+        agregacao=Sum('valor'),
+    )
+    return preencher_meses(meses, vendas_map, default=0)
+
+
+def calcular_clientes() -> dict:
+    mais_cobranca = [
+        {
+            'cliente_id': i['cliente_id'],
+            'cliente_nome': i['cliente__nome'],
+            'total_valor_cobrado': i['total'] or 0,
+        }
+        for i in (
+            OrdemServico.objects.filter(cobranca_realizada=True)
+            .values('cliente_id', 'cliente__nome')
+            .annotate(total=Sum('valor'))
+            .order_by('-total')[:5]
+        )
+        if i['cliente_id'] is not None
+    ]
+    mais_vendas = [
+        {
+            'cliente_id': i['cliente_id'],
+            'cliente_nome': i['cliente__nome'],
+            'total_valor_vendas': i['total'] or 0,
+        }
+        for i in (
+            OrdemServico.objects
+            .values('cliente_id', 'cliente__nome')
+            .annotate(total=Sum('valor'))
+            .order_by('-total')[:10]
+        )
+        if i['cliente_id'] is not None
+    ]
+    return {'mais_cobranca': mais_cobranca, 'mais_vendas': mais_vendas}
