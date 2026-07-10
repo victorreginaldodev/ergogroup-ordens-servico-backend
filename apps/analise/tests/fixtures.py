@@ -117,6 +117,8 @@ class AnaliseTestCase(APITestCase):
             catalogo_operacional=self.catalogo_operacional,
             responsavel=self.tecnico,
             data_recebimento=self.hoje,
+            data_inicio=self.hoje,
+            data_termino=self.hoje,
             status=StatusOrdemServicoOperacional.FINALIZADA,
         )
 
@@ -194,6 +196,7 @@ class AnaliseTestCase(APITestCase):
         )
         OrdemServicoOperacional.objects.filter(pk=self.oso_secundario.pk).update(
             data_inicio=self.hoje - timedelta(days=2),
+            data_termino=self.hoje,
         )
 
         # Revisoes de cliente, para o percentual de "revisoes por cliente" (atribuidas
@@ -228,11 +231,13 @@ class AnaliseTestCase(APITestCase):
         self.oso_no_prazo = OrdemServicoOperacional.objects.create(
             cliente=self.cliente, catalogo_operacional=self.catalogo_operacional, responsavel=self.outro_tecnico,
             data_recebimento=self.hoje, status=StatusOrdemServicoOperacional.FINALIZADA,
+            data_inicio=self.hoje, data_termino=self.hoje,
             prazo=self.hoje + timedelta(days=1),
         )
         self.oso_atrasado_concluido = OrdemServicoOperacional.objects.create(
             cliente=self.cliente, catalogo_operacional=self.catalogo_operacional, responsavel=self.outro_tecnico,
             data_recebimento=self.hoje, status=StatusOrdemServicoOperacional.FINALIZADA,
+            data_inicio=self.hoje, data_termino=self.hoje,
             prazo=self.hoje - timedelta(days=2),
         )
 

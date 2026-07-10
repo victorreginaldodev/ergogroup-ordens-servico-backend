@@ -85,13 +85,6 @@ class OrdemServicoOperacional(models.Model):
         self.gera_cobranca = self.revisao_cliente
 
     def save(self, *args, **kwargs):
-        hoje = timezone.localdate()
-        if self.status in (StatusOrdemServicoOperacional.EM_ANDAMENTO, StatusOrdemServicoOperacional.FINALIZADA) and self.data_inicio is None:
-            self.data_inicio = hoje
-        if self.status == StatusOrdemServicoOperacional.FINALIZADA and self.data_termino is None:
-            self.data_termino = hoje
-        if self.status != StatusOrdemServicoOperacional.FINALIZADA and self.data_termino is not None:
-            self.data_termino = None
         self.gera_cobranca = self.revisao_cliente
         if self.gera_cobranca and self.status == StatusOrdemServicoOperacional.FINALIZADA:
             if self.data_liberacao_cobranca is None:

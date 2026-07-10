@@ -91,7 +91,7 @@ class OrdemServicoOperacionalSerializer(serializers.ModelSerializer):
             'criada_em', 'atualizado_em',
         ]
         read_only_fields = [
-            'data_inicio', 'data_termino', 'criada_em', 'atualizado_em',
+            'criada_em', 'atualizado_em',
             'gera_cobranca', 'data_liberacao_cobranca',
             'liberada_cobranca_por', 'cobranca_realizada_por',
         ]

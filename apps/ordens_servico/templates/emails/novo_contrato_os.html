@@ -1,80 +1,66 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <title>Novo contrato criado</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            color: #333333;
-        }
-        h1 {
-            color: #2A6CB2;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        th, td {
-            border: 1px solid #dddddd;
-            padding: 8px;
-            text-align: left;
-        }
-        th {
-            background-color: #f2f2f2;
-            width: 220px;
-        }
-        .footer {
-            margin-top: 20px;
-            font-size: 14px;
-            color: #666666;
-        }
-    </style>
-</head>
-<body>
-    <h1>Novo contrato criado</h1>
-    <p>Uma Ordem de Serviço do tipo contrato foi criada no sistema.</p>
+{% extends "emails/base_email.html" %}
 
-    <table>
-        <tr>
-            <th>OS</th>
-            <td>#{{ ordem_servico.pk }}</td>
-        </tr>
-        <tr>
-            <th>Cliente</th>
-            <td>{{ ordem_servico.cliente.nome }}</td>
-        </tr>
-        <tr>
-            <th>Objeto do contrato</th>
-            <td>{{ ordem_servico.objeto_contrato }}</td>
-        </tr>
-        <tr>
-            <th>Início</th>
-            <td>{{ ordem_servico.contrato_data_inicio|date:"d/m/Y" }}</td>
-        </tr>
-        <tr>
-            <th>Fim</th>
-            <td>{{ ordem_servico.contrato_data_fim|date:"d/m/Y" }}</td>
-        </tr>
-        <tr>
-            <th>Gestor</th>
-            <td>{{ ordem_servico.gestor_contrato_nome|default:"Não informado" }}</td>
-        </tr>
-        <tr>
-            <th>E-mail do gestor</th>
-            <td>{{ ordem_servico.gestor_contrato_email|default:"Não informado" }}</td>
-        </tr>
-        <tr>
-            <th>Telefone do gestor</th>
-            <td>{{ ordem_servico.gestor_contrato_telefone|default:"Não informado" }}</td>
-        </tr>
-    </table>
+{% block titulo %}Novo contrato criado — OS #{{ ordem_servico.pk }}{% endblock %}
 
-    <p class="footer">
-        Atenciosamente,<br>
-        Equipe ErgoGroup
-    </p>
-</body>
-</html>
+{% block cabecalho %}Novo contrato criado{% endblock %}
+
+{% block badge %}
+<td align="right" style="vertical-align:top;">
+    <span style="display:inline-block; padding:4px 12px; border-radius:999px; background-color:#2F9C8E; color:#FFFFFF; font-family:Arial, Helvetica, sans-serif; font-size:12px; font-weight:bold;">
+        OS #{{ ordem_servico.pk }}
+    </span>
+</td>
+{% endblock %}
+
+{% block conteudo %}
+<p style="margin:0 0 16px;">Uma Ordem de Serviço do tipo contrato foi criada no sistema.</p>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #E2E8F0; border-radius:8px; overflow:hidden;">
+    <tr>
+        <td style="width:180px; padding:10px 14px; background-color:#F1F5F9; font-weight:bold; color:#0F172A; border-bottom:1px solid #E2E8F0;">Cliente</td>
+        <td style="padding:10px 14px; border-bottom:1px solid #E2E8F0;">{{ ordem_servico.cliente.nome }}</td>
+    </tr>
+    <tr>
+        <td style="padding:10px 14px; background-color:#F1F5F9; font-weight:bold; color:#0F172A; border-bottom:1px solid #E2E8F0;">Objeto do contrato</td>
+        <td style="padding:10px 14px; border-bottom:1px solid #E2E8F0;">{{ ordem_servico.objeto_contrato }}</td>
+    </tr>
+    <tr>
+        <td style="padding:10px 14px; background-color:#F1F5F9; font-weight:bold; color:#0F172A; border-bottom:1px solid #E2E8F0;">Vigência</td>
+        <td style="padding:10px 14px; border-bottom:1px solid #E2E8F0;">{{ ordem_servico.contrato_data_inicio|date:"d/m/Y" }} a {{ ordem_servico.contrato_data_fim|date:"d/m/Y" }}</td>
+    </tr>
+    <tr>
+        <td style="padding:10px 14px; background-color:#F1F5F9; font-weight:bold; color:#0F172A; border-bottom:1px solid #E2E8F0;">Gestor do contrato</td>
+        <td style="padding:10px 14px; border-bottom:1px solid #E2E8F0;">{{ ordem_servico.gestor_contrato_nome|default:"Não informado" }}</td>
+    </tr>
+    <tr>
+        <td style="padding:10px 14px; background-color:#F1F5F9; font-weight:bold; color:#0F172A; border-bottom:1px solid #E2E8F0;">E-mail do gestor</td>
+        <td style="padding:10px 14px; border-bottom:1px solid #E2E8F0;">{{ ordem_servico.gestor_contrato_email|default:"Não informado" }}</td>
+    </tr>
+    <tr>
+        <td style="padding:10px 14px; background-color:#F1F5F9; font-weight:bold; color:#0F172A;">Telefone do gestor</td>
+        <td style="padding:10px 14px;">{{ ordem_servico.gestor_contrato_telefone|default:"Não informado" }}</td>
+    </tr>
+</table>
+
+{% if mostrar_valores %}
+<h2 style="margin:24px 0 8px; font-family:Arial, Helvetica, sans-serif; font-size:15px; color:#0F172A;">Dados financeiros</h2>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #E2E8F0; border-radius:8px; overflow:hidden;">
+    <tr>
+        <td style="width:180px; padding:10px 14px; background-color:#F1F5F9; font-weight:bold; color:#0F172A; border-bottom:1px solid #E2E8F0;">Valor</td>
+        <td style="padding:10px 14px; border-bottom:1px solid #E2E8F0;">R$ {{ ordem_servico.valor }}</td>
+    </tr>
+    <tr>
+        <td style="padding:10px 14px; background-color:#F1F5F9; font-weight:bold; color:#0F172A; border-bottom:1px solid #E2E8F0;">Forma de pagamento</td>
+        <td style="padding:10px 14px; border-bottom:1px solid #E2E8F0;">{{ ordem_servico.get_forma_pagamento_display }}</td>
+    </tr>
+    <tr>
+        <td style="padding:10px 14px; background-color:#F1F5F9; font-weight:bold; color:#0F172A; border-bottom:1px solid #E2E8F0;">Parcelas</td>
+        <td style="padding:10px 14px; border-bottom:1px solid #E2E8F0;">{{ ordem_servico.quantidade_parcelas|default:"Não informado" }}</td>
+    </tr>
+    <tr>
+        <td style="padding:10px 14px; background-color:#F1F5F9; font-weight:bold; color:#0F172A;">Cobrança imediata</td>
+        <td style="padding:10px 14px;">{{ ordem_servico.cobranca_imediata|yesno:"Sim,Não" }}</td>
+    </tr>
+</table>
+{% endif %}
+{% endblock %}

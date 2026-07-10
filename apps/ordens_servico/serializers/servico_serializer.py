@@ -96,4 +96,12 @@ class ServicoSerializer(serializers.ModelSerializer):
             ordem_servico = validated_data.get('ordem_servico')
             if ordem_servico is not None:
                 validated_data['prioridade'] = ordem_servico.prioridade
+
+        catalogo = validated_data.get('catalogo')
+        if catalogo is not None:
+            if 'horas_estimadas' not in validated_data:
+                validated_data['horas_estimadas'] = catalogo.horas_estimadas
+            if 'complexidade' not in validated_data:
+                validated_data['complexidade'] = catalogo.complexidade
+
         return super().create(validated_data)

@@ -1,4 +1,4 @@
-from django.db import models
+from django.db import models, transaction
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.utils import timezone
@@ -113,13 +113,17 @@ class OrdemServico(models.Model):
             raise ValidationError(erros)
 
     def save(self, *args, **kwargs):
-        if self.pk is None and self.cobranca_imediata:
+        liberando_na_criacao = self.pk is None and self.cobranca_imediata
+        if liberando_na_criacao:
             self.liberada_para_cobranca = True
             if self.liberada_para_cobranca_em is None:
                 self.liberada_para_cobranca_em = timezone.now()
             if self.liberada_para_cobranca_por_id is None:
                 self.liberada_para_cobranca_por = self.criado_por
         super().save(*args, **kwargs)
+
+        if liberando_na_criacao:
+            self._notificar_liberacao_para_cobranca()
 
     def atualizar_status_conclusao(self):
         return self.sincronizar_status_e_cobranca()
@@ -184,8 +188,17 @@ class OrdemServico(models.Model):
             for campo, valor in updates.items():
                 setattr(self, campo, valor)
 
+            if updates.get('liberada_para_cobranca'):
+                self._notificar_liberacao_para_cobranca()
+
         return self.concluida
 
+    def _notificar_liberacao_para_cobranca(self):
+        from apps.ordens_servico.emails import notificar_liberacao_cobranca
+
+        transaction.on_commit(
+            lambda: notificar_liberacao_cobranca(self, tipo='OS', valor=self.valor)
+        )
 
     @property
     def dias_em_aberto(self):
