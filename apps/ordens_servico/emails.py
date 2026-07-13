@@ -1,3 +1,5 @@
+import logging
+
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
@@ -6,6 +8,8 @@ from apps.contas.models import Usuario
 from apps.contas.models.choices import TipoUsuario
 from apps.contas.permissions import usuario_pode_ver_valores
 from apps.ordens_servico.models.ordem_servico import Prioridade
+
+logger = logging.getLogger(__name__)
 
 CORES_PRIORIDADE = {
     Prioridade.BAIXA: '#64748B',
@@ -22,6 +26,9 @@ def _usuarios_ativos(*tipos):
 
 
 def _enviar(assunto, template, contexto, destinatarios):
+    if not settings.EMAIL_NOTIFICATIONS_ENABLED:
+        return 0
+
     destinatarios = list(dict.fromkeys(destinatarios))
     if not destinatarios:
         return 0
@@ -34,7 +41,14 @@ def _enviar(assunto, template, contexto, destinatarios):
         destinatarios,
     )
     email.attach_alternative(html_content, 'text/html')
-    email.send(fail_silently=False)
+    # Notificação por e-mail nunca pode derrubar a operação de negócio que a
+    # disparou: isso roda dentro de transaction.on_commit, no mesmo request,
+    # e uma falha de SMTP aqui já quebrou a aplicação inteira no passado.
+    try:
+        email.send(fail_silently=False)
+    except Exception:
+        logger.exception('Falha ao enviar e-mail de notificação: %s', assunto)
+        return 0
     return len(destinatarios)
 
 

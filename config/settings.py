@@ -134,6 +134,11 @@ EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True') == 'True'
 EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
 
+# Interruptor global das notificações por e-mail (contrato, tarefa, cobrança).
+# Desligar aqui não afeta o resto da aplicação — os signals continuam
+# rodando, só o envio de fato é pulado. Ver apps/ordens_servico/emails.py.
+EMAIL_NOTIFICATIONS_ENABLED = os.getenv('EMAIL_NOTIFICATIONS_ENABLED', 'True') == 'True'
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
