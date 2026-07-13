@@ -1,25 +1,42 @@
-# EV2 - Evolucoes do sistema de OS
+# EV2 - Evolucoes do sistema de OS (v4)
 
 ## Escopo global
 
-A EV2 expande o modelo de dados de Ordem de Servico, Servico e Tarefa com novos atributos operacionais, de controle e de analytics que nao existiam no sistema legado.
+A EV2 documenta, de forma retroativa, o que foi de fato entregue na branch
+`refactor/catalogo-ordens-servico-cobranca` (commits `73a12d4` ate `cd49278`,
+06/07 a 10/07/2026), que fechou a versao v4 do sistema.
 
-Esta evolucao e independente da refatoracao estrutural que unifica os apps legados (`ordem_servico`, `servicos`, `tarefas`) em `apps/ordens_servico`. A ev2 trata exclusivamente dos novos campos e regras de dominio.
+Diferente da versao anterior deste documento — que descrevia campos e regras
+planejados e nunca chegaram a ser implementados — esta versao registra apenas
+mudancas que existem em codigo, migration ou endpoint hoje. Cada arquivo foi
+escrito a partir do diff real dos commits, nao de intencao.
 
 ## Premissas
 
-- Novos campos de rastreabilidade de datas sao gerenciados pelo sistema, nunca preenchidos manualmente pelo usuario.
-- O tecnico nao pode declarar quando iniciou ou concluiu uma demanda — o sistema registra o momento exato da transicao de status.
-- Campos de qualidade e controle operacional ampliam a capacidade de analytics sem alterar o fluxo principal de execucao.
-- Campos de auditoria sao expandidos em todas as entidades.
+- So entra aqui o que tem commit correspondente na branch.
+- Mudanca de nomenclatura/estrutura (rename de app, campo ou dominio) e
+  documentada junto com o motivo, nao só o "de/para".
+- Onde o comportamento mudou de um jeito que pode ser inesperado (ex: um
+  campo que era automatico virou manual), isso e destacado explicitamente
+  em vez de descrito como se fosse sempre tiver sido assim.
 
 ## Evolucoes detalhadas em arquivos
 
-1. [Numero da OS](01-numero-os.md)
-2. [Datas gerenciadas pelo sistema](02-datas-sistema.md)
-3. [Controle operacional da OS](03-controle-os.md)
-4. [Qualidade e pos-servico](04-qualidade-os.md)
-5. [Cobranca — data acordada de pagamento](05-cobranca-data-acordada.md)
-6. [Evolucao do Servico](06-evolucao-servico.md)
-7. [Evolucao da Tarefa](07-evolucao-tarefa.md)
-8. [Atribuicao da Tarefa](08-atribuicao-tarefa.md)
+1. [Consolidacao dos apps de OS e catalogo](01-consolidacao-apps.md)
+2. [Gestao tecnica e produtividade](02-gestao-tecnica-produtividade.md)
+3. [Seguranca da documentacao da API](03-seguranca-documentacao-api.md)
+4. [Reorganizacao de apps/analise](04-reorganizacao-analise.md)
+5. [Notificacoes por e-mail](05-notificacoes-email.md)
+6. [Ajustes finais da v4](06-ajustes-finais-v4.md)
+
+## Commits de origem
+
+```
+73a12d4 Consolida ordem_servico/servicos/tarefas em ordens_servico e catalogo
+95831ea Reverte squash de migrations: restaura ordem_servico/servicos/tarefas
+d1d1477 Apaga ordem_servico/servicos/tarefas de vez com migrations auto-suficientes
+4863ab0 Adiciona prioridade/prazo/estimativas pra gestao tecnica e produtividade
+e92ab4e Exige autenticacao para acessar Swagger/Redoc/schema
+0370ede Reorganiza apps/analise em financeiro/operacional e corrige indicadores
+cd49278 finaliza a versao v4 do sistema
+```
