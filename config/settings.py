@@ -21,6 +21,8 @@ CORS_ALLOWED_ORIGINS = [
     "https://os.sstsuite.com.br"
 ]
 
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:8080' if DEBUG else 'https://os.sstsuite.com.br')
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
