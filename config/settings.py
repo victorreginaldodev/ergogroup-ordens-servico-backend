@@ -14,11 +14,11 @@ DEBUG = os.getenv('DEBUG', 'True') == 'True'
 if DEBUG:
     ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 else:
-    ALLOWED_HOSTS = ['os.ergogroupapp.com', ]
+    ALLOWED_HOSTS = ['api-os.sstsuite.com.br']
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8080",
-    "https://app.ergogroupapp.com"
+    "https://os.sstsuite.com.br"
 ]
 
 INSTALLED_APPS = [
