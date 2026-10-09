@@ -201,3 +201,55 @@ class RegistroDeCobrancaTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         oso.refresh_from_db()
         self.assertFalse(oso.cobranca_realizada)
+
+
+class OcultacaoDeValoresTestCase(APITestCase):
+    def setUp(self):
+        self.ordem = OrdemServico.objects.create(
+            cliente=Cliente.objects.create(nome='Cliente Valores'), data_venda=timezone.localdate(),
+            valor=1500, forma_pagamento='pix', quantidade_parcelas=3,
+        )
+        self.detalhe = reverse('ordens-servico-detail', args=[self.ordem.id])
+
+    def test_administrativo_nao_recebe_valores_na_lista_nem_no_detalhe(self):
+        self.client.force_authenticate(user=criar_usuario(TipoUsuario.ADMINISTRATIVO))
+
+        lista = self.client.get(reverse('ordens-servico-list'))
+        detalhe = self.client.get(self.detalhe)
+
+        itens = lista.data['results'] if isinstance(lista.data, dict) else lista.data
+        for campo in ('valor', 'forma_pagamento', 'quantidade_parcelas'):
+            self.assertNotIn(campo, itens[0])
+            self.assertNotIn(campo, detalhe.data)
+
+    def test_financeiro_recebe_valores(self):
+        self.client.force_authenticate(user=criar_usuario(TipoUsuario.FINANCEIRO))
+
+        detalhe = self.client.get(self.detalhe)
+
+        self.assertEqual(detalhe.data['valor'], '1500.00')
+
+    def test_edicao_sem_permissao_nao_zera_o_valor(self):
+        self.client.force_authenticate(user=criar_usuario(TipoUsuario.ADMINISTRATIVO))
+
+        # O formulário do frontend reenvia valor e forma de pagamento mesmo sem exibi-los.
+        response = self.client.patch(self.detalhe, {
+            'valor': '0.00', 'forma_pagamento': '', 'quantidade_parcelas': '', 'observacao': 'ajuste',
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.ordem.refresh_from_db()
+        self.assertEqual(self.ordem.valor, 1500)
+        self.assertEqual(self.ordem.forma_pagamento, 'pix')
+        self.assertEqual(self.ordem.observacao, 'ajuste')
+
+    def test_criacao_sem_permissao_aceita_o_valor(self):
+        self.client.force_authenticate(user=criar_usuario(TipoUsuario.ADMINISTRATIVO))
+
+        response = self.client.post(reverse('ordens-servico-list'), {
+            'cliente': self.ordem.cliente_id, 'data_venda': str(timezone.localdate()), 'valor': '800.00',
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertNotIn('valor', response.data)
+        self.assertEqual(OrdemServico.objects.get(id=response.data['id']).valor, 800)

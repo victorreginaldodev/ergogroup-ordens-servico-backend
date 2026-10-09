@@ -4,9 +4,38 @@ from drf_spectacular.utils import extend_schema_field
 from apps.ordens_servico.models import OrdemServico
 from apps.clientes.models import Cliente
 from apps.clientes.serializers import ClienteListSerializer, ClienteSerializer
+from apps.organizacoes.permissoes import Permissao, tem_permissao
+
+CAMPOS_FINANCEIROS = (
+    'valor', 'forma_pagamento', 'forma_pagamento_display', 'quantidade_parcelas', 'data_acordada_cobranca',
+)
 
 
-class OrdemServicoListSerializer(serializers.ModelSerializer):
+class OcultaValoresMixin:
+    """Sem `financeiro.ver_valores`, valor e condições de pagamento não aparecem na resposta e
+    são ignorados na edição. Na criação eles continuam aceitos, porque quem lança a venda informa o valor."""
+
+    def pode_ver_valores(self):
+        request = self.context.get('request')
+        return request is None or tem_permissao(request.user, Permissao.FINANCEIRO_VER_VALORES)
+
+    def get_fields(self):
+        fields = super().get_fields()
+        if self.instance is not None and not self.pode_ver_valores():
+            for nome in CAMPOS_FINANCEIROS:
+                if nome in fields:
+                    fields[nome].read_only = True
+        return fields
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if not self.pode_ver_valores():
+            for nome in CAMPOS_FINANCEIROS:
+                data.pop(nome, None)
+        return data
+
+
+class OrdemServicoListSerializer(OcultaValoresMixin, serializers.ModelSerializer):
     cliente_nome = serializers.CharField(source='cliente.nome', read_only=True)
     forma_pagamento_display = serializers.CharField(source='get_forma_pagamento_display', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
@@ -35,7 +64,7 @@ class OrdemServicoListSerializer(serializers.ModelSerializer):
         return usuario.nome_completo or usuario.get_full_name() or usuario.username
 
 
-class OrdemServicoSerializer(serializers.ModelSerializer):
+class OrdemServicoSerializer(OcultaValoresMixin, serializers.ModelSerializer):
     cliente_detail = ClienteSerializer(source='cliente', read_only=True)
     cliente = serializers.PrimaryKeyRelatedField(queryset=Cliente.objects.all())
     forma_pagamento_display = serializers.CharField(source='get_forma_pagamento_display', read_only=True)
