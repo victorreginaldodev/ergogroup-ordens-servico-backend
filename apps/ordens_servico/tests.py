@@ -77,11 +77,11 @@ class ProdutividadeModelTestCase(APITestCase):
 class HerancaPrioridadeSerializerTestCase(APITestCase):
     def setUp(self):
         self.usuario = Usuario.objects.create_user(
-            username='tecnico_heranca',
+            username='gestor_heranca',
             email='heranca@ergogroup.test',
             password='senha-teste-123',
-            nome_completo='Tecnico Heranca',
-            tipo_usuario=TipoUsuario.TECNICO,
+            nome_completo='Gestor Heranca',
+            tipo_usuario=TipoUsuario.GESTOR_TECNICO,
         )
         self.cliente = Cliente.objects.create(nome='Cliente Heranca')
         self.ordem_servico = OrdemServico.objects.create(

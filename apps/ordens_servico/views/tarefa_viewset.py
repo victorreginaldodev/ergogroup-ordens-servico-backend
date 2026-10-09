@@ -10,15 +10,41 @@ from apps.ordens_servico.serializers import TarefaListSerializer, TarefaSerializ
 
 
 class PodeModificarTarefa(BasePermission):
-    """Quem tem `tarefas.editar_setor` altera qualquer tarefa; os demais, só as próprias."""
+    """Distribuir (criar, reatribuir, excluir) exige `tarefas.distribuir`; editar tarefa de outra pessoa
+    exige `tarefas.editar_setor`; sem elas, o responsável só altera o status da própria tarefa."""
+
+    CAMPOS_DO_RESPONSAVEL = {'status'}
+
+    def has_permission(self, request, view):
+        if view.action == 'create' and not tem_permissao(request.user, Permissao.TAREFAS_DISTRIBUIR):
+            self.message = 'Seu perfil não pode criar tarefas.'
+            return False
+        return True
 
     def has_object_permission(self, request, view, obj):
+        user = request.user
         if request.method in ('GET', 'HEAD', 'OPTIONS'):
             return True
-        if tem_permissao(request.user, Permissao.TAREFAS_EDITAR_SETOR):
+        if view.action == 'destroy':
+            self.message = 'Seu perfil não pode excluir tarefas.'
+            return tem_permissao(user, Permissao.TAREFAS_DISTRIBUIR)
+
+        campos = set(request.data.keys())
+        novo_responsavel = request.data.get('responsavel')
+        if (
+            novo_responsavel is not None
+            and str(novo_responsavel) != str(obj.responsavel_id)
+            and not tem_permissao(user, Permissao.TAREFAS_DISTRIBUIR)
+        ):
+            self.message = 'Seu perfil não pode reatribuir tarefas.'
+            return False
+        if tem_permissao(user, Permissao.TAREFAS_EDITAR_SETOR):
             return True
-        if obj.responsavel != request.user:
+        if obj.responsavel_id != user.id:
             self.message = 'Apenas o responsável pela tarefa pode modificá-la.'
+            return False
+        if not campos <= self.CAMPOS_DO_RESPONSAVEL:
+            self.message = 'O responsável pode alterar apenas o status da própria tarefa.'
             return False
         return True
 

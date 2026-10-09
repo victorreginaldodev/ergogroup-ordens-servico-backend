@@ -286,3 +286,70 @@ class VisibilidadeDeServicosTestCase(APITestCase):
         response = self.client.get(reverse('servicos-list'))
 
         self.assertCountEqual(self.ids(response), [self.meu.id, self.outro.id])
+
+
+class DistribuicaoDeTarefasTestCase(APITestCase):
+    def setUp(self):
+        self.tecnico = criar_usuario(TipoUsuario.TECNICO)
+        self.outro_tecnico = criar_usuario(TipoUsuario.TECNICO)
+        ordem = OrdemServico.objects.create(
+            cliente=Cliente.objects.create(nome='Cliente Tarefas'), data_venda=timezone.localdate(), valor=0,
+        )
+        self.servico = Servico.objects.create(ordem_servico=ordem, descricao='servico')
+        self.tarefa = Tarefa.objects.create(servico=self.servico, responsavel=self.tecnico)
+        self.detalhe = reverse('tarefas-detail', args=[self.tarefa.id])
+
+    def test_tecnico_nao_cria_tarefa(self):
+        self.client.force_authenticate(user=self.tecnico)
+
+        response = self.client.post(reverse('tarefas-list'), {
+            'servico': self.servico.id, 'responsavel': self.tecnico.id,
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_administrativo_nao_cria_tarefa(self):
+        self.client.force_authenticate(user=criar_usuario(TipoUsuario.ADMINISTRATIVO))
+
+        response = self.client.post(reverse('tarefas-list'), {
+            'servico': self.servico.id, 'responsavel': self.tecnico.id,
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_subgestor_tecnico_cria_e_reatribui_tarefa(self):
+        self.client.force_authenticate(user=criar_usuario(TipoUsuario.SUB_GESTOR_TECNICO))
+
+        criacao = self.client.post(reverse('tarefas-list'), {
+            'servico': self.servico.id, 'responsavel': self.tecnico.id,
+        })
+        reatribuicao = self.client.patch(self.detalhe, {'responsavel': self.outro_tecnico.id})
+
+        self.assertEqual(criacao.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(reatribuicao.status_code, status.HTTP_200_OK)
+
+    def test_responsavel_altera_o_status_da_propria_tarefa(self):
+        self.client.force_authenticate(user=self.tecnico)
+
+        response = self.client.patch(self.detalhe, {'status': 'em_andamento'})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_responsavel_nao_reatribui_nem_edita_outros_campos(self):
+        self.client.force_authenticate(user=self.tecnico)
+
+        reatribuicao = self.client.patch(self.detalhe, {'responsavel': self.outro_tecnico.id})
+        prazo = self.client.patch(self.detalhe, {'prazo': '2030-01-01'})
+
+        self.assertEqual(reatribuicao.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(prazo.status_code, status.HTTP_403_FORBIDDEN)
+        self.tarefa.refresh_from_db()
+        self.assertEqual(self.tarefa.responsavel, self.tecnico)
+
+    def test_responsavel_nao_exclui_a_propria_tarefa(self):
+        self.client.force_authenticate(user=self.tecnico)
+
+        response = self.client.delete(self.detalhe)
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertTrue(Tarefa.objects.filter(id=self.tarefa.id).exists())
