@@ -61,7 +61,9 @@ As permissões atuais (`IsGestor`, `PodeModificarTarefa`, `PodeVerValoresFinance
 
 **Saída:** todas as regras da API em códigos de permissão, as falhas A1–A8 fechadas e nenhuma diferença para quem usa a tela.
 
-## Fase 2 — Estrutura de setores, funções e vínculos
+## Fase 2 — Estrutura de setores, funções e vínculos ✅
+
+Concluída em 09/10/2026, na branch `feat/estrutura-setores-funcoes`. Endpoints: `/api/organizacoes/funcoes/` (com `permissoes-disponiveis`) e `/api/organizacoes/membros/`.
 
 Só schema e API de cadastro; nenhuma regra ainda lê isso.
 
