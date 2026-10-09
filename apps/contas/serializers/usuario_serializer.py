@@ -2,6 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth import get_user_model
 from apps.contas.models.choices import TipoUsuario
+from apps.organizacoes.permissoes import Permissao, tem_permissao
 
 Usuario = get_user_model()
 
@@ -64,6 +65,15 @@ class UsuarioUpdateSerializer(serializers.ModelSerializer):
             'tipo_usuario', 'tipo_usuario_display', 'ativo',
         ]
         read_only_fields = ['id']
+
+    def get_fields(self):
+        fields = super().get_fields()
+        request = self.context.get('request')
+        # Quem não gerencia usuários edita só os próprios dados cadastrais, nunca o tipo ou o status.
+        if request is None or not tem_permissao(request.user, Permissao.USUARIOS_GERENCIAR):
+            fields['tipo_usuario'].read_only = True
+            fields['ativo'].read_only = True
+        return fields
 
 
 class AlterarSenhaSerializer(serializers.Serializer):

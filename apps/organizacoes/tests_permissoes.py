@@ -60,3 +60,87 @@ class GestorComercialComoDiretorTestCase(APITestCase):
         response = self.client.patch(reverse('tarefas-detail', args=[tarefa.id]), {'status': 'em_andamento'})
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+
+class EdicaoDoProprioCadastroTestCase(APITestCase):
+    def setUp(self):
+        self.tecnico = criar_usuario(TipoUsuario.TECNICO)
+        self.client.force_authenticate(user=self.tecnico)
+        self.url = reverse('usuarios-detail', args=[self.tecnico.id])
+
+    def test_tecnico_nao_consegue_virar_diretor(self):
+        self.client.patch(self.url, {'tipo_usuario': TipoUsuario.DIRETOR})
+
+        self.tecnico.refresh_from_db()
+        self.assertEqual(self.tecnico.tipo_usuario, TipoUsuario.TECNICO)
+
+    def test_tecnico_nao_altera_o_proprio_status(self):
+        self.client.patch(self.url, {'ativo': False})
+
+        self.tecnico.refresh_from_db()
+        self.assertTrue(self.tecnico.ativo)
+
+    def test_tecnico_edita_o_proprio_nome(self):
+        response = self.client.patch(self.url, {'nome_completo': 'Nome Novo'})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.tecnico.refresh_from_db()
+        self.assertEqual(self.tecnico.nome_completo, 'Nome Novo')
+
+
+class GestaoDaDiretoriaTestCase(APITestCase):
+    def setUp(self):
+        self.gestor_tecnico = criar_usuario(TipoUsuario.GESTOR_TECNICO)
+        self.diretor = criar_usuario(TipoUsuario.DIRETOR)
+        self.tecnico = criar_usuario(TipoUsuario.TECNICO)
+
+    def payload_novo_usuario(self, tipo):
+        return {
+            'email': f'novo.{tipo}@ergogroup.test', 'username': f'novo_{tipo}', 'nome_completo': 'Novo',
+            'tipo_usuario': tipo, 'ativo': True,
+            'password': 'Senha-forte-123', 'password_confirmacao': 'Senha-forte-123',
+        }
+
+    def test_gestor_nao_diretoria_cria_tecnico(self):
+        self.client.force_authenticate(user=self.gestor_tecnico)
+
+        response = self.client.post(reverse('usuarios-list'), self.payload_novo_usuario(TipoUsuario.TECNICO))
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_gestor_nao_diretoria_nao_cria_diretor(self):
+        self.client.force_authenticate(user=self.gestor_tecnico)
+
+        response = self.client.post(reverse('usuarios-list'), self.payload_novo_usuario(TipoUsuario.DIRETOR))
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertFalse(Usuario.objects.filter(email='novo.diretor@ergogroup.test').exists())
+
+    def test_gestor_nao_diretoria_nao_promove_a_diretor(self):
+        self.client.force_authenticate(user=self.gestor_tecnico)
+
+        response = self.client.patch(
+            reverse('usuarios-detail', args=[self.tecnico.id]), {'tipo_usuario': TipoUsuario.GESTOR_COMERCIAL},
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.tecnico.refresh_from_db()
+        self.assertEqual(self.tecnico.tipo_usuario, TipoUsuario.TECNICO)
+
+    def test_gestor_nao_diretoria_nao_desativa_nem_exclui_diretor(self):
+        self.client.force_authenticate(user=self.gestor_tecnico)
+
+        desativar = self.client.patch(reverse('usuarios-desativar', args=[self.diretor.id]))
+        excluir = self.client.delete(reverse('usuarios-detail', args=[self.diretor.id]))
+
+        self.assertEqual(desativar.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(excluir.status_code, status.HTTP_403_FORBIDDEN)
+        self.diretor.refresh_from_db()
+        self.assertTrue(self.diretor.ativo)
+
+    def test_diretor_cria_diretor(self):
+        self.client.force_authenticate(user=self.diretor)
+
+        response = self.client.post(reverse('usuarios-list'), self.payload_novo_usuario(TipoUsuario.DIRETOR))
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)

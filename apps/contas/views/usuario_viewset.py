@@ -1,4 +1,5 @@
 from rest_framework import viewsets, status
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import BasePermission, IsAuthenticated
@@ -16,7 +17,7 @@ from apps.contas.serializers import (
     TipoOpcaoSerializer,
     DetalheSerializer,
 )
-from apps.organizacoes.permissoes import Permissao, TemPermissao, tem_permissao
+from apps.organizacoes.permissoes import TIPOS_DIRETORIA, Permissao, TemPermissao, tem_permissao
 
 Usuario = get_user_model()
 
@@ -102,6 +103,26 @@ class UsuarioViewSet(viewsets.ModelViewSet):
             return [IsAuthenticated(), ProprioUsuarioOuGestor()]
         return [IsAuthenticated()]
 
+    def exigir_gestao_da_diretoria(self, *tipos):
+        if any(tipo in TIPOS_DIRETORIA for tipo in tipos) and not tem_permissao(
+            self.request.user, Permissao.USUARIOS_GERENCIAR_DIRETORIA,
+        ):
+            raise PermissionDenied('Apenas a diretoria pode gerenciar usuários da diretoria.')
+
+    def perform_create(self, serializer):
+        self.exigir_gestao_da_diretoria(serializer.validated_data.get('tipo_usuario'))
+        serializer.save()
+
+    def perform_update(self, serializer):
+        self.exigir_gestao_da_diretoria(
+            serializer.instance.tipo_usuario, serializer.validated_data.get('tipo_usuario'),
+        )
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        self.exigir_gestao_da_diretoria(instance.tipo_usuario)
+        instance.delete()
+
     def get_queryset(self):
         queryset = super().get_queryset()
         q = self.request.query_params.get('q', '').strip()
@@ -166,6 +187,7 @@ class UsuarioViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['patch'], url_path='ativar')
     def ativar(self, request, pk=None):
         usuario = self.get_object()
+        self.exigir_gestao_da_diretoria(usuario.tipo_usuario)
         usuario.ativo = True
         usuario.save(update_fields=['ativo'])
         return Response({'detail': f'Usuário {usuario.nome_completo} ativado com sucesso.'})
@@ -185,6 +207,7 @@ class UsuarioViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['patch'], url_path='desativar')
     def desativar(self, request, pk=None):
         usuario = self.get_object()
+        self.exigir_gestao_da_diretoria(usuario.tipo_usuario)
         if usuario == request.user:
             return Response(
                 {'detail': 'Não é possível desativar o próprio usuário.'},
