@@ -6,7 +6,7 @@ from django.db.models import Q
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
 
-from apps.organizacoes.permissoes import Permissao, tem_permissao
+from apps.organizacoes.permissoes import Permissao, TemPermissao, tem_permissao
 from apps.ordens_servico.models import OrdemServicoOperacional, Prioridade
 from apps.ordens_servico.models.ordem_servico_operacional import StatusOrdemServicoOperacional
 from apps.ordens_servico.serializers import (
@@ -75,6 +75,11 @@ class OrdemServicoOperacionalViewSet(viewsets.ModelViewSet):
         'cobranca_realizada_por',
     ).all()
     permission_classes = [IsAuthenticated]
+
+    def get_permissions(self):
+        if self.action == 'registrar_cobranca':
+            return [IsAuthenticated(), TemPermissao(Permissao.FINANCEIRO_REGISTRAR_COBRANCA)]
+        return [IsAuthenticated()]
 
     def get_serializer_class(self):
         if self.action == 'list':

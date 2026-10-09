@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
 
-from apps.organizacoes.permissoes import Permissao, tem_permissao
+from apps.organizacoes.permissoes import Permissao, TemPermissao, tem_permissao
 from apps.ordens_servico.models import OrdemServico
 from apps.ordens_servico.serializers import (
     OrdemServicoListSerializer,
@@ -73,6 +73,11 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
         'cobranca_realizada_por',
     ).prefetch_related('servicos__tarefas__responsavel').all()
     permission_classes = [IsAuthenticated]
+
+    def get_permissions(self):
+        if self.action == 'registrar_cobranca':
+            return [IsAuthenticated(), TemPermissao(Permissao.FINANCEIRO_REGISTRAR_COBRANCA)]
+        return [IsAuthenticated()]
 
     def get_serializer_class(self):
         if self.action == 'list':

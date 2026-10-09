@@ -144,3 +144,60 @@ class GestaoDaDiretoriaTestCase(APITestCase):
         response = self.client.post(reverse('usuarios-list'), self.payload_novo_usuario(TipoUsuario.DIRETOR))
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+
+class RegistroDeCobrancaTestCase(APITestCase):
+    def setUp(self):
+        self.cliente = Cliente.objects.create(nome='Cliente Cobranca')
+        self.ordem = OrdemServico.objects.create(
+            cliente=self.cliente, data_venda=timezone.localdate(), valor=100, cobranca_imediata=True,
+        )
+        self.url = reverse('ordens-servico-registrar-cobranca', args=[self.ordem.id])
+
+    def test_financeiro_registra_cobranca(self):
+        self.client.force_authenticate(user=criar_usuario(TipoUsuario.FINANCEIRO))
+
+        response = self.client.patch(self.url, {'numero_nf': 123})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.ordem.refresh_from_db()
+        self.assertTrue(self.ordem.cobranca_realizada)
+
+    def test_comercial_nao_registra_cobranca(self):
+        self.client.force_authenticate(user=criar_usuario(TipoUsuario.COMERCIAL))
+
+        response = self.client.patch(self.url, {'numero_nf': 123})
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.ordem.refresh_from_db()
+        self.assertFalse(self.ordem.cobranca_realizada)
+
+    def test_edicao_generica_da_os_ignora_campos_de_cobranca(self):
+        self.client.force_authenticate(user=criar_usuario(TipoUsuario.FINANCEIRO))
+
+        self.client.patch(
+            reverse('ordens-servico-detail', args=[self.ordem.id]),
+            {'cobranca_realizada': True, 'numero_nf': 999},
+        )
+
+        self.ordem.refresh_from_db()
+        self.assertFalse(self.ordem.cobranca_realizada)
+        self.assertIsNone(self.ordem.numero_nf)
+
+    def test_tecnico_nao_registra_cobranca_de_os_operacional(self):
+        from apps.catalogo.models import CatalogoOperacional
+        from apps.ordens_servico.models import OrdemServicoOperacional
+        tecnico = criar_usuario(TipoUsuario.TECNICO)
+        oso = OrdemServicoOperacional.objects.create(
+            cliente=self.cliente, responsavel=tecnico, revisao_cliente=True, status='finalizada',
+            catalogo_operacional=CatalogoOperacional.objects.create(nome='Revisão'),
+        )
+        self.client.force_authenticate(user=tecnico)
+
+        response = self.client.patch(
+            reverse('ordens-servico-operacionais-registrar-cobranca', args=[oso.id]), {'numero_nf': '1'},
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        oso.refresh_from_db()
+        self.assertFalse(oso.cobranca_realizada)

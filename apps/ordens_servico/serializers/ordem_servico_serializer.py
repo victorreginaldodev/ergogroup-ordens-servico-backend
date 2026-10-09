@@ -72,6 +72,8 @@ class OrdemServicoSerializer(serializers.ModelSerializer):
             'status', 'concluida', 'criada_em', 'data_atualizacao',
             'criado_por', 'atualizado_por', 'liberada_para_cobranca',
             'liberada_para_cobranca_em', 'liberada_para_cobranca_por',
+            # Cobrança só é registrada pelo endpoint dedicado, que valida a liberação.
+            'cobranca_realizada', 'numero_nf', 'data_cobranca',
             'cobranca_realizada_por', 'dias_em_aberto', 'dias_entre_criacao_e_conclusao',
         ]
 
@@ -150,8 +152,6 @@ class OrdemServicoSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         if request and request.user.is_authenticated:
             validated_data['atualizado_por'] = request.user
-            if validated_data.get('cobranca_realizada') is True and not instance.cobranca_realizada:
-                validated_data['cobranca_realizada_por'] = request.user
         return super().update(instance, validated_data)
 
 

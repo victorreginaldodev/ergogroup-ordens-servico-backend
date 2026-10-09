@@ -94,6 +94,8 @@ class OrdemServicoOperacionalSerializer(serializers.ModelSerializer):
             'criada_em', 'atualizado_em',
             'gera_cobranca', 'data_liberacao_cobranca',
             'liberada_cobranca_por', 'cobranca_realizada_por',
+            # Cobrança só é registrada pelo endpoint dedicado, que valida a liberação.
+            'cobranca_realizada', 'numero_nf',
         ]
 
     @extend_schema_field(serializers.CharField(allow_null=True))
@@ -115,13 +117,6 @@ class OrdemServicoOperacionalSerializer(serializers.ModelSerializer):
             return None
         usuario = obj.cobranca_realizada_por
         return usuario.nome_completo or usuario.get_full_name() or usuario.username
-
-    def update(self, instance, validated_data):
-        request = self.context.get('request')
-        if request and request.user.is_authenticated:
-            if validated_data.get('cobranca_realizada') is True and not instance.cobranca_realizada:
-                validated_data['cobranca_realizada_por'] = request.user
-        return super().update(instance, validated_data)
 
 
 class RegistrarCobrancaOSORequestSerializer(serializers.Serializer):
