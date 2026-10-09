@@ -141,6 +141,19 @@ Hoje não tem setor. Até ser incorporada, sugiro manter regras próprias com as
 
 ## 3. Catálogo de permissões proposto (rascunho)
 
+> **Implementado na fase 1** (09/10/2026). A fonte de verdade agora é `apps/organizacoes/permissoes.py`: o enum `Permissao` e a tabela `PERMISSOES_POR_TIPO_USUARIO`, que segue as travas do frontend (seção 5) com as decisões abaixo. Em relação a este rascunho, a implementação acrescentou:
+> - `os_operacional.gerenciar`: OS operacional e catálogo operacional, que na tela têm regra própria;
+> - `usuarios.gerenciar_diretoria`: gerenciar diretor e gestor comercial (A8);
+> - `usuarios.redefinir_senha`: alterar a senha de terceiros.
+>
+> Decisões de 09/10/2026 sobre a seção 5:
+> 1. Gestor comercial tem o mesmo acesso do diretor.
+> 2. Cobrança de OS operacional segue a da OS comercial.
+> 3. Clientes continuam abertos a todos.
+> 4. Excluir OS fica só com a diretoria.
+> 5. Diretoria tem controle completo de tarefas.
+> 6. Auditoria continua aberta a todos.
+
 **Globais**
 
 | Código | O que libera |
@@ -194,3 +207,46 @@ Hoje quase todo mundo, exceto o técnico, pode tudo nas OS, clientes e catálogo
 6. **Auditoria**: só gestores, ou qualquer pessoa vê o histórico das OS em que trabalha?
 7. **Gestão de usuários**: o gestor de um setor gerencia só os usuários do próprio setor, ou isso é centralizado (administrativo/diretoria)? A proposta atual é centralizada (global).
 8. **Lista de usuários**: todos podem ver todos (nome, e-mail, setor), ou só os do próprio setor?
+
+---
+
+## 5. Regras aplicadas hoje pelo frontend
+
+Levantadas em 09/10/2026 no projeto `ergogroup-ordens-servico-frontend`, sobretudo em `src/hooks/useUserRole.ts`, `OrdemDetalhePage.tsx`, `ServicoAccordionCard.tsx`, `TarefaRow.tsx`, `OrdemCobrancaPanel.tsx`, `UsersManagementPage.tsx` e `UserProfilePage.tsx`.
+
+Siglas: D diretor · GC gestor comercial · C comercial · GT gestor técnico · SGT subgestor técnico · T técnico · GF gestor financeiro · F financeiro · GA gestor administrativo · A administrativo.
+
+**Importante:** o frontend trata **GC exatamente como D** (`normalizeRole` em `useUserRole.ts`). O backend não faz isso.
+
+| Ação | Quem pode no frontend | Backend hoje |
+|---|---|---|
+| Criar e editar OS (formulário, inclui serviços) | todos, menos T e SGT | qualquer autenticado |
+| Excluir OS | ninguém (não há botão) | qualquer autenticado |
+| Ver valores da OS | todos, menos T, SGT, GA e A | todos recebem `valor` |
+| Indicadores financeiros | menu: todos, menos T e SGT; valores: menos GA e A | 403 para T, SGT, GA e A |
+| Registrar cobrança de OS | F, GF, D, GC | qualquer autenticado |
+| Editar e excluir serviço (detalhe da OS) | GT, SGT | qualquer autenticado |
+| Criar tarefa | GT, SGT, D, GC | qualquer autenticado |
+| Editar, reatribuir, cancelar e excluir tarefa | GT, SGT | responsável, D, GT e SGT |
+| Prioridade, prazo e horas de tarefa | GT, SGT, D, GC | responsável, D, GT e SGT |
+| Mudar status de qualquer tarefa | GT, SGT, D, GC | D, GT, SGT (**GC recebe 403**) |
+| Mudar status da própria tarefa | todos | responsável |
+| Clientes (criar, editar, excluir) | todos, **inclusive T** | qualquer autenticado |
+| Catálogo de serviços (gerenciar) | D, GC, C, GT, SGT | qualquer autenticado |
+| Catálogo operacional (gerenciar) | todos, menos A | qualquer autenticado |
+| OS operacional (criar, editar, **registrar cobrança**) | todos, menos A (**inclusive T**) | qualquer autenticado |
+| Gerenciar usuários | D, GC, GT, GF, GA | D, GC, GT, GF, GA |
+| Alterar o próprio tipo e status | só os gestores acima | **qualquer um** (A1) |
+| Aba de auditoria da OS | todos, inclusive T | qualquer autenticado |
+| Ver OS e tarefas | T: só as dele; demais: todas | igual |
+| Indicadores operacionais | todos; T vê só a própria linha | igual |
+| Dados da empresa | tela salva só no navegador (`localStorage`), sem trava | — (API de `Organizacao` existe, não está ligada) |
+
+### Diferenças em relação à seção 3 que precisam de decisão
+
+1. **Gestor comercial = diretor também no backend?** O frontend já trata assim, e hoje o GC recebe 403 ao mudar o status de tarefa de outra pessoa, embora a tela ofereça o botão.
+2. **Cobrança da OS operacional:** na tela, qualquer um menos o administrativo, inclusive técnico, registra cobrança de OSO; a da OS comercial é restrita a F, GF, D e GC. Igualar as duas?
+3. **Clientes:** na tela, qualquer um, inclusive técnico, cria, edita e exclui clientes. Manter?
+4. **Excluir OS:** não existe na tela. Restringir a D e GC no backend?
+5. **Tarefas para D e GC:** a tela deixa criar tarefa e mudar status e planejamento, mas não reatribuir, cancelar nem excluir. Dar controle completo (mesma permissão do GT e SGT) ou manter a diferença?
+6. **Auditoria:** a tela mostra para todos. Seguir assim (permissão base) em vez de restringir como sugerido em A4?

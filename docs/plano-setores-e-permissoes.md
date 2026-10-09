@@ -25,14 +25,16 @@ Cada fase vira uma branch a partir de `main`, com um commit por item e testes pa
 
 ---
 
-## Fase 0 — Fechar o que está aberto
+## Fase 0 — Fechar o que está aberto ✅
 
-- [ ] Separar da branch `feat/organizacao-catalogo` os modelos ainda sem migração (`Funcao`, `MembroSetor`, `Setor.organizacao`). Eles voltam na fase 2.
-- [ ] Commit da branch: remoção de horas e complexidade do catálogo e entidade `Organizacao` (migrações já aplicadas no dev).
-- [ ] Commit da documentação (`docs/as-is/`, briefing, mapa e este plano).
+- [x] Separar da branch `feat/organizacao-catalogo` os modelos ainda sem migração (`Funcao`, `MembroSetor`, `Setor.organizacao`). Eles voltam na fase 2.
+- [x] Commit da branch: remoção de horas e complexidade do catálogo e entidade `Organizacao` (migrações já aplicadas no dev).
+- [x] Commit da documentação (`docs/as-is/`, briefing, mapa e este plano).
 - [ ] Em paralelo: levar as 8 perguntas da seção 4 do mapa para a gestora. Elas não bloqueiam as fases 1 e 2.
 
-## Fase 1 — Catálogo de permissões e correção das falhas
+## Fase 1 — Catálogo de permissões e correção das falhas ✅
+
+Concluída em 09/10/2026, na branch `feat/permissoes-fase1`, com um commit por item.
 
 **1.1 Levantar as regras do frontend.** Ler as travas de tela no projeto React: quais tipos veem cada menu, botão e campo. Isso fecha a tabela de equivalência *tipo de usuário → permissões* e garante que o backend bloqueie exatamente o que a tela já bloqueia. Divergências entre o front e o mapa voltam para você decidir.
 
