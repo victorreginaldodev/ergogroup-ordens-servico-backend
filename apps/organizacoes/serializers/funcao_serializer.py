@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from apps.organizacoes.models import Funcao
-from apps.organizacoes.permissoes import Permissao
+from apps.organizacoes.permissoes import Permissao, pode_conceder
 
 
 class FuncaoSerializer(serializers.ModelSerializer):
@@ -16,6 +16,17 @@ class FuncaoSerializer(serializers.ModelSerializer):
         fields = ['id', 'organizacao', 'nome', 'descricao', 'ativo', 'permissoes', 'criado_em', 'atualizado_em']
         read_only_fields = ['criado_em', 'atualizado_em']
         extra_kwargs = {'ativo': {'default': True}}
+
+    def validate(self, attrs):
+        usuario = self.context['request'].user
+        if self.instance is not None and not pode_conceder(usuario, self.instance.codigos_permissao):
+            raise serializers.ValidationError(
+                'Você não pode alterar uma função que concede permissões que você não tem.'
+            )
+        novas = set(attrs.get('codigos_permissao', [])) - set(self.instance.codigos_permissao if self.instance else [])
+        if not pode_conceder(usuario, novas):
+            raise serializers.ValidationError({'permissoes': 'Você não pode conceder permissões que não tem.'})
+        return attrs
 
     def create(self, validated_data):
         codigos = validated_data.pop('codigos_permissao', [])

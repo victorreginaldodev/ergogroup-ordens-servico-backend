@@ -5,7 +5,8 @@ from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
 
-from apps.organizacoes.permissoes import Permissao, PermissoesPorAcaoMixin, tem_permissao
+from apps.ordens_servico.services.visibilidade import ordens_visiveis
+from apps.organizacoes.permissoes import Permissao, PermissoesPorAcaoMixin
 from apps.ordens_servico.models import OrdemServico
 from apps.ordens_servico.serializers import (
     OrdemServicoListSerializer,
@@ -90,8 +91,7 @@ class OrdemServicoViewSet(PermissoesPorAcaoMixin, viewsets.ModelViewSet):
         queryset = super().get_queryset().order_by('cobranca_realizada', '-data_venda')
         user = self.request.user
 
-        if not tem_permissao(user, Permissao.OS_VER_TODAS):
-            queryset = queryset.filter(servicos__tarefas__responsavel=user).distinct()
+        queryset = ordens_visiveis(queryset, user)
 
         q = self.request.query_params.get('q', '').strip()
         cliente_id = self.request.query_params.get('cliente', '').strip()

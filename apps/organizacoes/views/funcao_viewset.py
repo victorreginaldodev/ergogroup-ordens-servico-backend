@@ -2,11 +2,12 @@ from django.db.models import Q
 from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
 from rest_framework import viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from apps.organizacoes.models import Funcao
-from apps.organizacoes.permissoes import Permissao, PermissoesPorAcaoMixin, escopo_da_permissao
+from apps.organizacoes.permissoes import Permissao, PermissoesPorAcaoMixin, escopo_da_permissao, pode_conceder
 from apps.organizacoes.serializers import FuncaoSerializer, PermissaoCatalogoSerializer
 
 
@@ -49,6 +50,11 @@ class FuncaoViewSet(PermissoesPorAcaoMixin, viewsets.ModelViewSet):
         'destroy': (Permissao.ORGANIZACAO_CONFIGURAR,),
     }
     dica_exclusao_bloqueada = 'Desative a função em vez de excluí-la.'
+
+    def perform_destroy(self, instance):
+        if not pode_conceder(self.request.user, instance.codigos_permissao):
+            raise PermissionDenied('Você não pode excluir uma função que concede permissões que você não tem.')
+        instance.delete()
 
     def get_queryset(self):
         queryset = super().get_queryset()

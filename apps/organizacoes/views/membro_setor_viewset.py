@@ -1,9 +1,10 @@
 from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
 from rest_framework import viewsets
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 
 from apps.organizacoes.models import MembroSetor
-from apps.organizacoes.permissoes import Permissao, PermissoesPorAcaoMixin
+from apps.organizacoes.permissoes import Permissao, PermissoesPorAcaoMixin, pode_conceder
 from apps.organizacoes.serializers import MembroSetorSerializer
 
 
@@ -39,6 +40,11 @@ class MembroSetorViewSet(PermissoesPorAcaoMixin, viewsets.ModelViewSet):
         'partial_update': (Permissao.USUARIOS_GERENCIAR,),
         'destroy': (Permissao.USUARIOS_GERENCIAR,),
     }
+
+    def perform_destroy(self, instance):
+        if not pode_conceder(self.request.user, instance.funcao.codigos_permissao, instance.setor):
+            raise PermissionDenied('Você não pode remover um vínculo com permissões que você não tem.')
+        instance.delete()
 
     def get_queryset(self):
         queryset = super().get_queryset()

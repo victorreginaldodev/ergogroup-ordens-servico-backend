@@ -76,7 +76,14 @@ Só schema e API de cadastro; nenhuma regra ainda lê isso.
 | API | CRUD de funções (com lista de permissões) e de vínculos; `GET` do catálogo de permissões com descrição e escopo, para a tela de configurações; tudo exige `organizacao.configurar` ou `usuarios.gerenciar` |
 | Proteções | Excluir setor ou função em uso responde 409 (handler já existente) |
 
-## Fase 3 — Permissões vindas dos vínculos
+## Fase 3 — Permissões vindas dos vínculos (parte técnica ✅)
+
+Parte técnica concluída em 09/10/2026, na branch `feat/permissoes-por-setor` (itens 1 a 3 abaixo, mais a regra "ninguém concede o que não tem" em funções e vínculos). Ficam pendentes a migração dos usuários (item 4) e o fim do fallback (item 5), que dependem da definição dos setores e funções iniciais.
+
+Regras adotadas:
+- **Vínculo substitui o tipo.** Quem tem ao menos um vínculo passa a ter só as permissões das suas funções; o `tipo_usuario` deixa de valer para essa pessoa.
+- **Setor ou função inativos** não concedem nada.
+- **Serviços sem setor** (catálogo ainda não classificado) seguem as permissões por setor de quem as tem em algum setor.
 
 1. **`permissoes_do_usuario` passa a ler os vínculos.** Junta as permissões das funções em todos os setores do usuário; as de escopo por setor valem só naquele setor.
 2. **Período de transição:** usuário sem nenhum vínculo continua com as permissões do `tipo_usuario`. Nada quebra enquanto os vínculos são cadastrados.

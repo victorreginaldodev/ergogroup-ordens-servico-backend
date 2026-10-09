@@ -1,11 +1,8 @@
 from django.urls import reverse
-from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from apps.clientes.models import Cliente
 from apps.contas.models.choices import TipoUsuario
-from apps.ordens_servico.models import OrdemServico
 from apps.organizacoes.models import Funcao, MembroSetor, Organizacao, Setor
 from apps.organizacoes.permissoes import Permissao
 from apps.organizacoes.tests_permissoes import criar_usuario
@@ -161,18 +158,3 @@ class MembroSetorApiTestCase(EstruturaBaseTestCase):
 
         self.assertEqual(Setor.objects.filter(nome='Ergonomia').count(), 2)
 
-
-class VinculosAindaNaoAlteramPermissoesTestCase(EstruturaBaseTestCase):
-    def test_vinculo_nao_amplia_o_acesso_do_tecnico_nesta_fase(self):
-        ver_tudo = Funcao.objects.create(organizacao=self.ergogroup, nome='Vê tudo')
-        ver_tudo.definir_permissoes([Permissao.OS_VER_TODAS])
-        MembroSetor.objects.create(usuario=self.tecnico, setor=self.ergonomia, funcao=ver_tudo)
-        OrdemServico.objects.create(
-            cliente=Cliente.objects.create(nome='Cliente'), data_venda=timezone.localdate(), valor=0,
-        )
-        self.client.force_authenticate(user=self.tecnico)
-
-        response = self.client.get(reverse('ordens-servico-list'))
-
-        itens = response.data['results'] if isinstance(response.data, dict) else response.data
-        self.assertEqual(itens, [])

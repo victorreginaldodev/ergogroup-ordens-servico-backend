@@ -103,24 +103,28 @@ class UsuarioViewSet(viewsets.ModelViewSet):
             return [IsAuthenticated(), ProprioUsuarioOuGestor()]
         return [IsAuthenticated()]
 
-    def exigir_gestao_da_diretoria(self, *tipos):
-        if any(tipo in TIPOS_DIRETORIA for tipo in tipos) and not tem_permissao(
-            self.request.user, Permissao.USUARIOS_GERENCIAR_DIRETORIA,
-        ):
+    def exigir_gestao_da_diretoria(self, alvo=None, novo_tipo=None):
+        """Usuários da diretoria (pelo tipo ou por terem `usuarios.gerenciar_diretoria` nos vínculos)
+        só são gerenciados por quem também tem essa permissão."""
+        envolve_diretoria = novo_tipo in TIPOS_DIRETORIA or (
+            alvo is not None and (
+                alvo.tipo_usuario in TIPOS_DIRETORIA
+                or tem_permissao(alvo, Permissao.USUARIOS_GERENCIAR_DIRETORIA)
+            )
+        )
+        if envolve_diretoria and not tem_permissao(self.request.user, Permissao.USUARIOS_GERENCIAR_DIRETORIA):
             raise PermissionDenied('Apenas a diretoria pode gerenciar usuários da diretoria.')
 
     def perform_create(self, serializer):
-        self.exigir_gestao_da_diretoria(serializer.validated_data.get('tipo_usuario'))
+        self.exigir_gestao_da_diretoria(novo_tipo=serializer.validated_data.get('tipo_usuario'))
         serializer.save()
 
     def perform_update(self, serializer):
-        self.exigir_gestao_da_diretoria(
-            serializer.instance.tipo_usuario, serializer.validated_data.get('tipo_usuario'),
-        )
+        self.exigir_gestao_da_diretoria(serializer.instance, serializer.validated_data.get('tipo_usuario'))
         serializer.save()
 
     def perform_destroy(self, instance):
-        self.exigir_gestao_da_diretoria(instance.tipo_usuario)
+        self.exigir_gestao_da_diretoria(instance)
         instance.delete()
 
     def get_queryset(self):
@@ -187,7 +191,7 @@ class UsuarioViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['patch'], url_path='ativar')
     def ativar(self, request, pk=None):
         usuario = self.get_object()
-        self.exigir_gestao_da_diretoria(usuario.tipo_usuario)
+        self.exigir_gestao_da_diretoria(usuario)
         usuario.ativo = True
         usuario.save(update_fields=['ativo'])
         return Response({'detail': f'Usuário {usuario.nome_completo} ativado com sucesso.'})
@@ -207,7 +211,7 @@ class UsuarioViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['patch'], url_path='desativar')
     def desativar(self, request, pk=None):
         usuario = self.get_object()
-        self.exigir_gestao_da_diretoria(usuario.tipo_usuario)
+        self.exigir_gestao_da_diretoria(usuario)
         if usuario == request.user:
             return Response(
                 {'detail': 'Não é possível desativar o próprio usuário.'},

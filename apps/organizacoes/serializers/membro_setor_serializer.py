@@ -2,6 +2,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
 from apps.organizacoes.models import MembroSetor
+from apps.organizacoes.permissoes import pode_conceder
 
 
 class MembroSetorSerializer(serializers.ModelSerializer):
@@ -21,8 +22,19 @@ class MembroSetorSerializer(serializers.ModelSerializer):
         atuais = {}
         if self.instance is not None:
             atuais = {'usuario': self.instance.usuario, 'setor': self.instance.setor, 'funcao': self.instance.funcao}
+        vinculo = MembroSetor(**{**atuais, **attrs})
         try:
-            MembroSetor(**{**atuais, **attrs}).clean()
+            vinculo.clean()
         except DjangoValidationError as exc:
             raise serializers.ValidationError(exc.message_dict)
+
+        usuario = self.context['request'].user
+        if self.instance is not None and not pode_conceder(
+            usuario, self.instance.funcao.codigos_permissao, self.instance.setor,
+        ):
+            raise serializers.ValidationError('Você não pode alterar um vínculo com permissões que você não tem.')
+        if not pode_conceder(usuario, vinculo.funcao.codigos_permissao, vinculo.setor):
+            raise serializers.ValidationError(
+                {'funcao': 'Você não pode atribuir uma função com permissões que você não tem neste setor.'}
+            )
         return attrs

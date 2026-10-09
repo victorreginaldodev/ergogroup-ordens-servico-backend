@@ -1,9 +1,9 @@
 """Catálogo de permissões do sistema e verificação de acesso.
 
-As regras da API perguntam por códigos de permissão (``tem_permissao``), nunca por tipo
-de usuário. Nesta fase as permissões de cada usuário vêm do ``tipo_usuario`` pela tabela
-``PERMISSOES_POR_TIPO_USUARIO``; depois passarão a vir das funções que ele exerce nos
-setores, sem mudar quem pergunta. Ver docs/mapa-de-permissoes.md.
+As regras da API perguntam por códigos de permissão (``tem_permissao``), nunca por tipo de usuário.
+As permissões de cada usuário vêm das funções que ele exerce nos setores (``MembroSetor``). Enquanto
+o usuário não tiver nenhum vínculo, valem as do ``tipo_usuario`` (``PERMISSOES_POR_TIPO_USUARIO``),
+para a migração dos usuários poder acontecer aos poucos. Ver docs/mapa-de-permissoes.md.
 """
 from django.db import models
 from rest_framework.permissions import BasePermission
@@ -87,21 +87,96 @@ PERMISSOES_POR_TIPO_USUARIO = {
 }
 
 
-def permissoes_do_usuario(usuario) -> frozenset:
+class PerfilDeAcesso:
+    """Permissões efetivas de um usuário.
+
+    - ``globais``: valem na organização toda;
+    - ``por_setor``: ``{setor_id: permissões}`` para as permissões de escopo por setor;
+    - ``todos_os_setores``: verdadeiro quando as permissões por setor valem em qualquer setor
+      (superusuário e usuários ainda sem vínculo, que usam o ``tipo_usuario``).
+    """
+
+    def __init__(self, globais=frozenset(), por_setor=None, todos_os_setores=False):
+        self.globais = frozenset(globais)
+        self.por_setor = por_setor or {}
+        self.todos_os_setores = todos_os_setores
+
+    @property
+    def todas(self) -> frozenset:
+        return self.globais.union(*self.por_setor.values())
+
+    def tem(self, permissao, setor=None) -> bool:
+        if permissao not in PERMISSOES_POR_SETOR or self.todos_os_setores:
+            return permissao in self.globais
+        if setor is None:
+            # Sem setor definido (inclusive serviços ainda sem setor): basta ter a permissão em algum setor.
+            return any(permissao in permissoes for permissoes in self.por_setor.values())
+        return permissao in self.por_setor.get(getattr(setor, 'pk', setor), frozenset())
+
+    def setores_com(self, permissao):
+        """IDs dos setores onde a permissão vale, ou ``None`` se vale em todos."""
+        if self.todos_os_setores:
+            return None if permissao in self.globais else set()
+        return {setor_id for setor_id, permissoes in self.por_setor.items() if permissao in permissoes}
+
+
+def _perfil_pelos_vinculos(vinculos) -> PerfilDeAcesso:
+    globais, por_setor = set(), {}
+    for vinculo in vinculos:
+        if not (vinculo.setor.ativo and vinculo.funcao.ativo):
+            continue
+        for item in vinculo.funcao.permissoes.all():
+            if item.permissao in PERMISSOES_POR_SETOR:
+                por_setor.setdefault(vinculo.setor_id, set()).add(item.permissao)
+            else:
+                globais.add(item.permissao)
+    return PerfilDeAcesso(globais, {k: frozenset(v) for k, v in por_setor.items()})
+
+
+def perfil_de_acesso(usuario) -> PerfilDeAcesso:
     if usuario is None or not usuario.is_authenticated or not usuario.is_active:
-        return frozenset()
+        return PerfilDeAcesso()
     if usuario.is_superuser:
-        return _TODAS
-    cache = getattr(usuario, '_permissoes_cache', None)
-    if cache is None:
-        cache = PERMISSOES_POR_TIPO_USUARIO.get(usuario.tipo_usuario, frozenset())
-        usuario._permissoes_cache = cache
-    return cache
+        return PerfilDeAcesso(_TODAS, todos_os_setores=True)
+    perfil = getattr(usuario, '_perfil_de_acesso', None)
+    if perfil is None:
+        from apps.organizacoes.models import MembroSetor
+
+        vinculos = list(
+            MembroSetor.objects.filter(usuario=usuario)
+            .select_related('setor', 'funcao').prefetch_related('funcao__permissoes')
+        )
+        if vinculos:
+            perfil = _perfil_pelos_vinculos(vinculos)
+        else:
+            perfil = PerfilDeAcesso(
+                PERMISSOES_POR_TIPO_USUARIO.get(usuario.tipo_usuario, frozenset()), todos_os_setores=True,
+            )
+        usuario._perfil_de_acesso = perfil
+    return perfil
+
+
+def permissoes_do_usuario(usuario) -> frozenset:
+    """Todas as permissões do usuário, em qualquer setor."""
+    return perfil_de_acesso(usuario).todas
 
 
 def tem_permissao(usuario, permissao, setor=None) -> bool:
-    """Indica se o usuário tem a permissão. ``setor`` passa a valer quando as permissões vierem dos setores."""
-    return permissao in permissoes_do_usuario(usuario)
+    """Indica se o usuário tem a permissão. Para permissões por setor, ``setor`` (objeto ou id) restringe
+    a verificação àquele setor; sem ``setor``, basta tê-la em algum setor."""
+    return perfil_de_acesso(usuario).tem(permissao, setor)
+
+
+def setores_com_permissao(usuario, permissao):
+    """IDs dos setores em que o usuário tem a permissão, ou ``None`` se ela vale em todos."""
+    return perfil_de_acesso(usuario).setores_com(permissao)
+
+
+def pode_conceder(usuario, permissoes, setor=None) -> bool:
+    """Ninguém concede permissão que não tem: vale para montar funções e para vincular pessoas a elas.
+    Com ``setor``, as permissões por setor precisam valer para o usuário naquele setor."""
+    perfil = perfil_de_acesso(usuario)
+    return all(perfil.tem(permissao, setor) for permissao in permissoes)
 
 
 class TemPermissao(BasePermission):

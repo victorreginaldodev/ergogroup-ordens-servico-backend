@@ -2,13 +2,27 @@ from django.utils import timezone
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import BasePermission, IsAuthenticated
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
 
 from apps.ordens_servico.models import Servico, Prioridade
+from apps.ordens_servico.services.visibilidade import servicos_visiveis
 from apps.organizacoes.permissoes import Permissao, PermissoesPorAcaoMixin, tem_permissao
 from apps.ordens_servico.models.servico import StatusServico
 from apps.ordens_servico.serializers import ServicoListSerializer, ServicoSerializer
+
+
+class PodeGerenciarServico(BasePermission):
+    """Alterar um serviço exige `os.gerenciar` ou `servicos.gerenciar` no setor do serviço."""
+    message = 'Seu perfil não pode alterar serviços deste setor.'
+    ACOES = ('update', 'partial_update', 'destroy', 'sincronizar')
+
+    def has_object_permission(self, request, view, obj):
+        if view.action not in self.ACOES:
+            return True
+        return tem_permissao(request.user, Permissao.OS_GERENCIAR) or tem_permissao(
+            request.user, Permissao.SERVICOS_GERENCIAR, obj.setor_id,
+        )
 
 
 @extend_schema_view(
@@ -67,7 +81,7 @@ class ServicoViewSet(PermissoesPorAcaoMixin, viewsets.ModelViewSet):
         'setor',
         'terminado_por',
     ).prefetch_related('tarefas').all()
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, PodeGerenciarServico]
     permissoes_por_acao = {
         'create': (Permissao.OS_GERENCIAR,),
         'update': (Permissao.OS_GERENCIAR, Permissao.SERVICOS_GERENCIAR,),
@@ -85,8 +99,7 @@ class ServicoViewSet(PermissoesPorAcaoMixin, viewsets.ModelViewSet):
         queryset = super().get_queryset()
         user = self.request.user
 
-        if not tem_permissao(user, Permissao.OS_VER_TODAS):
-            queryset = queryset.filter(tarefas__responsavel=user).distinct()
+        queryset = servicos_visiveis(queryset, user)
 
         ordem_id = self.request.query_params.get('ordem_servico', '').strip()
         status_param = self.request.query_params.get('status', '').strip()

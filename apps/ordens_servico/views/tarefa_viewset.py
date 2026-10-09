@@ -1,8 +1,10 @@
 from django.utils import timezone
 from rest_framework import viewsets
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import BasePermission, IsAuthenticated
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
 
+from apps.ordens_servico.services.visibilidade import tarefas_visiveis
 from apps.organizacoes.permissoes import Permissao, tem_permissao
 from apps.ordens_servico.models import Tarefa, Prioridade
 from apps.ordens_servico.models.tarefa import StatusTarefa
@@ -11,11 +13,13 @@ from apps.ordens_servico.serializers import TarefaListSerializer, TarefaSerializ
 
 class PodeModificarTarefa(BasePermission):
     """Distribuir (criar, reatribuir, excluir) exige `tarefas.distribuir`; editar tarefa de outra pessoa
-    exige `tarefas.editar_setor`; sem elas, o responsável só altera o status da própria tarefa."""
+    exige `tarefas.editar_setor`. As duas valem no setor do serviço da tarefa. Sem elas, o responsável só
+    altera o status da própria tarefa."""
 
     CAMPOS_DO_RESPONSAVEL = {'status'}
 
     def has_permission(self, request, view):
+        # Aqui o setor ainda não é conhecido; a verificação no setor do serviço fica em perform_create.
         if view.action == 'create' and not tem_permissao(request.user, Permissao.TAREFAS_DISTRIBUIR):
             self.message = 'Seu perfil não pode criar tarefas.'
             return False
@@ -23,22 +27,23 @@ class PodeModificarTarefa(BasePermission):
 
     def has_object_permission(self, request, view, obj):
         user = request.user
+        setor = obj.servico.setor_id
         if request.method in ('GET', 'HEAD', 'OPTIONS'):
             return True
         if view.action == 'destroy':
-            self.message = 'Seu perfil não pode excluir tarefas.'
-            return tem_permissao(user, Permissao.TAREFAS_DISTRIBUIR)
+            self.message = 'Seu perfil não pode excluir tarefas deste setor.'
+            return tem_permissao(user, Permissao.TAREFAS_DISTRIBUIR, setor)
 
         campos = set(request.data.keys())
         novo_responsavel = request.data.get('responsavel')
         if (
             novo_responsavel is not None
             and str(novo_responsavel) != str(obj.responsavel_id)
-            and not tem_permissao(user, Permissao.TAREFAS_DISTRIBUIR)
+            and not tem_permissao(user, Permissao.TAREFAS_DISTRIBUIR, setor)
         ):
-            self.message = 'Seu perfil não pode reatribuir tarefas.'
+            self.message = 'Seu perfil não pode reatribuir tarefas deste setor.'
             return False
-        if tem_permissao(user, Permissao.TAREFAS_EDITAR_SETOR):
+        if tem_permissao(user, Permissao.TAREFAS_EDITAR_SETOR, setor):
             return True
         if obj.responsavel_id != user.id:
             self.message = 'Apenas o responsável pela tarefa pode modificá-la.'
@@ -47,6 +52,11 @@ class PodeModificarTarefa(BasePermission):
             self.message = 'O responsável pode alterar apenas o status da própria tarefa.'
             return False
         return True
+
+
+def exigir_distribuicao_no_setor(usuario, servico):
+    if not tem_permissao(usuario, Permissao.TAREFAS_DISTRIBUIR, servico.setor_id):
+        raise PermissionDenied('Seu perfil não pode distribuir tarefas neste setor.')
 
 
 @extend_schema_view(
@@ -111,12 +121,21 @@ class TarefaViewSet(viewsets.ModelViewSet):
             return TarefaListSerializer
         return TarefaSerializer
 
+    def perform_create(self, serializer):
+        exigir_distribuicao_no_setor(self.request.user, serializer.validated_data['servico'])
+        serializer.save()
+
+    def perform_update(self, serializer):
+        novo_servico = serializer.validated_data.get('servico')
+        if novo_servico is not None and novo_servico != serializer.instance.servico:
+            exigir_distribuicao_no_setor(self.request.user, novo_servico)
+        serializer.save()
+
     def get_queryset(self):
         queryset = super().get_queryset()
         user = self.request.user
 
-        if not tem_permissao(user, Permissao.OS_VER_TODAS):
-            queryset = queryset.filter(responsavel=user)
+        queryset = tarefas_visiveis(queryset, user)
 
         servico_id = self.request.query_params.get('servico', '').strip()
         responsavel_id = self.request.query_params.get('responsavel', '').strip()
