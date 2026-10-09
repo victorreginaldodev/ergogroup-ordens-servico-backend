@@ -253,3 +253,36 @@ class OcultacaoDeValoresTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertNotIn('valor', response.data)
         self.assertEqual(OrdemServico.objects.get(id=response.data['id']).valor, 800)
+
+
+class VisibilidadeDeServicosTestCase(APITestCase):
+    def setUp(self):
+        self.tecnico = criar_usuario(TipoUsuario.TECNICO)
+        ordem = OrdemServico.objects.create(
+            cliente=Cliente.objects.create(nome='Cliente Visibilidade'), data_venda=timezone.localdate(), valor=0,
+        )
+        self.meu = Servico.objects.create(ordem_servico=ordem, descricao='meu')
+        self.outro = Servico.objects.create(ordem_servico=ordem, descricao='de outro')
+        Tarefa.objects.create(servico=self.meu, responsavel=self.tecnico)
+        Tarefa.objects.create(servico=self.meu, responsavel=self.tecnico)
+        Tarefa.objects.create(servico=self.outro, responsavel=criar_usuario(TipoUsuario.TECNICO))
+
+    def ids(self, response):
+        itens = response.data['results'] if isinstance(response.data, dict) else response.data
+        return [s['id'] for s in itens]
+
+    def test_tecnico_ve_so_servicos_em_que_tem_tarefa(self):
+        self.client.force_authenticate(user=self.tecnico)
+
+        response = self.client.get(reverse('servicos-list'))
+        detalhe_de_outro = self.client.get(reverse('servicos-detail', args=[self.outro.id]))
+
+        self.assertEqual(self.ids(response), [self.meu.id])
+        self.assertEqual(detalhe_de_outro.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_gestor_tecnico_ve_todos(self):
+        self.client.force_authenticate(user=criar_usuario(TipoUsuario.GESTOR_TECNICO))
+
+        response = self.client.get(reverse('servicos-list'))
+
+        self.assertCountEqual(self.ids(response), [self.meu.id, self.outro.id])

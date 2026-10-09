@@ -6,6 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
 
 from apps.ordens_servico.models import Servico, Prioridade
+from apps.organizacoes.permissoes import Permissao, tem_permissao
 from apps.ordens_servico.models.servico import StatusServico
 from apps.ordens_servico.serializers import ServicoListSerializer, ServicoSerializer
 
@@ -75,6 +76,11 @@ class ServicoViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = super().get_queryset()
+        user = self.request.user
+
+        if not tem_permissao(user, Permissao.OS_VER_TODAS):
+            queryset = queryset.filter(tarefas__responsavel=user).distinct()
+
         ordem_id = self.request.query_params.get('ordem_servico', '').strip()
         status_param = self.request.query_params.get('status', '').strip()
         catalogo_id = self.request.query_params.get('catalogo', '').strip()
