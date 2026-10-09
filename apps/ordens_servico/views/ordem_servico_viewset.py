@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
 
-from apps.contas.models.choices import TipoUsuario
+from apps.organizacoes.permissoes import Permissao, tem_permissao
 from apps.ordens_servico.models import OrdemServico
 from apps.ordens_servico.serializers import (
     OrdemServicoListSerializer,
@@ -83,7 +83,7 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
         queryset = super().get_queryset().order_by('cobranca_realizada', '-data_venda')
         user = self.request.user
 
-        if user.tipo_usuario == TipoUsuario.TECNICO:
+        if not tem_permissao(user, Permissao.OS_VER_TODAS):
             queryset = queryset.filter(servicos__tarefas__responsavel=user).distinct()
 
         q = self.request.query_params.get('q', '').strip()

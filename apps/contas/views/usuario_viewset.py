@@ -1,7 +1,7 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import BasePermission, IsAuthenticated
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
@@ -16,9 +16,16 @@ from apps.contas.serializers import (
     TipoOpcaoSerializer,
     DetalheSerializer,
 )
-from apps.contas.permissions import IsGestor, IsSelfOrGestor
+from apps.organizacoes.permissoes import Permissao, TemPermissao, tem_permissao
 
 Usuario = get_user_model()
+
+
+class ProprioUsuarioOuGestor(BasePermission):
+    message = 'Sem permissão para realizar esta ação.'
+
+    def has_object_permission(self, request, view, obj):
+        return obj == request.user or tem_permissao(request.user, Permissao.USUARIOS_GERENCIAR)
 
 
 @extend_schema_view(
@@ -90,9 +97,9 @@ class UsuarioViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action in ('create', 'destroy', 'ativar', 'desativar'):
-            return [IsAuthenticated(), IsGestor()]
+            return [IsAuthenticated(), TemPermissao(Permissao.USUARIOS_GERENCIAR)]
         if self.action in ('update', 'partial_update'):
-            return [IsAuthenticated(), IsSelfOrGestor()]
+            return [IsAuthenticated(), ProprioUsuarioOuGestor()]
         return [IsAuthenticated()]
 
     def get_queryset(self):
@@ -139,7 +146,7 @@ class UsuarioViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['patch'], url_path='alterar-senha')
     def alterar_senha(self, request, pk=None):
         usuario = self.get_object()
-        if usuario != request.user and not (request.user.is_superuser or request.user.tipo_usuario in {TipoUsuario.DIRETOR, TipoUsuario.GESTOR_ADMINISTRATIVO}):
+        if usuario != request.user and not tem_permissao(request.user, Permissao.USUARIOS_REDEFINIR_SENHA):
             return Response(
                 {'detail': 'Sem permissão para alterar a senha deste usuário.'},
                 status=status.HTTP_403_FORBIDDEN,

@@ -6,7 +6,7 @@ from django.template.loader import render_to_string
 
 from apps.contas.models import Usuario
 from apps.contas.models.choices import TipoUsuario
-from apps.contas.permissions import usuario_pode_ver_valores
+from apps.organizacoes.permissoes import Permissao, tem_permissao
 from apps.ordens_servico.models.ordem_servico import Prioridade
 
 logger = logging.getLogger(__name__)
@@ -57,8 +57,8 @@ def notificar_criacao_contrato(ordem_servico):
     if not usuarios:
         return 0
 
-    com_valores = [u.email for u in usuarios if usuario_pode_ver_valores(u)]
-    sem_valores = [u.email for u in usuarios if not usuario_pode_ver_valores(u)]
+    com_valores = [u.email for u in usuarios if tem_permissao(u, Permissao.FINANCEIRO_VER_VALORES)]
+    sem_valores = [u.email for u in usuarios if not tem_permissao(u, Permissao.FINANCEIRO_VER_VALORES)]
 
     assunto = f'Novo contrato criado - OS #{ordem_servico.pk}'
     total = 0

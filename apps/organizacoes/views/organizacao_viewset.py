@@ -2,7 +2,7 @@ from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 
-from apps.contas.permissions import IsGestor
+from apps.organizacoes.permissoes import Permissao, TemPermissao
 from apps.organizacoes.models import Organizacao
 from apps.organizacoes.serializers import OrganizacaoSerializer
 
@@ -36,5 +36,5 @@ class OrganizacaoViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action in ('create', 'update', 'partial_update'):
-            return [IsAuthenticated(), IsGestor()]
+            return [IsAuthenticated(), TemPermissao(Permissao.ORGANIZACAO_CONFIGURAR)]
         return [IsAuthenticated()]

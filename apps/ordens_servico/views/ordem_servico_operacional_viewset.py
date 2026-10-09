@@ -6,7 +6,7 @@ from django.db.models import Q
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
 
-from apps.contas.models.choices import TipoUsuario
+from apps.organizacoes.permissoes import Permissao, tem_permissao
 from apps.ordens_servico.models import OrdemServicoOperacional, Prioridade
 from apps.ordens_servico.models.ordem_servico_operacional import StatusOrdemServicoOperacional
 from apps.ordens_servico.serializers import (
@@ -85,7 +85,7 @@ class OrdemServicoOperacionalViewSet(viewsets.ModelViewSet):
         queryset = super().get_queryset()
         user = self.request.user
 
-        if user.tipo_usuario == TipoUsuario.TECNICO:
+        if not tem_permissao(user, Permissao.OS_VER_TODAS):
             queryset = queryset.filter(responsavel=user)
 
         q = self.request.query_params.get('q', '').strip()

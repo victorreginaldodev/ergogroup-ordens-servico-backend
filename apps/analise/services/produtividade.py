@@ -3,7 +3,7 @@ from django.db.models.functions import TruncMonth
 from django.utils import timezone
 
 from apps.analise.utils import preencher_meses
-from apps.contas.models.choices import TipoUsuario
+from apps.organizacoes.permissoes import Permissao, tem_permissao
 from apps.ordens_servico.models import OrdemServicoOperacional, Prioridade, Tarefa
 from apps.ordens_servico.models.ordem_servico_operacional import StatusOrdemServicoOperacional
 from apps.ordens_servico.models.tarefa import StatusTarefa
@@ -36,7 +36,7 @@ def calcular_por_tecnico(data_inicio, meses, usuario) -> list[dict]:
     tarefas_alta_prioridade_qs = tarefas_abertas_qs.filter(prioridade=Prioridade.ALTA)
     minios_alta_prioridade_qs = minios_abertas_qs.filter(prioridade=Prioridade.ALTA)
 
-    if usuario.tipo_usuario == TipoUsuario.TECNICO:
+    if not tem_permissao(usuario, Permissao.INDICADORES_VER_GERAL):
         tarefas_hist_qs = tarefas_hist_qs.filter(responsavel=usuario)
         minios_hist_qs = minios_hist_qs.filter(responsavel=usuario)
         tarefas_concluidas_qs = tarefas_concluidas_qs.filter(responsavel=usuario)

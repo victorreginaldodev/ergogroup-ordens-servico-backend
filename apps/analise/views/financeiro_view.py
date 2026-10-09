@@ -14,18 +14,19 @@ from apps.analise.services.financeiro import (
     calcular_vendas_por_mes,
 )
 from apps.analise.utils import gerar_intervalo_meses
-from apps.contas.permissions import PodeVerValoresFinanceiros
+from apps.organizacoes.permissoes import Permissao, TemPermissao
 
 
 class FinanceiroAnaliseView(APIView):
-    permission_classes = [IsAuthenticated, PodeVerValoresFinanceiros]
+
+    def get_permissions(self):
+        return [IsAuthenticated(), TemPermissao(Permissao.FINANCEIRO_VER_VALORES)]
 
     @extend_schema(
         summary='Análise financeira',
         description=(
             'KPIs de cobrança, ticket médio, vendas mensais e ranking de '
-            'clientes. Indisponível (403) para os perfis Sub-Líder Técnico, '
-            'Técnico, Gestor Administrativo e Administrativo.'
+            'clientes. Exige a permissão `financeiro.ver_valores` (403 sem ela).'
         ),
         responses={
             200: FinanceiroAnaliseResponseSerializer,

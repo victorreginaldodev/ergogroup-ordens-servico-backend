@@ -1,13 +1,26 @@
 from django.utils import timezone
 from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import BasePermission, IsAuthenticated
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
 
-from apps.contas.models.choices import TipoUsuario
-from apps.contas.permissions import PodeModificarTarefa
+from apps.organizacoes.permissoes import Permissao, tem_permissao
 from apps.ordens_servico.models import Tarefa, Prioridade
 from apps.ordens_servico.models.tarefa import StatusTarefa
 from apps.ordens_servico.serializers import TarefaListSerializer, TarefaSerializer
+
+
+class PodeModificarTarefa(BasePermission):
+    """Quem tem `tarefas.editar_setor` altera qualquer tarefa; os demais, só as próprias."""
+
+    def has_object_permission(self, request, view, obj):
+        if request.method in ('GET', 'HEAD', 'OPTIONS'):
+            return True
+        if tem_permissao(request.user, Permissao.TAREFAS_EDITAR_SETOR):
+            return True
+        if obj.responsavel != request.user:
+            self.message = 'Apenas o responsável pela tarefa pode modificá-la.'
+            return False
+        return True
 
 
 @extend_schema_view(
@@ -76,7 +89,7 @@ class TarefaViewSet(viewsets.ModelViewSet):
         queryset = super().get_queryset()
         user = self.request.user
 
-        if user.tipo_usuario == TipoUsuario.TECNICO:
+        if not tem_permissao(user, Permissao.OS_VER_TODAS):
             queryset = queryset.filter(responsavel=user)
 
         servico_id = self.request.query_params.get('servico', '').strip()
