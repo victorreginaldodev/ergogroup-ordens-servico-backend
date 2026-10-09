@@ -11,6 +11,11 @@ from apps.ordens_servico.models import OrdemServico, Servico
 from apps.organizacoes.models import Organizacao, Setor
 
 
+
+def ergogroup():
+    return Organizacao.objects.get(nome='Ergogroup')
+
+
 class SetorViewSetTestCase(APITestCase):
     def setUp(self):
         self.gestor = Usuario.objects.create_user(
@@ -23,13 +28,13 @@ class SetorViewSetTestCase(APITestCase):
             password='senha-teste-123', nome_completo='Tecnico Setor',
             tipo_usuario=TipoUsuario.TECNICO,
         )
-        self.ergonomia = Setor.objects.create(nome='Ergonomia')
-        self.inativo = Setor.objects.create(nome='Setor Antigo', ativo=False)
+        self.ergonomia = Setor.objects.create(organizacao=ergogroup(), nome='Ergonomia')
+        self.inativo = Setor.objects.create(organizacao=ergogroup(), nome='Setor Antigo', ativo=False)
 
     def test_gestor_cria_setor(self):
         self.client.force_authenticate(user=self.gestor)
 
-        response = self.client.post(reverse('setores-list'), {'nome': 'Segurança do Trabalho'})
+        response = self.client.post(reverse('setores-list'), {'organizacao': ergogroup().id, 'nome': 'Segurança do Trabalho'})
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertTrue(Setor.objects.get(nome='Segurança do Trabalho').ativo)
@@ -37,16 +42,16 @@ class SetorViewSetTestCase(APITestCase):
     def test_nome_de_setor_e_unico(self):
         self.client.force_authenticate(user=self.gestor)
 
-        response = self.client.post(reverse('setores-list'), {'nome': 'Ergonomia'})
+        response = self.client.post(reverse('setores-list'), {'organizacao': ergogroup().id, 'nome': 'Ergonomia'})
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('nome', response.data)
+        self.assertIn('non_field_errors', response.data)
 
     def test_tecnico_lista_mas_nao_altera_setores(self):
         self.client.force_authenticate(user=self.tecnico)
 
         listagem = self.client.get(reverse('setores-list'))
-        criacao = self.client.post(reverse('setores-list'), {'nome': 'Medicina'})
+        criacao = self.client.post(reverse('setores-list'), {'organizacao': ergogroup().id, 'nome': 'Medicina'})
         exclusao = self.client.delete(reverse('setores-detail', args=[self.ergonomia.id]))
 
         self.assertEqual(listagem.status_code, status.HTTP_200_OK)
@@ -79,8 +84,8 @@ class SetorDoServicoTestCase(APITestCase):
             password='senha-teste-123', nome_completo='Comercial Setor',
             tipo_usuario=TipoUsuario.COMERCIAL,
         )
-        self.ergonomia = Setor.objects.create(nome='Ergonomia')
-        self.seguranca = Setor.objects.create(nome='Segurança do Trabalho')
+        self.ergonomia = Setor.objects.create(organizacao=ergogroup(), nome='Ergonomia')
+        self.seguranca = Setor.objects.create(organizacao=ergogroup(), nome='Segurança do Trabalho')
         self.catalogo_aet = Catalogo.objects.create(nome='AET', setor=self.ergonomia)
         self.catalogo_pgr = Catalogo.objects.create(nome='PGR', setor=self.seguranca)
         self.ordem_servico = OrdemServico.objects.create(
