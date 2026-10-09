@@ -8,7 +8,7 @@ from apps.clientes.models import Cliente
 from apps.contas.models import Usuario
 from apps.contas.models.choices import TipoUsuario
 from apps.ordens_servico.models import OrdemServico, Servico
-from apps.organizacoes.models import Setor
+from apps.organizacoes.models import Organizacao, Setor
 
 
 class SetorViewSetTestCase(APITestCase):
@@ -148,3 +148,53 @@ class SetorDoServicoTestCase(APITestCase):
 
         resultados = response.data['results'] if isinstance(response.data, dict) else response.data
         self.assertEqual([s['descricao'] for s in resultados], ['b'])
+
+
+class OrganizacaoViewSetTestCase(APITestCase):
+    def setUp(self):
+        self.gestor = Usuario.objects.create_user(
+            username='gestor_org', email='gestor.org@ergogroup.test',
+            password='senha-teste-123', nome_completo='Gestor Org',
+            tipo_usuario=TipoUsuario.DIRETOR,
+        )
+        self.tecnico = Usuario.objects.create_user(
+            username='tecnico_org', email='tecnico.org@ergogroup.test',
+            password='senha-teste-123', nome_completo='Tecnico Org',
+            tipo_usuario=TipoUsuario.TECNICO,
+        )
+        self.ergogroup = Organizacao.objects.get(nome='Ergogroup')
+
+    def test_migracao_cria_organizacao_ergogroup(self):
+        self.assertEqual(Organizacao.objects.count(), 1)
+
+    def test_gestor_atualiza_dados_da_organizacao(self):
+        self.client.force_authenticate(user=self.gestor)
+
+        response = self.client.patch(
+            reverse('organizacoes-detail', args=[self.ergogroup.id]),
+            {'razao_social': 'Ergogroup Ltda', 'cidade': 'Curitiba', 'uf': 'PR'},
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.ergogroup.refresh_from_db()
+        self.assertEqual(self.ergogroup.razao_social, 'Ergogroup Ltda')
+        self.assertEqual(self.ergogroup.uf, 'PR')
+
+    def test_tecnico_le_mas_nao_altera_organizacao(self):
+        self.client.force_authenticate(user=self.tecnico)
+
+        leitura = self.client.get(reverse('organizacoes-detail', args=[self.ergogroup.id]))
+        alteracao = self.client.patch(
+            reverse('organizacoes-detail', args=[self.ergogroup.id]), {'nome': 'Outro nome'},
+        )
+
+        self.assertEqual(leitura.status_code, status.HTTP_200_OK)
+        self.assertEqual(alteracao.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_organizacao_nao_pode_ser_excluida_pela_api(self):
+        self.client.force_authenticate(user=self.gestor)
+
+        response = self.client.delete(reverse('organizacoes-detail', args=[self.ergogroup.id]))
+
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+        self.assertTrue(Organizacao.objects.filter(id=self.ergogroup.id).exists())

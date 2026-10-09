@@ -63,19 +63,11 @@ class Servico(models.Model):
 
     @property
     def horas_estimadas_efetivas(self):
-        if self.horas_estimadas is not None:
-            return self.horas_estimadas
-        if self.catalogo_id and self.catalogo is not None:
-            return self.catalogo.horas_estimadas
-        return None
+        return self.horas_estimadas
 
     @property
     def complexidade_efetiva(self):
-        if self.complexidade is not None:
-            return self.complexidade
-        if self.catalogo_id and self.catalogo is not None:
-            return self.catalogo.complexidade
-        return None
+        return self.complexidade
 
     def save(self, *args, **kwargs):
         self.definir_setor_pelo_catalogo()

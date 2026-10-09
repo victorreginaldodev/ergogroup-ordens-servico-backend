@@ -61,24 +61,21 @@ def calcular_por_tecnico(data_inicio, meses, usuario) -> list[dict]:
 
     # KPIs e tempo médio usam o histórico completo
     for (
-        responsavel_id, nome, inicio, termino, complexidade_servico, complexidade_catalogo,
-        horas_tarefa, horas_servico, horas_catalogo, prazo,
+        responsavel_id, nome, inicio, termino, complexidade_servico,
+        horas_tarefa, horas_servico, prazo,
     ) in tarefas_hist_qs.values_list(
         'responsavel_id', 'responsavel__nome_completo', 'data_inicio', 'data_termino',
-        'servico__complexidade', 'servico__catalogo__complexidade',
-        'horas_estimadas', 'servico__horas_estimadas', 'servico__catalogo__horas_estimadas',
+        'servico__complexidade',
+        'horas_estimadas', 'servico__horas_estimadas',
         'prazo',
     ):
         entry = dados.setdefault(responsavel_id, _linha_tecnico(responsavel_id, nome))
         entry['tarefas_concluidas'] += 1
         if inicio and termino:
             duracoes_por_tecnico.setdefault(responsavel_id, []).append((termino - inicio).days)
-        complexidade_efetiva = complexidade_servico if complexidade_servico is not None else complexidade_catalogo
-        if complexidade_efetiva is not None:
-            complexidades_por_tecnico.setdefault(responsavel_id, []).append(complexidade_efetiva)
-        horas_efetivas = horas_tarefa if horas_tarefa is not None else (
-            horas_servico if horas_servico is not None else horas_catalogo
-        )
+        if complexidade_servico is not None:
+            complexidades_por_tecnico.setdefault(responsavel_id, []).append(complexidade_servico)
+        horas_efetivas = horas_tarefa if horas_tarefa is not None else horas_servico
         if horas_efetivas is not None:
             horas_entregues_por_tecnico[responsavel_id] = (
                 horas_entregues_por_tecnico.get(responsavel_id, 0) + horas_efetivas

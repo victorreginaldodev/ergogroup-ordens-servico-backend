@@ -66,9 +66,7 @@ class AnaliseTestCase(APITestCase):
         )
 
         # Cadeia OS -> Servico -> Tarefa para indicadores de produtividade/tempo.
-        self.catalogo = Catalogo.objects.create(
-            nome='Catalogo Teste', horas_estimadas=Decimal('4.00'), complexidade=Complexidade.ALTA,
-        )
+        self.catalogo = Catalogo.objects.create(nome='Catalogo Teste')
         self.os_chain = OrdemServico.objects.create(
             cliente=self.cliente,
             data_venda=self.hoje - timedelta(days=5),
@@ -78,6 +76,8 @@ class AnaliseTestCase(APITestCase):
             ordem_servico=self.os_chain,
             catalogo=self.catalogo,
             descricao='Servico de teste',
+            horas_estimadas=Decimal('4.00'),
+            complexidade=Complexidade.ALTA,
         )
         self.tarefa_chain = Tarefa.objects.create(
             servico=self.servico_chain,
@@ -169,9 +169,7 @@ class AnaliseTestCase(APITestCase):
 
         # Segundo catalogo/catalogo operacional, para provar que os agrupamentos por
         # catalogo (percentual, tempo medio, cancelamento) realmente discriminam grupos.
-        self.catalogo_secundario = Catalogo.objects.create(
-            nome='Catalogo Secundario', horas_estimadas=Decimal('2.00'), complexidade=Complexidade.BAIXA,
-        )
+        self.catalogo_secundario = Catalogo.objects.create(nome='Catalogo Secundario')
         self.catalogo_operacional_secundario = CatalogoOperacional.objects.create(
             nome='Catalogo Operacional Secundario', horas_estimadas=Decimal('1.00'), complexidade=Complexidade.BAIXA,
         )

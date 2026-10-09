@@ -1,1 +1,2 @@
+from .organizacao_serializer import OrganizacaoSerializer
 from .setor_serializer import SetorSerializer

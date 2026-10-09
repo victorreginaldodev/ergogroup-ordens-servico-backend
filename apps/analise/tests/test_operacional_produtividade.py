@@ -3,7 +3,6 @@ from decimal import Decimal
 from django.urls import reverse
 from rest_framework import status
 
-from apps.catalogo.models.catalogo import Complexidade
 from apps.contas.models.choices import TipoUsuario
 from apps.ordens_servico.models import Servico, Tarefa
 
@@ -77,16 +76,15 @@ class OperacionalAnaliseViewProdutividadeTests(AnaliseTestCase):
         self.assertEqual(linha['tarefas_atrasadas'], 1)
         # tarefa_wip e tarefa_lead_time sao alta prioridade (atrasada ou nao).
         self.assertEqual(linha['tarefas_alta_prioridade_abertas'], 2)
-        # unica tarefa concluida (tarefa_chain) usa um catalogo com complexidade ALTA (3).
+        # unica tarefa concluida (tarefa_chain) pertence a um servico com complexidade ALTA (3).
         self.assertEqual(linha['complexidade_media_concluidas'], 3.0)
-        # tarefa_chain nao tem horas_estimadas propria; cai no servico_chain, que cai no
-        # catalogo (horas_estimadas=4.00).
+        # tarefa_chain nao tem horas_estimadas propria; cai no servico_chain (horas_estimadas=4.00).
         self.assertEqual(Decimal(str(linha['horas_estimadas_entregues'])), Decimal('4.00'))
         # self.tecnico nao tem nenhuma tarefa/OSO concluida COM prazo definido.
         self.assertIsNone(linha['taxa_cumprimento_prazo_tarefas'])
         self.assertIsNone(linha['taxa_cumprimento_prazo_minios'])
 
-    def test_tempo_por_catalogo_expoe_horas_estimadas_e_complexidade(self):
+    def test_tempo_por_catalogo_de_servico_nao_tem_horas_nem_complexidade(self):
         self._login(self.usuarios[TipoUsuario.GESTOR_TECNICO])
         response = self.client.get(self.url)
 
@@ -95,8 +93,8 @@ class OperacionalAnaliseViewProdutividadeTests(AnaliseTestCase):
             for item in response.data['tempos_medios']['tempo_por_catalogo_servico']
         }
         entrada = entradas[self.catalogo.id]
-        self.assertEqual(Decimal(str(entrada['horas_estimadas'])), Decimal('4.00'))
-        self.assertEqual(entrada['complexidade'], Complexidade.ALTA)
+        self.assertIsNone(entrada['horas_estimadas'])
+        self.assertIsNone(entrada['complexidade'])
 
     def test_taxa_cumprimento_prazo_global(self):
         self._login(self.usuarios[TipoUsuario.GESTOR_TECNICO])

@@ -28,21 +28,12 @@ class ProdutividadeModelTestCase(APITestCase):
             tipo_usuario=TipoUsuario.TECNICO,
         )
         self.cliente = Cliente.objects.create(nome='Cliente Teste')
-        self.catalogo = Catalogo.objects.create(
-            nome='Catalogo Teste', horas_estimadas=Decimal('5.50'), complexidade=Complexidade.ALTA,
-        )
+        self.catalogo = Catalogo.objects.create(nome='Catalogo Teste')
         self.ordem_servico = OrdemServico.objects.create(
             cliente=self.cliente, data_venda=timezone.localdate(), valor=0, prioridade=Prioridade.ALTA,
         )
 
-    def test_horas_estimadas_efetivas_cai_no_catalogo_quando_sem_override(self):
-        servico = Servico.objects.create(
-            ordem_servico=self.ordem_servico, catalogo=self.catalogo, descricao='sem override',
-        )
-        self.assertEqual(servico.horas_estimadas_efetivas, Decimal('5.50'))
-        self.assertEqual(servico.complexidade_efetiva, Complexidade.ALTA)
-
-    def test_horas_estimadas_efetivas_override_tem_prioridade_sobre_catalogo(self):
+    def test_horas_e_complexidade_efetivas_usam_valores_do_servico(self):
         servico = Servico.objects.create(
             ordem_servico=self.ordem_servico, catalogo=self.catalogo, descricao='com override',
             horas_estimadas=Decimal('2.00'), complexidade=Complexidade.BAIXA,
@@ -50,9 +41,9 @@ class ProdutividadeModelTestCase(APITestCase):
         self.assertEqual(servico.horas_estimadas_efetivas, Decimal('2.00'))
         self.assertEqual(servico.complexidade_efetiva, Complexidade.BAIXA)
 
-    def test_horas_estimadas_efetivas_none_sem_catalogo_e_sem_override(self):
+    def test_horas_e_complexidade_efetivas_none_quando_servico_nao_define(self):
         servico = Servico.objects.create(
-            ordem_servico=self.ordem_servico, catalogo=None, descricao='sem catalogo',
+            ordem_servico=self.ordem_servico, catalogo=self.catalogo, descricao='sem valores',
         )
         self.assertIsNone(servico.horas_estimadas_efetivas)
         self.assertIsNone(servico.complexidade_efetiva)
@@ -60,6 +51,7 @@ class ProdutividadeModelTestCase(APITestCase):
     def test_tarefa_horas_estimadas_efetivas_cai_no_servico_quando_sem_override(self):
         servico = Servico.objects.create(
             ordem_servico=self.ordem_servico, catalogo=self.catalogo, descricao='servico',
+            horas_estimadas=Decimal('5.50'),
         )
         tarefa = Tarefa.objects.create(servico=servico, responsavel=self.usuario, descricao='sem override')
         self.assertEqual(tarefa.horas_estimadas_efetivas, Decimal('5.50'))
