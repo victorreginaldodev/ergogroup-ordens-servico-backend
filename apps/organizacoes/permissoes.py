@@ -32,6 +32,17 @@ class Permissao(models.TextChoices):
     AUDITORIA_VER = 'auditoria.ver', 'Ver o histórico de auditoria'
 
 
+# Permissões que valem só nos setores do vínculo que as concede; as demais valem para a organização toda.
+PERMISSOES_POR_SETOR = frozenset({
+    Permissao.SERVICOS_VER_SETOR, Permissao.SERVICOS_GERENCIAR,
+    Permissao.TAREFAS_DISTRIBUIR, Permissao.TAREFAS_EDITAR_SETOR,
+})
+
+
+def escopo_da_permissao(permissao) -> str:
+    return 'setor' if permissao in PERMISSOES_POR_SETOR else 'global'
+
+
 # Perfis que o frontend trata como diretoria (o gestor comercial tem o mesmo acesso do diretor).
 TIPOS_DIRETORIA = frozenset({TipoUsuario.DIRETOR, TipoUsuario.GESTOR_COMERCIAL})
 
