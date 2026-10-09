@@ -1,0 +1,150 @@
+from django.urls import reverse
+from django.utils import timezone
+from rest_framework import status
+from rest_framework.test import APITestCase
+
+from apps.catalogo.models import Catalogo
+from apps.clientes.models import Cliente
+from apps.contas.models import Usuario
+from apps.contas.models.choices import TipoUsuario
+from apps.ordens_servico.models import OrdemServico, Servico
+from apps.organizacoes.models import Setor
+
+
+class SetorViewSetTestCase(APITestCase):
+    def setUp(self):
+        self.gestor = Usuario.objects.create_user(
+            username='gestor_setor', email='gestor.setor@ergogroup.test',
+            password='senha-teste-123', nome_completo='Gestor Setor',
+            tipo_usuario=TipoUsuario.DIRETOR,
+        )
+        self.tecnico = Usuario.objects.create_user(
+            username='tecnico_setor', email='tecnico.setor@ergogroup.test',
+            password='senha-teste-123', nome_completo='Tecnico Setor',
+            tipo_usuario=TipoUsuario.TECNICO,
+        )
+        self.ergonomia = Setor.objects.create(nome='Ergonomia')
+        self.inativo = Setor.objects.create(nome='Setor Antigo', ativo=False)
+
+    def test_gestor_cria_setor(self):
+        self.client.force_authenticate(user=self.gestor)
+
+        response = self.client.post(reverse('setores-list'), {'nome': 'Segurança do Trabalho'})
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(Setor.objects.get(nome='Segurança do Trabalho').ativo)
+
+    def test_nome_de_setor_e_unico(self):
+        self.client.force_authenticate(user=self.gestor)
+
+        response = self.client.post(reverse('setores-list'), {'nome': 'Ergonomia'})
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('nome', response.data)
+
+    def test_tecnico_lista_mas_nao_altera_setores(self):
+        self.client.force_authenticate(user=self.tecnico)
+
+        listagem = self.client.get(reverse('setores-list'))
+        criacao = self.client.post(reverse('setores-list'), {'nome': 'Medicina'})
+        exclusao = self.client.delete(reverse('setores-detail', args=[self.ergonomia.id]))
+
+        self.assertEqual(listagem.status_code, status.HTTP_200_OK)
+        self.assertEqual(criacao.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(exclusao.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_filtro_ativo(self):
+        self.client.force_authenticate(user=self.tecnico)
+
+        response = self.client.get(reverse('setores-list'), {'ativo': 'true'})
+
+        self.assertEqual([s['nome'] for s in response.data], ['Ergonomia'])
+
+    def test_excluir_setor_em_uso_retorna_409(self):
+        Catalogo.objects.create(nome='AET', setor=self.ergonomia)
+        self.client.force_authenticate(user=self.gestor)
+
+        response = self.client.delete(reverse('setores-detail', args=[self.ergonomia.id]))
+
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertIn('1 catálogo', response.data['detail'])
+        self.assertIn('Desative o setor', response.data['detail'])
+        self.assertTrue(Setor.objects.filter(id=self.ergonomia.id).exists())
+
+
+class SetorDoServicoTestCase(APITestCase):
+    def setUp(self):
+        self.usuario = Usuario.objects.create_user(
+            username='comercial_setor', email='comercial.setor@ergogroup.test',
+            password='senha-teste-123', nome_completo='Comercial Setor',
+            tipo_usuario=TipoUsuario.COMERCIAL,
+        )
+        self.ergonomia = Setor.objects.create(nome='Ergonomia')
+        self.seguranca = Setor.objects.create(nome='Segurança do Trabalho')
+        self.catalogo_aet = Catalogo.objects.create(nome='AET', setor=self.ergonomia)
+        self.catalogo_pgr = Catalogo.objects.create(nome='PGR', setor=self.seguranca)
+        self.ordem_servico = OrdemServico.objects.create(
+            cliente=Cliente.objects.create(nome='Cliente Setor'),
+            data_venda=timezone.localdate(), valor=0,
+        )
+        self.client.force_authenticate(user=self.usuario)
+
+    def test_servico_criado_pela_api_recebe_setor_do_catalogo(self):
+        response = self.client.post(reverse('servicos-list'), {
+            'ordem_servico': self.ordem_servico.id,
+            'catalogo': self.catalogo_aet.id,
+            'descricao': 'AET da linha 1',
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data['setor'], self.ergonomia.id)
+        self.assertEqual(response.data['setor_nome'], 'Ergonomia')
+
+    def test_setor_enviado_na_api_e_ignorado(self):
+        response = self.client.post(reverse('servicos-list'), {
+            'ordem_servico': self.ordem_servico.id,
+            'catalogo': self.catalogo_aet.id,
+            'setor': self.seguranca.id,
+            'descricao': 'tenta forçar setor',
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Servico.objects.get(id=response.data['id']).setor, self.ergonomia)
+
+    def test_mudar_setor_do_catalogo_nao_altera_servicos_existentes(self):
+        servico = Servico.objects.create(
+            ordem_servico=self.ordem_servico, catalogo=self.catalogo_aet, descricao='historico',
+        )
+        self.catalogo_aet.setor = self.seguranca
+        self.catalogo_aet.save()
+
+        servico.descricao = 'editado depois'
+        servico.save()
+
+        servico.refresh_from_db()
+        self.assertEqual(servico.setor, self.ergonomia)
+
+    def test_trocar_catalogo_do_servico_atualiza_setor(self):
+        servico = Servico.objects.create(
+            ordem_servico=self.ordem_servico, catalogo=self.catalogo_aet, descricao='troca',
+        )
+
+        servico.catalogo = self.catalogo_pgr
+        servico.save()
+
+        servico.refresh_from_db()
+        self.assertEqual(servico.setor, self.seguranca)
+
+    def test_servico_sem_catalogo_fica_sem_setor(self):
+        servico = Servico.objects.create(ordem_servico=self.ordem_servico, descricao='avulso')
+
+        self.assertIsNone(servico.setor)
+
+    def test_filtro_de_servicos_por_setor(self):
+        Servico.objects.create(ordem_servico=self.ordem_servico, catalogo=self.catalogo_aet, descricao='a')
+        Servico.objects.create(ordem_servico=self.ordem_servico, catalogo=self.catalogo_pgr, descricao='b')
+
+        response = self.client.get(reverse('servicos-list'), {'setor': self.seguranca.id})
+
+        resultados = response.data['results'] if isinstance(response.data, dict) else response.data
+        self.assertEqual([s['descricao'] for s in resultados], ['b'])

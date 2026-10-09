@@ -8,6 +8,7 @@ from apps.catalogo.serializers import CatalogoSerializer
 
 class ServicoListSerializer(serializers.ModelSerializer):
     catalogo_nome = serializers.CharField(source='catalogo.nome', read_only=True, default=None)
+    setor_nome = serializers.CharField(source='setor.nome', read_only=True, default=None)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     prioridade_display = serializers.CharField(source='get_prioridade_display', read_only=True)
     complexidade_display = serializers.SerializerMethodField()
@@ -21,7 +22,7 @@ class ServicoListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Servico
         fields = [
-            'id', 'ordem_servico', 'catalogo', 'catalogo_nome',
+            'id', 'ordem_servico', 'catalogo', 'catalogo_nome', 'setor', 'setor_nome',
             'descricao', 'status', 'status_display',
             'prioridade', 'prioridade_display', 'prazo',
             'horas_estimadas', 'horas_estimadas_efetivas',
@@ -51,6 +52,7 @@ class ServicoListSerializer(serializers.ModelSerializer):
 
 class ServicoSerializer(serializers.ModelSerializer):
     catalogo_detail = CatalogoSerializer(source='catalogo', read_only=True)
+    setor_nome = serializers.CharField(source='setor.nome', read_only=True, default=None)
     catalogo = serializers.PrimaryKeyRelatedField(
         queryset=Catalogo.objects.all(), allow_null=True, required=False
     )
@@ -65,7 +67,7 @@ class ServicoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Servico
         fields = [
-            'id', 'ordem_servico', 'catalogo', 'catalogo_detail',
+            'id', 'ordem_servico', 'catalogo', 'catalogo_detail', 'setor', 'setor_nome',
             'descricao', 'status', 'status_display',
             'prioridade', 'prioridade_display', 'prazo',
             'horas_estimadas', 'horas_estimadas_efetivas',
@@ -74,7 +76,7 @@ class ServicoSerializer(serializers.ModelSerializer):
             'terminado_por_nome', 'criado_em', 'atualizado_em',
         ]
         read_only_fields = [
-            'status', 'data_inicio', 'data_termino', 'data_conclusao',
+            'setor', 'status', 'data_inicio', 'data_termino', 'data_conclusao',
             'terminado_por', 'criado_em', 'atualizado_em',
         ]
 

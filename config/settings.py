@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'apps.contas',
+    'apps.organizacoes',
     'apps.clientes',
     'apps.catalogo',
     'apps.ordens_servico',
@@ -151,6 +152,7 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
     ],
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'EXCEPTION_HANDLER': 'config.exceptions.exception_handler',
 }
 
 from datetime import timedelta

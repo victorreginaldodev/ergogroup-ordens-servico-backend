@@ -10,8 +10,11 @@ from apps.catalogo.serializers import CatalogoSerializer
 @extend_schema_view(
     list=extend_schema(
         summary='Listar catálogos',
-        description='Retorna a lista de catálogos com seus subitens. Suporta busca por nome ou descrição.',
-        parameters=[OpenApiParameter('q', str, description='Busca por nome ou descrição (parcial).')],
+        description='Retorna a lista de catálogos com seus subitens. Suporta busca por nome ou descrição e filtro por setor.',
+        parameters=[
+            OpenApiParameter('q', str, description='Busca por nome ou descrição (parcial).'),
+            OpenApiParameter('setor', int, description='Filtrar pelo ID do setor.'),
+        ],
     ),
     create=extend_schema(
         summary='Criar catálogo',
@@ -31,7 +34,10 @@ from apps.catalogo.serializers import CatalogoSerializer
     ),
     destroy=extend_schema(
         summary='Remover catálogo',
-        description='Remove permanentemente um catálogo e todos os seus subitens.',
+        description=(
+            'Remove permanentemente um catálogo e todos os seus subitens. '
+            'Retorna 409 se o catálogo estiver vinculado a serviços.'
+        ),
     ),
 )
 class CatalogoViewSet(viewsets.ModelViewSet):
@@ -42,6 +48,9 @@ class CatalogoViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = super().get_queryset()
         q = self.request.query_params.get('q', '').strip()
+        setor_id = self.request.query_params.get('setor', '').strip()
         if q:
             queryset = queryset.filter(Q(nome__icontains=q) | Q(descricao__icontains=q))
+        if setor_id:
+            queryset = queryset.filter(setor_id=setor_id)
         return queryset

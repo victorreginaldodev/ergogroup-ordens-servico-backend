@@ -21,9 +21,18 @@ class Servico(models.Model):
     )
     catalogo = models.ForeignKey(
         'catalogo.Catalogo',
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         null=True,
         blank=True,
+    )
+    # Cópia do setor do catálogo no momento em que o serviço recebe o catálogo.
+    # Mudar o catálogo de setor depois não move o histórico de serviços.
+    setor = models.ForeignKey(
+        'organizacoes.Setor',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='servicos',
     )
     descricao = models.TextField()
     status = models.CharField(max_length=15, choices=StatusServico.choices, default=StatusServico.ABERTO)
@@ -69,8 +78,18 @@ class Servico(models.Model):
         return None
 
     def save(self, *args, **kwargs):
+        self.definir_setor_pelo_catalogo()
         super().save(*args, **kwargs)
         self.sincronizar_status_e_rastreio()
+
+    def definir_setor_pelo_catalogo(self):
+        if self.pk is not None:
+            catalogo_anterior_id = (
+                Servico.objects.filter(pk=self.pk).values_list('catalogo_id', flat=True).first()
+            )
+            if catalogo_anterior_id == self.catalogo_id:
+                return
+        self.setor_id = self.catalogo.setor_id if self.catalogo_id else None
 
     def sincronizar_status(self):
         return self.sincronizar_status_e_rastreio()

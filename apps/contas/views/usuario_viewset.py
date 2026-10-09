@@ -69,11 +69,15 @@ Usuario = get_user_model()
     ),
     destroy=extend_schema(
         summary='Remover usuário',
-        description='Remove permanentemente um usuário. Requer perfil Gestor ou superior.',
+        description=(
+            'Remove permanentemente um usuário. Requer perfil Gestor ou superior. '
+            'Retorna 409 se o usuário for responsável por tarefas ou OS operacionais; nesse caso, desative-o.'
+        ),
     ),
 )
 class UsuarioViewSet(viewsets.ModelViewSet):
     queryset = Usuario.objects.all().order_by('nome_completo')
+    dica_exclusao_bloqueada = 'Desative o usuário em vez de excluí-lo.'
 
     def get_serializer_class(self):
         if self.action == 'list':

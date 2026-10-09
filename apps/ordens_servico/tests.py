@@ -331,3 +331,72 @@ class NotificacoesEmailTestCase(APITestCase):
             set(emails_cobranca[0].to),
             {self.gestor_financeiro.email, self.financeiro.email, self.comercial.email},
         )
+
+
+class ExclusaoProtegidaTestCase(APITestCase):
+    def setUp(self):
+        self.gestor = Usuario.objects.create_user(
+            username='gestor_exclusao', email='gestor.exclusao@ergogroup.test',
+            password='senha-teste-123', nome_completo='Gestor Exclusao',
+            tipo_usuario=TipoUsuario.DIRETOR,
+        )
+        self.tecnico = Usuario.objects.create_user(
+            username='tecnico_exclusao', email='tecnico.exclusao@ergogroup.test',
+            password='senha-teste-123', nome_completo='Tecnico Exclusao',
+            tipo_usuario=TipoUsuario.TECNICO,
+        )
+        self.cliente = Cliente.objects.create(nome='Cliente Exclusao')
+        self.catalogo = Catalogo.objects.create(nome='Catalogo Exclusao')
+        self.ordem_servico = OrdemServico.objects.create(
+            cliente=self.cliente, data_venda=timezone.localdate(), valor=0,
+        )
+        self.client.force_authenticate(user=self.gestor)
+
+    def test_excluir_catalogo_com_servicos_retorna_409_e_preserva_servicos(self):
+        servico = Servico.objects.create(
+            ordem_servico=self.ordem_servico, catalogo=self.catalogo, descricao='usa catalogo',
+        )
+        tarefa = Tarefa.objects.create(servico=servico, responsavel=self.tecnico)
+
+        response = self.client.delete(reverse('catalogos-detail', args=[self.catalogo.id]))
+
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertIn('1 serviço', response.data['detail'])
+        self.assertEqual(
+            response.data['vinculos'],
+            [{'modelo': 'servico', 'descricao': 'serviço', 'quantidade': 1}],
+        )
+        self.assertTrue(Catalogo.objects.filter(id=self.catalogo.id).exists())
+        self.assertTrue(Servico.objects.filter(id=servico.id).exists())
+        self.assertTrue(Tarefa.objects.filter(id=tarefa.id).exists())
+
+    def test_excluir_catalogo_sem_servicos_continua_permitido(self):
+        response = self.client.delete(reverse('catalogos-detail', args=[self.catalogo.id]))
+
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(Catalogo.objects.filter(id=self.catalogo.id).exists())
+
+    def test_excluir_usuario_responsavel_retorna_409_com_dica_de_desativacao(self):
+        servico = Servico.objects.create(ordem_servico=self.ordem_servico, descricao='servico')
+        Tarefa.objects.create(servico=servico, responsavel=self.tecnico)
+        Tarefa.objects.create(servico=servico, responsavel=self.tecnico)
+        catalogo_operacional = CatalogoOperacional.objects.create(nome='Operacional Exclusao')
+        OrdemServicoOperacional.objects.create(
+            cliente=self.cliente, catalogo_operacional=catalogo_operacional, responsavel=self.tecnico,
+        )
+
+        response = self.client.delete(reverse('usuarios-detail', args=[self.tecnico.id]))
+
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertIn('2 tarefas', response.data['detail'])
+        self.assertIn('1 ordem de serviço operacional', response.data['detail'])
+        self.assertIn('Desative o usuário', response.data['detail'])
+        self.assertEqual(Tarefa.objects.filter(responsavel=self.tecnico).count(), 2)
+        self.assertTrue(Usuario.objects.filter(id=self.tecnico.id).exists())
+
+    def test_excluir_cliente_com_os_retorna_409(self):
+        response = self.client.delete(reverse('clientes-detail', args=[self.cliente.id]))
+
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertIn('1 ordem de serviço', response.data['detail'])
+        self.assertTrue(Cliente.objects.filter(id=self.cliente.id).exists())

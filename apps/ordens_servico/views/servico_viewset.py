@@ -15,12 +15,13 @@ from apps.ordens_servico.serializers import ServicoListSerializer, ServicoSerial
         summary='Listar serviços',
         description=(
             'Retorna a lista paginada de serviços com campos resumidos. '
-            'Suporta filtragem por OS, status e catálogo.'
+            'Suporta filtragem por OS, status, catálogo e setor.'
         ),
         parameters=[
             OpenApiParameter('ordem_servico', int, description='Filtrar pelo ID da ordem de serviço.'),
             OpenApiParameter('status', str, description='Filtrar por status.', enum=StatusServico),
             OpenApiParameter('catalogo', int, description='Filtrar pelo ID do catálogo.'),
+            OpenApiParameter('setor', int, description='Filtrar pelo ID do setor.'),
             OpenApiParameter('prioridade', str, description='Filtrar por prioridade.', enum=Prioridade),
             OpenApiParameter('atrasada', str, description='Se "true", retorna apenas serviços com prazo vencido e não concluídos/cancelados.', enum=['true']),
             OpenApiParameter('ordering', str, description='Ordenar por prazo. Use "prazo" ou "-prazo".', enum=['prazo', '-prazo']),
@@ -31,7 +32,8 @@ from apps.ordens_servico.serializers import ServicoListSerializer, ServicoSerial
         description=(
             'Cria um novo serviço vinculado a uma OS. '
             'Campos calculados (`status`, `data_inicio`, `data_termino`, `data_conclusao`, '
-            '`terminado_por`) são somente leitura e gerenciados automaticamente pelas tarefas.'
+            '`terminado_por`) são somente leitura e gerenciados automaticamente pelas tarefas. '
+            '`setor` é somente leitura e copiado do catálogo.'
         ),
     ),
     retrieve=extend_schema(
@@ -61,6 +63,7 @@ class ServicoViewSet(viewsets.ModelViewSet):
     queryset = Servico.objects.select_related(
         'ordem_servico__cliente',
         'catalogo',
+        'setor',
         'terminado_por',
     ).prefetch_related('tarefas').all()
     permission_classes = [IsAuthenticated]
@@ -75,6 +78,7 @@ class ServicoViewSet(viewsets.ModelViewSet):
         ordem_id = self.request.query_params.get('ordem_servico', '').strip()
         status_param = self.request.query_params.get('status', '').strip()
         catalogo_id = self.request.query_params.get('catalogo', '').strip()
+        setor_id = self.request.query_params.get('setor', '').strip()
         prioridade_param = self.request.query_params.get('prioridade', '').strip()
         atrasada_param = self.request.query_params.get('atrasada', '').strip()
         ordering_param = self.request.query_params.get('ordering', '').strip()
@@ -85,6 +89,8 @@ class ServicoViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(status=status_param)
         if catalogo_id:
             queryset = queryset.filter(catalogo_id=catalogo_id)
+        if setor_id:
+            queryset = queryset.filter(setor_id=setor_id)
         if prioridade_param:
             queryset = queryset.filter(prioridade=prioridade_param)
         if atrasada_param == 'true':

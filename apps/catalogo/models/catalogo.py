@@ -12,6 +12,13 @@ class Catalogo(models.Model):
     descricao = models.TextField(null=True, blank=True)
     horas_estimadas = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
     complexidade = models.PositiveSmallIntegerField(choices=Complexidade.choices, null=True, blank=True)
+    setor = models.ForeignKey(
+        'organizacoes.Setor',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='catalogos',
+    )
 
     class Meta:
         ordering = ['nome']
