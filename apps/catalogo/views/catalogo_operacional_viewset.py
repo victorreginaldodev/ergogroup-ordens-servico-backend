@@ -5,6 +5,7 @@ from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiPara
 
 from apps.catalogo.models import CatalogoOperacional
 from apps.catalogo.serializers import CatalogoOperacionalSerializer
+from apps.organizacoes.permissoes import Permissao, PermissoesPorAcaoMixin
 
 
 @extend_schema_view(
@@ -34,10 +35,16 @@ from apps.catalogo.serializers import CatalogoOperacionalSerializer
         description='Remove permanentemente um catálogo operacional.',
     ),
 )
-class CatalogoOperacionalViewSet(viewsets.ModelViewSet):
+class CatalogoOperacionalViewSet(PermissoesPorAcaoMixin, viewsets.ModelViewSet):
     queryset = CatalogoOperacional.objects.all()
     serializer_class = CatalogoOperacionalSerializer
     permission_classes = [IsAuthenticated]
+    permissoes_por_acao = {
+        'create': (Permissao.OS_OPERACIONAL_GERENCIAR,),
+        'update': (Permissao.OS_OPERACIONAL_GERENCIAR,),
+        'partial_update': (Permissao.OS_OPERACIONAL_GERENCIAR,),
+        'destroy': (Permissao.OS_OPERACIONAL_GERENCIAR,),
+    }
 
     def get_queryset(self):
         queryset = super().get_queryset()

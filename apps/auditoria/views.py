@@ -6,6 +6,7 @@ from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiPara
 
 from apps.auditoria.models import EntidadeAuditada, AcaoAuditoria, RegistroAuditoria
 from apps.auditoria.serializers import RegistroAuditoriaSerializer
+from apps.organizacoes.permissoes import Permissao, TemPermissao
 
 _FILTROS_PARAMS = [
     OpenApiParameter(
@@ -57,6 +58,9 @@ _FILTROS_PARAMS = [
 class RegistroAuditoriaViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = RegistroAuditoriaSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_permissions(self):
+        return [IsAuthenticated(), TemPermissao(Permissao.AUDITORIA_VER)]
 
     def get_queryset(self):
         queryset = RegistroAuditoria.objects.select_related('usuario').all()

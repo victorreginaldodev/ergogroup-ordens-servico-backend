@@ -6,7 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
 
 from apps.ordens_servico.models import Servico, Prioridade
-from apps.organizacoes.permissoes import Permissao, tem_permissao
+from apps.organizacoes.permissoes import Permissao, PermissoesPorAcaoMixin, tem_permissao
 from apps.ordens_servico.models.servico import StatusServico
 from apps.ordens_servico.serializers import ServicoListSerializer, ServicoSerializer
 
@@ -60,7 +60,7 @@ from apps.ordens_servico.serializers import ServicoListSerializer, ServicoSerial
         description='Remove permanentemente um serviço e suas tarefas vinculadas.',
     ),
 )
-class ServicoViewSet(viewsets.ModelViewSet):
+class ServicoViewSet(PermissoesPorAcaoMixin, viewsets.ModelViewSet):
     queryset = Servico.objects.select_related(
         'ordem_servico__cliente',
         'catalogo',
@@ -68,6 +68,13 @@ class ServicoViewSet(viewsets.ModelViewSet):
         'terminado_por',
     ).prefetch_related('tarefas').all()
     permission_classes = [IsAuthenticated]
+    permissoes_por_acao = {
+        'create': (Permissao.OS_GERENCIAR,),
+        'update': (Permissao.OS_GERENCIAR, Permissao.SERVICOS_GERENCIAR,),
+        'partial_update': (Permissao.OS_GERENCIAR, Permissao.SERVICOS_GERENCIAR,),
+        'destroy': (Permissao.OS_GERENCIAR, Permissao.SERVICOS_GERENCIAR,),
+        'sincronizar': (Permissao.OS_GERENCIAR, Permissao.SERVICOS_GERENCIAR,),
+    }
 
     def get_serializer_class(self):
         if self.action == 'list':

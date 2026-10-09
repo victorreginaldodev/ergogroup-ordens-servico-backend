@@ -102,3 +102,16 @@ class TemPermissao(BasePermission):
 
     def has_permission(self, request, view):
         return any(tem_permissao(request.user, p) for p in self.permissoes)
+
+
+class PermissoesPorAcaoMixin:
+    """Para viewsets: ``permissoes_por_acao = {'create': (Permissao.X,), ...}``. Ações fora do mapa
+    exigem só autenticação; ações no mapa exigem ao menos uma das permissões listadas."""
+    permissoes_por_acao = {}
+
+    def get_permissions(self):
+        permissoes = super().get_permissions()
+        exigidas = self.permissoes_por_acao.get(self.action)
+        if exigidas:
+            permissoes.append(TemPermissao(*exigidas))
+        return permissoes

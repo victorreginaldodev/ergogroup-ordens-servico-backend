@@ -353,3 +353,61 @@ class DistribuicaoDeTarefasTestCase(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         self.assertTrue(Tarefa.objects.filter(id=self.tarefa.id).exists())
+
+
+class EscritaPorPermissaoTestCase(APITestCase):
+    def setUp(self):
+        from apps.catalogo.models import Catalogo
+        self.cliente = Cliente.objects.create(nome='Cliente Escrita')
+        self.catalogo = Catalogo.objects.create(nome='PGR')
+        self.ordem = OrdemServico.objects.create(cliente=self.cliente, data_venda=timezone.localdate(), valor=0)
+        self.servico = Servico.objects.create(ordem_servico=self.ordem, descricao='servico')
+
+    def como(self, tipo):
+        self.client.force_authenticate(user=criar_usuario(tipo))
+
+    def test_tecnico_nao_cria_os(self):
+        self.como(TipoUsuario.TECNICO)
+        response = self.client.post(reverse('ordens-servico-list'), {
+            'cliente': self.cliente.id, 'data_venda': str(timezone.localdate()),
+        })
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_somente_diretoria_exclui_os(self):
+        self.como(TipoUsuario.COMERCIAL)
+        negado = self.client.delete(reverse('ordens-servico-detail', args=[self.ordem.id]))
+        self.como(TipoUsuario.DIRETOR)
+        permitido = self.client.delete(reverse('ordens-servico-detail', args=[self.ordem.id]))
+
+        self.assertEqual(negado.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(permitido.status_code, status.HTTP_204_NO_CONTENT)
+
+    def test_subgestor_tecnico_exclui_servico(self):
+        self.como(TipoUsuario.SUB_GESTOR_TECNICO)
+        response = self.client.delete(reverse('servicos-detail', args=[self.servico.id]))
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+    def test_financeiro_nao_altera_catalogo(self):
+        self.como(TipoUsuario.FINANCEIRO)
+        response = self.client.patch(reverse('catalogos-detail', args=[self.catalogo.id]), {'nome': 'Outro'})
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_comercial_altera_catalogo(self):
+        self.como(TipoUsuario.COMERCIAL)
+        response = self.client.patch(reverse('catalogos-detail', args=[self.catalogo.id]), {'nome': 'Outro'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_tecnico_continua_cadastrando_clientes(self):
+        self.como(TipoUsuario.TECNICO)
+        response = self.client.post(reverse('clientes-list'), {'nome': 'Cliente Novo'})
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_administrativo_nao_gerencia_catalogo_operacional(self):
+        self.como(TipoUsuario.ADMINISTRATIVO)
+        response = self.client.post(reverse('catalogos-operacionais-list'), {'nome': 'Revisão'})
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_tecnico_continua_vendo_a_auditoria(self):
+        self.como(TipoUsuario.TECNICO)
+        response = self.client.get(reverse('auditoria-registros-list'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)

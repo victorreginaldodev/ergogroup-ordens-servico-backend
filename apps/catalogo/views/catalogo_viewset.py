@@ -5,6 +5,7 @@ from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiPara
 
 from apps.catalogo.models import Catalogo
 from apps.catalogo.serializers import CatalogoSerializer
+from apps.organizacoes.permissoes import Permissao, PermissoesPorAcaoMixin
 
 
 @extend_schema_view(
@@ -40,10 +41,16 @@ from apps.catalogo.serializers import CatalogoSerializer
         ),
     ),
 )
-class CatalogoViewSet(viewsets.ModelViewSet):
+class CatalogoViewSet(PermissoesPorAcaoMixin, viewsets.ModelViewSet):
     queryset = Catalogo.objects.prefetch_related('subitens').all()
     serializer_class = CatalogoSerializer
     permission_classes = [IsAuthenticated]
+    permissoes_por_acao = {
+        'create': (Permissao.CATALOGO_GERENCIAR,),
+        'update': (Permissao.CATALOGO_GERENCIAR,),
+        'partial_update': (Permissao.CATALOGO_GERENCIAR,),
+        'destroy': (Permissao.CATALOGO_GERENCIAR,),
+    }
 
     def get_queryset(self):
         queryset = super().get_queryset()

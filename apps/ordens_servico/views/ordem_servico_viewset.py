@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
 
-from apps.organizacoes.permissoes import Permissao, TemPermissao, tem_permissao
+from apps.organizacoes.permissoes import Permissao, PermissoesPorAcaoMixin, tem_permissao
 from apps.ordens_servico.models import OrdemServico
 from apps.ordens_servico.serializers import (
     OrdemServicoListSerializer,
@@ -64,7 +64,7 @@ from apps.ordens_servico.serializers import (
         description='Remove permanentemente uma ordem de serviço.',
     ),
 )
-class OrdemServicoViewSet(viewsets.ModelViewSet):
+class OrdemServicoViewSet(PermissoesPorAcaoMixin, viewsets.ModelViewSet):
     queryset = OrdemServico.objects.select_related(
         'cliente',
         'criado_por',
@@ -73,11 +73,13 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
         'cobranca_realizada_por',
     ).prefetch_related('servicos__tarefas__responsavel').all()
     permission_classes = [IsAuthenticated]
-
-    def get_permissions(self):
-        if self.action == 'registrar_cobranca':
-            return [IsAuthenticated(), TemPermissao(Permissao.FINANCEIRO_REGISTRAR_COBRANCA)]
-        return [IsAuthenticated()]
+    permissoes_por_acao = {
+        'create': (Permissao.OS_GERENCIAR,),
+        'update': (Permissao.OS_GERENCIAR,),
+        'partial_update': (Permissao.OS_GERENCIAR,),
+        'destroy': (Permissao.OS_EXCLUIR,),
+        'registrar_cobranca': (Permissao.FINANCEIRO_REGISTRAR_COBRANCA,),
+    }
 
     def get_serializer_class(self):
         if self.action == 'list':

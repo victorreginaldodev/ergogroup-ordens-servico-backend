@@ -6,6 +6,7 @@ from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiPara
 from apps.clientes.models import Cliente
 from apps.clientes.models.cliente import TipoCliente
 from apps.clientes.serializers import ClienteListSerializer, ClienteSerializer
+from apps.organizacoes.permissoes import Permissao, PermissoesPorAcaoMixin
 
 
 @extend_schema_view(
@@ -53,9 +54,15 @@ from apps.clientes.serializers import ClienteListSerializer, ClienteSerializer
         description='Remove permanentemente um cliente.',
     ),
 )
-class ClienteViewSet(viewsets.ModelViewSet):
+class ClienteViewSet(PermissoesPorAcaoMixin, viewsets.ModelViewSet):
     queryset = Cliente.objects.all()
     permission_classes = [IsAuthenticated]
+    permissoes_por_acao = {
+        'create': (Permissao.CLIENTES_GERENCIAR,),
+        'update': (Permissao.CLIENTES_GERENCIAR,),
+        'partial_update': (Permissao.CLIENTES_GERENCIAR,),
+        'destroy': (Permissao.CLIENTES_GERENCIAR,),
+    }
 
     def get_serializer_class(self):
         if self.action == 'list':

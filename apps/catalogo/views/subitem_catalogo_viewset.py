@@ -5,6 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 
 from apps.catalogo.models import SubitemCatalogo
 from apps.catalogo.serializers import SubitemCatalogoSerializer
+from apps.organizacoes.permissoes import Permissao, PermissoesPorAcaoMixin
 
 
 @extend_schema_view(
@@ -38,10 +39,16 @@ from apps.catalogo.serializers import SubitemCatalogoSerializer
         description='Remove permanentemente um subitem de catálogo.',
     ),
 )
-class SubitemCatalogoViewSet(viewsets.ModelViewSet):
+class SubitemCatalogoViewSet(PermissoesPorAcaoMixin, viewsets.ModelViewSet):
     queryset = SubitemCatalogo.objects.select_related('catalogo').all()
     serializer_class = SubitemCatalogoSerializer
     permission_classes = [IsAuthenticated]
+    permissoes_por_acao = {
+        'create': (Permissao.CATALOGO_GERENCIAR,),
+        'update': (Permissao.CATALOGO_GERENCIAR,),
+        'partial_update': (Permissao.CATALOGO_GERENCIAR,),
+        'destroy': (Permissao.CATALOGO_GERENCIAR,),
+    }
 
     def get_queryset(self):
         queryset = super().get_queryset()
