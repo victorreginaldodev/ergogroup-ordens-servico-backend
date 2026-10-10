@@ -6,7 +6,8 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
 
-from apps.ordens_servico.services import comercial
+from apps.ordens_servico.serializers.linha_do_tempo_serializer import EventoDaLinhaDoTempoSerializer
+from apps.ordens_servico.services import comercial, linha_do_tempo
 from apps.ordens_servico.services.visibilidade import ordens_visiveis
 from apps.organizacoes.permissoes import Permissao, PermissoesPorAcaoMixin
 from apps.ordens_servico.models import OrdemServico
@@ -158,6 +159,20 @@ class OrdemServicoViewSet(PermissoesPorAcaoMixin, viewsets.ModelViewSet):
         except DjangoValidationError as exc:
             return Response({'detail': exc.messages[0]}, status=status.HTTP_400_BAD_REQUEST)
         return Response(OrdemServicoSerializer(os, context={'request': request}).data)
+
+    @extend_schema(
+        summary='Linha do tempo da OS',
+        description=(
+            'O que aconteceu, em eventos legíveis e em ordem cronológica, montados a partir da auditoria. '
+            'Condições de pagamento e a referência do lançamento só para quem tem `financeiro.ver_valores`. '
+            'Acessa quem vê a OS; inclui os eventos de todos os serviços e tarefas da OS.'
+        ),
+        responses={200: EventoDaLinhaDoTempoSerializer(many=True)},
+    )
+    @action(detail=True, methods=['get'], url_path='linha-do-tempo')
+    def linha_do_tempo(self, request, pk=None):
+        eventos = linha_do_tempo.linha_do_tempo_da_os(self.get_object(), request.user)
+        return Response(EventoDaLinhaDoTempoSerializer(eventos, many=True).data)
 
     @extend_schema(
         summary='Verificar liberação para cobrança',

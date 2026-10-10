@@ -6,6 +6,8 @@ from rest_framework.permissions import BasePermission, IsAuthenticated
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
 
 from apps.ordens_servico.models import Servico, Prioridade
+from apps.ordens_servico.serializers.linha_do_tempo_serializer import EventoDaLinhaDoTempoSerializer
+from apps.ordens_servico.services import linha_do_tempo
 from apps.ordens_servico.services.visibilidade import servicos_visiveis
 from apps.organizacoes.permissoes import Permissao, PermissoesPorAcaoMixin, tem_permissao
 from apps.ordens_servico.models.servico import StatusServico
@@ -127,6 +129,20 @@ class ServicoViewSet(PermissoesPorAcaoMixin, viewsets.ModelViewSet):
             queryset = queryset.order_by(ordering_param)
 
         return queryset
+
+    @extend_schema(
+        summary='Linha do tempo do serviço',
+        description=(
+            'O que aconteceu, em eventos legíveis e em ordem cronológica, montados a partir da auditoria. '
+            'Condições de pagamento e a referência do lançamento só para quem tem `financeiro.ver_valores`. '
+            'Acessa quem vê o serviço; traz só o serviço e suas tarefas.'
+        ),
+        responses={200: EventoDaLinhaDoTempoSerializer(many=True)},
+    )
+    @action(detail=True, methods=['get'], url_path='linha-do-tempo')
+    def linha_do_tempo(self, request, pk=None):
+        eventos = linha_do_tempo.linha_do_tempo_do_servico(self.get_object(), request.user)
+        return Response(EventoDaLinhaDoTempoSerializer(eventos, many=True).data)
 
     @extend_schema(
         summary='Sincronizar status do serviço',
