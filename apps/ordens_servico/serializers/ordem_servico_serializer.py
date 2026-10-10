@@ -3,6 +3,8 @@ from drf_spectacular.utils import extend_schema_field
 
 from apps.ordens_servico.models import OrdemServico
 from apps.ordens_servico.models.ordem_servico import validar_condicao_pagamento
+from apps.ordens_servico.serializers.servico_serializer import ServicoDaVendaSerializer
+from apps.ordens_servico.services.venda import registrar_venda
 from apps.clientes.models import Cliente
 from apps.clientes.serializers import ClienteListSerializer, ClienteSerializer
 from apps.organizacoes.permissoes import Permissao, tem_permissao
@@ -86,11 +88,16 @@ class OrdemServicoSerializer(OcultaValoresMixin, serializers.ModelSerializer):
     finalizador_nome = serializers.SerializerMethodField()
     dias_em_aberto = serializers.IntegerField(read_only=True, allow_null=True)
     dias_entre_criacao_e_conclusao = serializers.IntegerField(read_only=True, allow_null=True)
+    servicos = ServicoDaVendaSerializer(
+        many=True, required=False,
+        help_text='Serviços vendidos, enviados junto na criação da OS. Na edição é somente leitura: '
+                  'use /servicos/ para acrescentar ou alterar serviços.',
+    )
 
     class Meta:
         model = OrdemServico
         fields = [
-            'id', 'cliente', 'cliente_detail',
+            'id', 'cliente', 'cliente_detail', 'servicos',
             'criado_por', 'criado_por_nome', 'data_venda', 'criada_em',
             'status', 'status_display', 'prioridade', 'prioridade_display', 'prazo', 'valor',
             'valor_mensal', 'tipo_condicao', 'tipo_condicao_display',
@@ -167,11 +174,18 @@ class OrdemServicoSerializer(OcultaValoresMixin, serializers.ModelSerializer):
         usuario = ultimo_servico.terminado_por
         return usuario.nome_completo or usuario.get_full_name() or usuario.username
 
+    def get_fields(self):
+        fields = super().get_fields()
+        if self.instance is not None:
+            fields['servicos'].read_only = True
+        return fields
+
     def create(self, validated_data):
         request = self.context.get('request')
         if request and request.user.is_authenticated:
             validated_data['criado_por'] = request.user
-        return super().create(validated_data)
+        servicos = validated_data.pop('servicos', [])
+        return registrar_venda(validated_data, servicos)
 
     def update(self, instance, validated_data):
         request = self.context.get('request')

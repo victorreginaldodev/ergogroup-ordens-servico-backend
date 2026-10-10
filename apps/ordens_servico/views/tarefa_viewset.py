@@ -1,6 +1,5 @@
 from django.utils import timezone
 from rest_framework import viewsets
-from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import BasePermission, IsAuthenticated
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
 
@@ -52,11 +51,6 @@ class PodeModificarTarefa(BasePermission):
             self.message = 'O responsável pode alterar apenas o status da própria tarefa.'
             return False
         return True
-
-
-def exigir_distribuicao_no_setor(usuario, servico):
-    if not tem_permissao(usuario, Permissao.TAREFAS_DISTRIBUIR, servico.setor_id):
-        raise PermissionDenied('Seu perfil não pode distribuir tarefas neste setor.')
 
 
 @extend_schema_view(
@@ -120,16 +114,6 @@ class TarefaViewSet(viewsets.ModelViewSet):
         if self.action == 'list':
             return TarefaListSerializer
         return TarefaSerializer
-
-    def perform_create(self, serializer):
-        exigir_distribuicao_no_setor(self.request.user, serializer.validated_data['servico'])
-        serializer.save()
-
-    def perform_update(self, serializer):
-        novo_servico = serializer.validated_data.get('servico')
-        if novo_servico is not None and novo_servico != serializer.instance.servico:
-            exigir_distribuicao_no_setor(self.request.user, novo_servico)
-        serializer.save()
 
     def get_queryset(self):
         queryset = super().get_queryset()

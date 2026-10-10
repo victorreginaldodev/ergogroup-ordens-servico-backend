@@ -4,6 +4,7 @@ from drf_spectacular.utils import extend_schema_field
 from apps.ordens_servico.models import Servico, Prioridade
 from apps.catalogo.models import Catalogo
 from apps.catalogo.serializers import CatalogoSerializer
+from apps.ordens_servico.services.venda import avisar_chegada
 
 
 class ServicoListSerializer(serializers.ModelSerializer):
@@ -99,4 +100,25 @@ class ServicoSerializer(serializers.ModelSerializer):
             if ordem_servico is not None:
                 validated_data['prioridade'] = ordem_servico.prioridade
 
-        return super().create(validated_data)
+        servico = super().create(validated_data)
+        # Serviço acrescentado a uma OS existente avisa só o setor dele.
+        avisar_chegada([servico])
+        return servico
+
+
+class ServicoDaVendaSerializer(serializers.ModelSerializer):
+    """Serviço vendido, enviado junto na criação da OS (ADR 0008, 5). O setor vem do catálogo."""
+    catalogo = serializers.PrimaryKeyRelatedField(queryset=Catalogo.objects.all())
+    catalogo_nome = serializers.CharField(source='catalogo.nome', read_only=True, default=None)
+    setor_nome = serializers.CharField(source='setor.nome', read_only=True, default=None)
+    prioridade = serializers.ChoiceField(choices=Prioridade.choices, required=False)
+
+    class Meta:
+        model = Servico
+        fields = ['id', 'catalogo', 'catalogo_nome', 'setor', 'setor_nome', 'descricao', 'prioridade', 'status']
+        read_only_fields = ['setor', 'status']
+
+    def validate_catalogo(self, catalogo):
+        if not catalogo.ativo:
+            raise serializers.ValidationError('Este catálogo está inativo e não pode ser usado em serviços novos.')
+        return catalogo

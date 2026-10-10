@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 from apps.ordens_servico.models.ordem_servico import Prioridade
@@ -10,6 +11,17 @@ class StatusTarefa(models.TextChoices):
     EM_ANDAMENTO = 'em_andamento', 'Em Andamento'
     CONCLUIDA = 'concluida', 'Concluída'
     CANCELADA = 'cancelada', 'Cancelada'
+
+
+def validar_responsavel_no_setor(servico, responsavel):
+    """Só quem pertence ao setor do serviço recebe tarefas dele (ADR 0008, 2). Serviço sem setor (legado,
+    sem catálogo) não tem a restrição."""
+    setor = servico.setor if servico is not None else None
+    if setor is None or responsavel is None:
+        return
+    if not setor.tem_membro(responsavel):
+        nome = responsavel.nome_completo or responsavel.email
+        raise ValidationError({'responsavel': f'{nome} não pertence ao setor "{setor}".'})
 
 
 class Tarefa(models.Model):
@@ -42,6 +54,15 @@ class Tarefa(models.Model):
 
     # Mudanças que contam como movimentação do serviço (ADR 0008, 3). Corrigir a descrição não conta.
     CAMPOS_DE_MOVIMENTACAO = ('status', 'responsavel_id', 'prazo', 'servico_id')
+
+    def clean(self):
+        super().clean()
+        # Vale para atribuições novas: tarefas antigas com responsável de fora do setor continuam válidas.
+        if self.pk:
+            anterior = Tarefa.objects.filter(pk=self.pk).values('responsavel_id', 'servico_id').first()
+            if anterior == {'responsavel_id': self.responsavel_id, 'servico_id': self.servico_id}:
+                return
+        validar_responsavel_no_setor(self.servico if self.servico_id else None, self.responsavel)
 
     def save(self, *args, **kwargs):
         from apps.ordens_servico.models import Servico

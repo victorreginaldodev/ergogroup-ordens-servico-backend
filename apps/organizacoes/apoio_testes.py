@@ -64,10 +64,11 @@ def criar_usuario_com_perfil(perfil=None, **dados):
 
 
 def criar_usuario(perfil, **extra):
-    """Cria um usuário com dados genéricos; ``perfil=None`` cria sem vínculo."""
+    """Cria um usuário com dados genéricos, que ``extra`` pode substituir; ``perfil=None`` cria sem vínculo."""
     n = Usuario.objects.count()
     nome = perfil or 'sem_vinculo'
-    return criar_usuario_com_perfil(
-        perfil, username=f'{nome}_{n}', email=f'{nome}{n}@ergogroup.test',
-        password='senha-teste-123', nome_completo=f'Usuario {nome}', **extra,
-    )
+    dados = {
+        'username': f'{nome}_{n}', 'email': f'{nome}{n}@ergogroup.test',
+        'password': 'senha-teste-123', 'nome_completo': f'Usuario {nome}', **extra,
+    }
+    return criar_usuario_com_perfil(perfil, **dados)

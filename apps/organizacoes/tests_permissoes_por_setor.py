@@ -122,8 +122,10 @@ class AcoesPorSetorTestCase(PermissoesPorSetorBase):
         self.client.force_authenticate(user=self.ana)
 
     def test_distribui_tarefa_so_no_setor_que_gerencia(self):
+        executor = criar_usuario(None)
+        self.vincular(executor, self.ergonomia, self.tecnico)
         no_setor = self.client.post(reverse('tarefas-list'), {
-            'servico': self.servico_ergonomia.id, 'responsavel': self.colega.id,
+            'servico': self.servico_ergonomia.id, 'responsavel': executor.id,
         })
         fora_do_setor = self.client.post(reverse('tarefas-list'), {
             'servico': self.servico_medicina.id, 'responsavel': self.colega.id,

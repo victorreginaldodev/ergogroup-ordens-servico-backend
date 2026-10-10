@@ -5,6 +5,7 @@ from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiPara
 
 from apps.catalogo.models import Catalogo
 from apps.catalogo.serializers import CatalogoSerializer
+from apps.organizacoes.models import Setor
 from apps.organizacoes.permissoes import Permissao, PermissoesPorAcaoMixin
 
 
@@ -26,7 +27,10 @@ from apps.organizacoes.permissoes import Permissao, PermissoesPorAcaoMixin
     ),
     create=extend_schema(
         summary='Criar catálogo',
-        description='Cria um novo catálogo. O setor responsável pela execução é obrigatório e precisa estar ativo.',
+        description=(
+            'Cria um novo catálogo. O setor responsável pela execução é obrigatório e precisa estar ativo. '
+            'A resposta traz `avisos` quando o setor ainda não tem quem o organize.'
+        ),
     ),
     retrieve=extend_schema(
         summary='Detalhar catálogo',
@@ -59,6 +63,24 @@ class CatalogoViewSet(PermissoesPorAcaoMixin, viewsets.ModelViewSet):
         'destroy': (Permissao.CATALOGO_GERENCIAR,),
     }
     dica_exclusao_bloqueada = 'Desative o catálogo em vez de excluí-lo.'
+
+    def create(self, request, *args, **kwargs):
+        return self._com_avisos(super().create(request, *args, **kwargs))
+
+    def update(self, request, *args, **kwargs):
+        return self._com_avisos(super().update(request, *args, **kwargs))
+
+    def _com_avisos(self, response):
+        """Aceita catálogo de setor sem organizador, mas avisa: os serviços cairiam numa fila sem ninguém
+        responsável por distribuí-los (ADR 0008, 1)."""
+        setor = Setor.objects.filter(pk=response.data.get('setor')).first()
+        response.data['avisos'] = []
+        if setor is not None and not setor.organizadores():
+            response.data['avisos'].append(
+                f'O setor "{setor}" ainda não tem quem organize o trabalho (ninguém com permissão de ver e '
+                'distribuir os serviços do setor). Os serviços deste catálogo vão chegar a uma fila sem responsável.'
+            )
+        return response
 
     def get_queryset(self):
         queryset = super().get_queryset()

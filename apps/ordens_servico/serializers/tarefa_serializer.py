@@ -1,7 +1,10 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError as DjangoValidationError
 
 from apps.ordens_servico.models import Tarefa, Prioridade
+from apps.ordens_servico.models.tarefa import validar_responsavel_no_setor
+from apps.ordens_servico.services.distribuicao import exigir_distribuicao_no_setor
 
 Usuario = get_user_model()
 
@@ -40,6 +43,25 @@ class TarefaSerializer(serializers.ModelSerializer):
             'data_inicio', 'data_termino', 'criada_em', 'atualizado_em',
         ]
         read_only_fields = ['data_inicio', 'data_termino', 'criada_em', 'atualizado_em']
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        servico = attrs.get('servico', getattr(self.instance, 'servico', None))
+        responsavel = attrs.get('responsavel', getattr(self.instance, 'responsavel', None))
+        request = self.context.get('request')
+        # Criar tarefa ou movê-la de serviço é distribuir no setor de destino: a permissão vem antes da validação.
+        novo_servico = self.instance is None or servico != self.instance.servico
+        if request is not None and servico is not None and novo_servico:
+            exigir_distribuicao_no_setor(request.user, servico)
+        mudou = self.instance is None or (
+            servico != self.instance.servico or responsavel != self.instance.responsavel
+        )
+        if mudou:
+            try:
+                validar_responsavel_no_setor(servico, responsavel)
+            except DjangoValidationError as exc:
+                raise serializers.ValidationError(exc.message_dict)
+        return attrs
 
     def create(self, validated_data):
         if 'prioridade' not in validated_data:

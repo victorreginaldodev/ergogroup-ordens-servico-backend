@@ -37,6 +37,10 @@ PERMISSOES_POR_SETOR = frozenset({
 })
 
 
+# Quem tem as duas num setor organiza aquele setor (ADR 0008, 1): recebe o aviso de chegada e distribui.
+PERMISSOES_DE_ORGANIZACAO = frozenset({Permissao.SERVICOS_VER_SETOR, Permissao.TAREFAS_DISTRIBUIR})
+
+
 def escopo_da_permissao(permissao) -> str:
     return 'setor' if permissao in PERMISSOES_POR_SETOR else 'global'
 

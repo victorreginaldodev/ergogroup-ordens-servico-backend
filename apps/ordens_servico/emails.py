@@ -52,6 +52,28 @@ def _enviar(assunto, template, contexto, destinatarios):
     return len(destinatarios)
 
 
+def notificar_chegada_aos_setores(servicos):
+    """Um e-mail por setor, para quem organiza o setor, com os serviços que chegaram a ele (ADR 0008, 5)."""
+    por_setor = {}
+    for servico in servicos:
+        por_setor.setdefault(servico.setor_id, []).append(servico)
+
+    total = 0
+    for itens in por_setor.values():
+        setor = itens[0].setor
+        destinatarios = [usuario.email for usuario in setor.organizadores() if usuario.email]
+        ordens = sorted({servico.ordem_servico_id for servico in itens})
+        quantidade = f'{len(itens)} serviço' + ('s' if len(itens) > 1 else '')
+        assunto = f'{quantidade} para {setor.nome} - OS ' + ', '.join(f'#{numero}' for numero in ordens)
+        contexto = {
+            'setor': setor,
+            'servicos': itens,
+            'link': f'{settings.FRONTEND_URL}/ordens/{ordens[0]}' if len(ordens) == 1 else settings.FRONTEND_URL,
+        }
+        total += _enviar(assunto, 'emails/servicos_chegaram.html', contexto, destinatarios)
+    return total
+
+
 def notificar_atribuicao_tarefa(tarefa):
     responsavel = tarefa.responsavel
     if not responsavel or not responsavel.email:
