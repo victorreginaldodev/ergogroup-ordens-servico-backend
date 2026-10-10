@@ -10,8 +10,8 @@ class SubitemCatalogoInline(admin.TabularInline):
 
 @admin.register(Catalogo)
 class CatalogoAdmin(admin.ModelAdmin):
-    list_display = ['nome', 'setor', 'descricao']
-    list_filter = ['setor']
+    list_display = ['nome', 'setor', 'ativo', 'descricao']
+    list_filter = ['setor', 'ativo']
     search_fields = ['nome']
     inlines = [SubitemCatalogoInline]
 

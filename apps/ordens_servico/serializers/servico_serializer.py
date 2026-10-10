@@ -93,6 +93,12 @@ class ServicoSerializer(serializers.ModelSerializer):
         usuario = obj.terminado_por
         return usuario.nome_completo or usuario.get_full_name() or usuario.username
 
+    def validate_catalogo(self, catalogo):
+        mudou = self.instance is None or self.instance.catalogo_id != getattr(catalogo, 'pk', None)
+        if catalogo is not None and mudou and not catalogo.ativo:
+            raise serializers.ValidationError('Este catálogo está inativo e não pode ser usado em serviços novos.')
+        return catalogo
+
     def create(self, validated_data):
         if 'prioridade' not in validated_data:
             ordem_servico = validated_data.get('ordem_servico')

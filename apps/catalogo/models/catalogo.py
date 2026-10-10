@@ -8,14 +8,19 @@ class Complexidade(models.IntegerChoices):
 
 
 class Catalogo(models.Model):
+    """Tipo de serviço vendido. O ``setor`` é o setor responsável por executar esse serviço: é ele que
+    define em qual fila o serviço cai quando uma OS é vendida (ver ``Servico.setor``)."""
     nome = models.CharField(max_length=100)
     descricao = models.TextField(null=True, blank=True)
     setor = models.ForeignKey(
         'organizacoes.Setor',
         on_delete=models.PROTECT,
-        null=True,
-        blank=True,
         related_name='catalogos',
+        verbose_name='setor responsável pela execução',
+    )
+    ativo = models.BooleanField(
+        default=True,
+        help_text='Catálogos inativos continuam nos serviços já vendidos, mas não podem ser usados em serviços novos.',
     )
 
     class Meta:
