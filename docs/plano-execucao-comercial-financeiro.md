@@ -19,7 +19,7 @@ Base: `docs/telas-blocos-e-endpoints.md` (blocos mapeados) e ADR 0008 (decisões
 |---|---|---|
 | 6 | Camada de dados da execução e do recorrente | ✅ concluída em 10/10/2026 |
 | 7 | Regras da execução: responsável do setor, serviços na criação da OS, aviso por setor, setor sem organizador | ✅ concluída em 10/10/2026 |
-| 8 | Blocos da execução (fila, distribuir, andamento, alertas, concluídos, carga, meus serviços, detalhe) | a fazer |
+| 8 | Blocos da execução (fila, distribuir, andamento, alertas, concluídos, carga, meus serviços, detalhe) | ✅ concluída em 10/10/2026 |
 | 9 | Blocos do comercial (resumo da condição, lista de vendas com andamento, resumo da venda) | a fazer |
 | 10 | Blocos do financeiro (cobranças, situação financeira, alerta, indicadores) | a fazer |
 | 11 | Linha do tempo da OS e do serviço | a fazer |
@@ -67,7 +67,16 @@ Concluída em 10/10/2026 (217 testes passando).
 | 7.4 | **Setor sem organizador** (ADR 0008, 1): `GET /api/organizacoes/setores/` devolve `organizadores` (nomes completos) e `sem_organizador`; atribuir catálogo a setor sem organizador devolve `avisos` na resposta. | setor novo sem função → `sem_organizador` |
 | 7.5 | **Teste de setor novo de ponta a ponta:** cria setor, função com permissões de organização, membro, catálogo e venda; percorre fila → distribuição → execução → conclusão → liberação. | o próprio teste |
 
-## Fase 8 — Blocos da execução
+## Fase 8 — Blocos da execução ✅
+
+Concluída em 10/10/2026 (247 testes passando). Código: `apps/ordens_servico/services/execucao.py` (lógica), `views/execucao_views.py`, `serializers/execucao_serializer.py` e `urls_execucao.py`, montado em `/api/execucao/`. Documentação de cada endpoint no Swagger, na tag **execução**.
+
+**Ajustes em relação à tabela abaixo:**
+- 8.1: quem não acompanha nenhum setor recebe 403.
+- 8.4 e 8.9: a idade da tarefa vem em `idade_dias`, contada da criação. Não há data de reatribuição (`atribuida_em` continua proposta), então a idade não reinicia quando a tarefa troca de mão.
+- 8.6: só serviços abertos ou em andamento recebem ciência (400 nos demais).
+- Erros comuns aos blocos por setor: 400 sem `?setor=`, 404 para setor inexistente e 403 para quem não acompanha o setor. Serviço que a pessoa não vê responde 404.
+
 
 Todos recebem `?setor=<id>`. A permissão vale **no setor informado**; com `setores.todos`, vale em qualquer setor.
 
