@@ -18,7 +18,7 @@ Uma primeira proposta, de gerenciar parcelas e planos de cobrança dentro do sis
    1. **registrar** com clareza as condições de pagamento combinadas na venda;
    2. **avisar** quando a OS pode ser lançada (liberação: uma vez, na venda ou quando todos os serviços terminarem, como hoje);
    3. **guardar o "check"** do financeiro de que a OS foi lançada no outro sistema, com a referência do lançamento.
-4. **O nome do passo "lançado" é provisório.** Não se sabe como o financeiro o chama; o nome do domínio pode mudar quando isso for levantado.
+4. **Os nomes são provisórios.** O usuário levantou que talvez nem "faturamento" nem "cobrança" sejam o nome certo do domínio, já que o sistema não fatura nem cobra; ele registra, avisa e confere. Também não se sabe como o financeiro chama o passo "lançado". Os nomes podem mudar quando isso for levantado.
 5. **Contrato substituído pelo recorrente.** O recurso de contrato da OS não está de fato em uso. Os campos de contrato saem e o tipo de condição "recorrente" ocupa esse lugar. Os dados existentes são preservados: a migração copia as informações para a observação da OS antes de remover os campos.
 6. **Integração por API:** é desejável lançar automaticamente no outro sistema, **se não der muito trabalho**. O modelo deve ser preparado para isso sem implementar a integração agora.
 7. **A OS operacional está fora deste fluxo** e fora de escopo.

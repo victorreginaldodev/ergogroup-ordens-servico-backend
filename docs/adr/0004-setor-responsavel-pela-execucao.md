@@ -16,7 +16,8 @@ Na mesma época, a gestora da área técnica decidiu que horas estimadas e compl
 3. **Setor de execução é um conceito derivado:** é um setor que é responsável por algum catálogo. Não existe um campo para isso. O Comercial não é de execução porque nenhum catálogo aponta para ele. Um setor novo (ex.: Ergonomia) passa a executar serviços assim que algum catálogo for atribuído a ele.
 4. **Classificação inicial:** todos os 123 catálogos foram vinculados a **Segurança do Trabalho**, e os 1.526 serviços com catálogo receberam esse setor (migrações `catalogo/0007` e `ordens_servico/0007`). A classificação fina fica para depois.
 5. **`Catalogo.ativo`:** catálogo aposentado continua nos serviços já vendidos, mas não pode ser usado em serviços novos (validação em `ServicoSerializer`). Filtro `?ativo=true` para a criação de OS. Excluir catálogo em uso responde 409 sugerindo desativar.
-6. **Horas estimadas e complexidade saíram do catálogo** (migrações `catalogo/0004` e `0005`). Antes de remover as colunas, os valores foram copiados para os serviços que ainda os herdavam. O catálogo operacional manteve esses campos porque a OS operacional está fora desta sprint. Para serviço e tarefa, ver ADR 0005.
+6. **API do catálogo:** os campos são listados explicitamente (sem `fields = '__all__'`) e a resposta inclui `setor_nome`.
+7. **Horas estimadas e complexidade saíram do catálogo** (migrações `catalogo/0004` e `0005`). Antes de remover as colunas, os valores foram copiados para os serviços que ainda os herdavam. O catálogo operacional manteve esses campos porque a OS operacional está fora desta sprint. Para serviço e tarefa, ver ADR 0005.
 
 ## Alternativas consideradas
 - **Setor definido na venda:** rejeitado, porque quem vende não precisaria conhecer a estrutura técnica e haveria divergência entre vendedores.

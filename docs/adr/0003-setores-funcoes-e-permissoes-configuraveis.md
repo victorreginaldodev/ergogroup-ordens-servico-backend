@@ -74,6 +74,35 @@ Os 43 usuários do dev foram vinculados, e o acesso foi conferido usuário a usu
 - Criar e editar usuário aceitam `vinculos: [{setor, funcao}]`.
 - Login, refresh, `/auth/me/` e detalhe de usuário devolvem `vinculos` e `permissoes` (`globais`, `por_setor`, `todos_os_setores`).
 
+### Regras de acesso em detalhe (implementadas em 09–10/10/2026)
+- **Valores (A2):** para quem não tem `financeiro.ver_valores`, valor, forma de pagamento, parcelas e data acordada de cobrança:
+  - **somem da resposta** da OS, na lista e no detalhe;
+  - **são ignorados na edição**, porque o formulário do frontend reenvia o valor e sem isso a OS seria gravada com valor zero;
+  - **continuam aceitos na criação**, porque quem lança a venda informa o valor.
+- **Cobrança (A3):** só pelo endpoint dedicado, com `financeiro.registrar_cobranca`. Os campos de cobrança são somente leitura na edição comum da OS.
+- **Visibilidade (A5):** sem `os.ver_todas`, a pessoa vê o que tem tarefa dela e os serviços dos setores onde tem `servicos.ver_setor` (`apps/ordens_servico/services/visibilidade.py`). Vale para OS, serviços e tarefas.
+- **Tarefas (A6):**
+  - criar, reatribuir e excluir exigem `tarefas.distribuir` no setor do serviço;
+  - editar tarefa de outra pessoa exige `tarefas.editar_setor`;
+  - sem essas permissões, **o responsável altera apenas o status da própria tarefa**, como o frontend já fazia;
+  - mover uma tarefa para outro serviço exige `tarefas.distribuir` no setor de destino.
+- **Serviços:** ajustar, excluir e ressincronizar exigem `os.gerenciar` ou `servicos.gerenciar` no setor do serviço.
+- **Escrita em cadastros (A7):** clientes exigem `clientes.gerenciar`; catálogo exige `catalogo.gerenciar`; OS exige `os.gerenciar` para criar e editar e `os.excluir` para excluir; auditoria exige `auditoria.ver` (concedida a todos).
+- **Notificações por e-mail:**
+  - destinatários escolhidos por permissão:
+    - liberação para cobrança → quem tem `financeiro.registrar_cobranca`;
+    - cobrança realizada → quem tem `financeiro.ver_valores` e (`os.gerenciar` ou `financeiro.registrar_cobranca`);
+    - nova OS com contrato → todos, com ou sem valores conforme `financeiro.ver_valores`;
+  - as notificações estão **desligadas pela configuração `EMAIL_NOTIFICATIONS_ENABLED`**; os testes rodam com elas ligadas.
+
+### Achado de segurança (10/10/2026)
+- O login (`LoginView` e `LoginSerializer`) tinha `print`s que gravavam no log **os dados recebidos, incluindo a senha, e a resposta com os tokens**. Foram removidos.
+- **Recomendação:** verificar se os logs de produção guardaram essa saída. Se sim, limpar os logs e avaliar a troca de senhas e a invalidação dos tokens.
+
+### Organização: pendência
+- A `Organizacao` guarda dados cadastrais básicos: nome, razão social, CNPJ, inscrições, contato e endereço. É a base da futura tela de configurações; a Ergogroup foi criada por migração.
+- No pedido do usuário apareceu "nome, dar o grupo, razão social". **Um campo de grupo econômico não foi criado**; falta confirmar se é necessário.
+
 ## Alternativas consideradas
 - **Função por setor (cada função pertence a um único setor):** rejeitada, porque impede reaproveitar uma função genérica (ex.: "Gestor de Área") em vários setores.
 - **Permissões marcadas direto em cada usuário:** rejeitada; com dezenas de usuários vira configuração repetida e sujeita a erro. A função funciona como molde, e exceções por usuário podem ser acrescentadas no futuro.
