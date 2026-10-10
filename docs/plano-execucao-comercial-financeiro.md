@@ -20,7 +20,7 @@ Base: `docs/telas-blocos-e-endpoints.md` (blocos mapeados) e ADR 0008 (decisões
 | 6 | Camada de dados da execução e do recorrente | ✅ concluída em 10/10/2026 |
 | 7 | Regras da execução: responsável do setor, serviços na criação da OS, aviso por setor, setor sem organizador | ✅ concluída em 10/10/2026 |
 | 8 | Blocos da execução (fila, distribuir, andamento, alertas, concluídos, carga, meus serviços, detalhe) | ✅ concluída em 10/10/2026 |
-| 9 | Blocos do comercial (resumo da condição, lista de vendas com andamento, resumo da venda) | a fazer |
+| 9 | Blocos do comercial (resumo da condição, lista de vendas com andamento, resumo da venda) | ✅ concluída em 10/10/2026 |
 | 10 | Blocos do financeiro (cobranças, situação financeira, alerta, indicadores) | a fazer |
 | 11 | Linha do tempo da OS e do serviço | a fazer |
 | 12 | Frontend (projeto `ergogroup-ordens-servico-frontend`) | a fazer, fase a fase |
@@ -105,7 +105,15 @@ Todos recebem `?setor=<id>`. A permissão vale **no setor informado**; com `seto
 | 8.9 | Meus serviços | `GET /api/execucao/meus-servicos/` | nenhuma (só o próprio) | como 8.4, filtrado pelo usuário, atrasados primeiro; `?status=concluida&de=&ate=` para o histórico |
 | 8.10 | Detalhe do serviço | `GET /api/execucao/servicos/{id}/` | regras de visibilidade atuais | serviço, etapa, prazo, tarefas, alerta e ciência, contexto da OS **sem valores**, outros serviços da OS com setor, etapa e responsáveis, `pode_distribuir`, `pode_dar_ciencia` |
 
-## Fase 9 — Blocos do comercial
+## Fase 9 — Blocos do comercial ✅
+
+Concluída em 10/10/2026 (257 testes passando). Código: `OrdemServico.condicao_resumo` (modelo), `services/comercial.py`, `views/comercial_views.py` e `urls_comercial.py`, montado em `/api/comercial/` (tag **comercial** no Swagger).
+
+**Ajustes em relação à tabela abaixo:**
+- `condicao_resumo` está na lista e no detalhe da OS (`/api/ordens-servico/ordens/`), oculto sem `financeiro.ver_valores`.
+- 9.2: `andamento` e `vendido_por_nome` aparecem para todos os que veem a OS, inclusive sem `financeiro.ver_valores`; só a condição fica oculta. `?etapa=` traz as OS com **ao menos um** serviço na etapa (ex.: `na_fila` = vendas com algo ainda não distribuído).
+- 9.3: sem `financeiro.ver_valores`, `condicoes` e `financeiro` vêm vazios (`null`); o resto do resumo aparece. Os responsáveis de cada serviço vêm com status, prazo, início e término da tarefa.
+
 
 | # | Bloco | Endpoint | Permissão | Conteúdo |
 |---|---|---|---|---|
