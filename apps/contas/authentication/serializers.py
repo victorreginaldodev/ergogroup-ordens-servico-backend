@@ -3,17 +3,21 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, Toke
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from apps.contas.serializers.usuario_serializer import (
+    ResumoPermissoesSerializer, VinculoSerializer, resumo_de_permissoes,
+)
+
 
 class UsuarioPayloadSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     email = serializers.EmailField()
     username = serializers.CharField()
     nome_completo = serializers.CharField()
-    tipo_usuario = serializers.CharField()
-    tipo_usuario_display = serializers.CharField()
     ativo = serializers.BooleanField()
     is_staff = serializers.BooleanField()
     is_superuser = serializers.BooleanField()
+    vinculos = VinculoSerializer(many=True)
+    permissoes = ResumoPermissoesSerializer()
 
 
 class LoginResponseSerializer(serializers.Serializer):
@@ -33,11 +37,13 @@ def _usuario_payload(usuario):
         'email': usuario.email,
         'username': usuario.username,
         'nome_completo': usuario.nome_completo,
-        'tipo_usuario': usuario.tipo_usuario,
-        'tipo_usuario_display': usuario.get_tipo_usuario_display(),
-        'ativo': usuario.ativo,
+        'ativo': usuario.is_active,
         'is_staff': usuario.is_staff,
         'is_superuser': usuario.is_superuser,
+        'vinculos': VinculoSerializer(
+            usuario.vinculos_setor.select_related('setor', 'funcao'), many=True,
+        ).data,
+        'permissoes': resumo_de_permissoes(usuario),
     }
 
 
@@ -49,17 +55,8 @@ class LoginSerializer(TokenObtainPairSerializer):
     username_field = 'email'
 
     def validate(self, attrs):
-        print(">>> LOGIN attrs recebidos:", attrs)
-        try:
-            data = super().validate(attrs)
-        except Exception as e:
-            print(">>> LOGIN erro no super().validate:", type(e).__name__, e)
-            raise
-        print(">>> LOGIN usuário autenticado:", self.user)
-
-        if not self.user.ativo:
-            raise serializers.ValidationError('Usuário inativo. Entre em contato com o administrador.')
-
+        # O backend de autenticação do Django já recusa usuários com is_active=False.
+        data = super().validate(attrs)
         data['usuario'] = _usuario_payload(self.user)
         return data
 
@@ -135,7 +132,7 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
         except (TypeError, ValueError, OverflowError, Usuario.DoesNotExist):
             raise serializers.ValidationError({'token': 'Token de recuperação inválido ou expirado.'})
 
-        if not user.is_active or not getattr(user, 'ativo', True):
+        if not user.is_active:
             raise serializers.ValidationError({'token': 'Usuário inativo. Entre em contato com o administrador.'})
 
         if not default_token_generator.check_token(user, token_part):

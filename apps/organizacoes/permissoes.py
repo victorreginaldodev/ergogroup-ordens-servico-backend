@@ -1,14 +1,11 @@
 """Catálogo de permissões do sistema e verificação de acesso.
 
 As regras da API perguntam por códigos de permissão (``tem_permissao``), nunca por tipo de usuário.
-As permissões de cada usuário vêm das funções que ele exerce nos setores (``MembroSetor``). Enquanto
-o usuário não tiver nenhum vínculo, valem as do ``tipo_usuario`` (``PERMISSOES_POR_TIPO_USUARIO``),
-para a migração dos usuários poder acontecer aos poucos. Ver docs/mapa-de-permissoes.md.
+As permissões de cada usuário vêm das funções que ele exerce nos setores (``MembroSetor``); sem
+vínculo, o usuário só acessa o que é dele. Ver docs/mapa-de-permissoes.md.
 """
 from django.db import models
 from rest_framework.permissions import BasePermission
-
-from apps.contas.models.choices import TipoUsuario
 
 
 class Permissao(models.TextChoices):
@@ -44,48 +41,7 @@ def escopo_da_permissao(permissao) -> str:
     return 'setor' if permissao in PERMISSOES_POR_SETOR else 'global'
 
 
-# Perfis que o frontend trata como diretoria (o gestor comercial tem o mesmo acesso do diretor).
-TIPOS_DIRETORIA = frozenset({TipoUsuario.DIRETOR, TipoUsuario.GESTOR_COMERCIAL})
-
-_P = Permissao
 _TODAS = frozenset(Permissao)
-_BASE_ESCRITORIO = frozenset({
-    _P.OS_VER_TODAS, _P.OS_GERENCIAR, _P.CLIENTES_GERENCIAR,
-    _P.INDICADORES_VER_GERAL, _P.AUDITORIA_VER,
-})
-_GESTAO_DE_PESSOAS = frozenset({_P.USUARIOS_GERENCIAR, _P.ORGANIZACAO_CONFIGURAR})
-_EXECUCAO = frozenset({
-    _P.SERVICOS_VER_SETOR, _P.SERVICOS_GERENCIAR, _P.TAREFAS_DISTRIBUIR, _P.TAREFAS_EDITAR_SETOR,
-})
-
-# Reproduz as travas do frontend (docs/mapa-de-permissoes.md, seção 5) com as decisões de 09/10/2026.
-PERMISSOES_POR_TIPO_USUARIO = {
-    TipoUsuario.DIRETOR: _TODAS,
-    TipoUsuario.GESTOR_COMERCIAL: _TODAS,
-    TipoUsuario.COMERCIAL: _BASE_ESCRITORIO | {
-        _P.FINANCEIRO_VER_VALORES, _P.CATALOGO_GERENCIAR, _P.OS_OPERACIONAL_GERENCIAR,
-    },
-    TipoUsuario.GESTOR_TECNICO: _BASE_ESCRITORIO | _EXECUCAO | _GESTAO_DE_PESSOAS | {
-        _P.FINANCEIRO_VER_VALORES, _P.CATALOGO_GERENCIAR, _P.OS_OPERACIONAL_GERENCIAR,
-    },
-    TipoUsuario.SUB_GESTOR_TECNICO: _EXECUCAO | {
-        _P.OS_VER_TODAS, _P.CLIENTES_GERENCIAR, _P.CATALOGO_GERENCIAR, _P.OS_OPERACIONAL_GERENCIAR,
-        _P.INDICADORES_VER_GERAL, _P.AUDITORIA_VER,
-    },
-    TipoUsuario.TECNICO: frozenset({
-        _P.CLIENTES_GERENCIAR, _P.OS_OPERACIONAL_GERENCIAR, _P.AUDITORIA_VER,
-    }),
-    TipoUsuario.GESTOR_FINANCEIRO: _BASE_ESCRITORIO | _GESTAO_DE_PESSOAS | {
-        _P.FINANCEIRO_VER_VALORES, _P.FINANCEIRO_REGISTRAR_COBRANCA, _P.OS_OPERACIONAL_GERENCIAR,
-    },
-    TipoUsuario.FINANCEIRO: _BASE_ESCRITORIO | {
-        _P.FINANCEIRO_VER_VALORES, _P.FINANCEIRO_REGISTRAR_COBRANCA, _P.OS_OPERACIONAL_GERENCIAR,
-    },
-    TipoUsuario.GESTOR_ADMINISTRATIVO: _BASE_ESCRITORIO | _GESTAO_DE_PESSOAS | {
-        _P.USUARIOS_REDEFINIR_SENHA, _P.OS_OPERACIONAL_GERENCIAR,
-    },
-    TipoUsuario.ADMINISTRATIVO: _BASE_ESCRITORIO,
-}
 
 
 class PerfilDeAcesso:
@@ -94,7 +50,7 @@ class PerfilDeAcesso:
     - ``globais``: valem na organização toda;
     - ``por_setor``: ``{setor_id: permissões}`` para as permissões de escopo por setor;
     - ``todos_os_setores``: verdadeiro quando as permissões por setor valem em qualquer setor
-      (superusuário e usuários ainda sem vínculo, que usam o ``tipo_usuario``).
+      (superusuário, ou quem tem ``setores.todos``).
     """
 
     def __init__(self, globais=frozenset(), por_setor=None, todos_os_setores=False):
@@ -150,12 +106,7 @@ def perfil_de_acesso(usuario) -> PerfilDeAcesso:
             MembroSetor.objects.filter(usuario=usuario)
             .select_related('setor', 'funcao').prefetch_related('funcao__permissoes')
         )
-        if vinculos:
-            perfil = _perfil_pelos_vinculos(vinculos)
-        else:
-            perfil = PerfilDeAcesso(
-                PERMISSOES_POR_TIPO_USUARIO.get(usuario.tipo_usuario, frozenset()), todos_os_setores=True,
-            )
+        perfil = _perfil_pelos_vinculos(vinculos)
         usuario._perfil_de_acesso = perfil
     return perfil
 
@@ -174,6 +125,16 @@ def tem_permissao(usuario, permissao, setor=None) -> bool:
 def setores_com_permissao(usuario, permissao):
     """IDs dos setores em que o usuário tem a permissão, ou ``None`` se ela vale em todos."""
     return perfil_de_acesso(usuario).setores_com(permissao)
+
+
+def eh_diretoria(usuario) -> bool:
+    """Superusuário ou quem tem uma função com `usuarios.gerenciar_diretoria`. Considera os vínculos mesmo
+    de usuário, setor ou função inativos, para que reativar um diretor também exija ser da diretoria."""
+    from apps.organizacoes.models import MembroSetor
+
+    return usuario.is_superuser or MembroSetor.objects.filter(
+        usuario=usuario, funcao__permissoes__permissao=Permissao.USUARIOS_GERENCIAR_DIRETORIA,
+    ).exists()
 
 
 def pode_conceder(usuario, permissoes, setor=None) -> bool:

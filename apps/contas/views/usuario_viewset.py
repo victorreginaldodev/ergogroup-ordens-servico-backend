@@ -7,17 +7,15 @@ from django.contrib.auth import get_user_model
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
 
-from apps.contas.models.choices import TipoUsuario
 from apps.contas.serializers import (
     UsuarioListSerializer,
     UsuarioDetailSerializer,
     UsuarioCreateSerializer,
     UsuarioUpdateSerializer,
     AlterarSenhaSerializer,
-    TipoOpcaoSerializer,
     DetalheSerializer,
 )
-from apps.organizacoes.permissoes import TIPOS_DIRETORIA, Permissao, TemPermissao, tem_permissao
+from apps.organizacoes.permissoes import Permissao, TemPermissao, eh_diretoria, tem_permissao
 
 Usuario = get_user_model()
 
@@ -34,18 +32,15 @@ class ProprioUsuarioOuGestor(BasePermission):
         summary='Listar usuários',
         description=(
             'Retorna a lista paginada de usuários com campos resumidos. '
-            'Suporta busca textual e filtragem por tipo e status.'
+            'Suporta busca textual e filtragem por setor, função e status.'
         ),
         parameters=[
             OpenApiParameter(
                 'q', str,
                 description='Busca por nome completo ou e-mail (parcial, sem distinção de maiúsculas).',
             ),
-            OpenApiParameter(
-                'tipo', str,
-                description='Filtrar por tipo de usuário.',
-                enum=TipoUsuario,
-            ),
+            OpenApiParameter('setor', int, description='Filtrar pelos usuários vinculados a um setor.'),
+            OpenApiParameter('funcao', int, description='Filtrar pelos usuários que exercem uma função.'),
             OpenApiParameter(
                 'ativo', str,
                 description='Filtrar por status de ativação.',
@@ -55,7 +50,11 @@ class ProprioUsuarioOuGestor(BasePermission):
     ),
     create=extend_schema(
         summary='Criar usuário',
-        description='Cria um novo usuário. Requer perfil Gestor ou superior.',
+        description=(
+            'Cria um usuário e, opcionalmente, seus vínculos (`vinculos`: lista de `setor` e `funcao`). '
+            'Exige `usuarios.gerenciar`, e só é possível atribuir funções cujas permissões você tem no setor. '
+            'Sem vínculos, o usuário só acessa o que é dele.'
+        ),
     ),
     retrieve=extend_schema(
         summary='Detalhar usuário',
@@ -84,7 +83,7 @@ class ProprioUsuarioOuGestor(BasePermission):
     ),
 )
 class UsuarioViewSet(viewsets.ModelViewSet):
-    queryset = Usuario.objects.all().order_by('nome_completo')
+    queryset = Usuario.objects.prefetch_related('vinculos_setor__setor', 'vinculos_setor__funcao').order_by('nome_completo')
     dica_exclusao_bloqueada = 'Desative o usuário em vez de excluí-lo.'
 
     def get_serializer_class(self):
@@ -103,24 +102,14 @@ class UsuarioViewSet(viewsets.ModelViewSet):
             return [IsAuthenticated(), ProprioUsuarioOuGestor()]
         return [IsAuthenticated()]
 
-    def exigir_gestao_da_diretoria(self, alvo=None, novo_tipo=None):
-        """Usuários da diretoria (pelo tipo ou por terem `usuarios.gerenciar_diretoria` nos vínculos)
-        só são gerenciados por quem também tem essa permissão."""
-        envolve_diretoria = novo_tipo in TIPOS_DIRETORIA or (
-            alvo is not None and (
-                alvo.tipo_usuario in TIPOS_DIRETORIA
-                or tem_permissao(alvo, Permissao.USUARIOS_GERENCIAR_DIRETORIA)
-            )
-        )
-        if envolve_diretoria and not tem_permissao(self.request.user, Permissao.USUARIOS_GERENCIAR_DIRETORIA):
+    def exigir_gestao_da_diretoria(self, alvo):
+        """Usuários da diretoria só são gerenciados por quem também tem `usuarios.gerenciar_diretoria`.
+        Atribuir uma função de diretoria já é barrado pela regra de não conceder o que não tem."""
+        if eh_diretoria(alvo) and not tem_permissao(self.request.user, Permissao.USUARIOS_GERENCIAR_DIRETORIA):
             raise PermissionDenied('Apenas a diretoria pode gerenciar usuários da diretoria.')
 
-    def perform_create(self, serializer):
-        self.exigir_gestao_da_diretoria(novo_tipo=serializer.validated_data.get('tipo_usuario'))
-        serializer.save()
-
     def perform_update(self, serializer):
-        self.exigir_gestao_da_diretoria(serializer.instance, serializer.validated_data.get('tipo_usuario'))
+        self.exigir_gestao_da_diretoria(serializer.instance)
         serializer.save()
 
     def perform_destroy(self, instance):
@@ -130,17 +119,22 @@ class UsuarioViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = super().get_queryset()
         q = self.request.query_params.get('q', '').strip()
-        tipo = self.request.query_params.get('tipo', '').strip()
+        setor = self.request.query_params.get('setor', '').strip()
+        funcao = self.request.query_params.get('funcao', '').strip()
         ativo = self.request.query_params.get('ativo', '').strip()
 
         if q:
             queryset = queryset.filter(
                 Q(nome_completo__icontains=q) | Q(email__icontains=q)
             )
-        if tipo:
-            queryset = queryset.filter(tipo_usuario=tipo)
+        if setor:
+            queryset = queryset.filter(vinculos_setor__setor_id=setor)
+        if funcao:
+            queryset = queryset.filter(vinculos_setor__funcao_id=funcao)
+        if setor or funcao:
+            queryset = queryset.distinct()
         if ativo in ('true', 'false'):
-            queryset = queryset.filter(ativo=(ativo == 'true'))
+            queryset = queryset.filter(is_active=(ativo == 'true'))
 
         return queryset
 
@@ -192,8 +186,8 @@ class UsuarioViewSet(viewsets.ModelViewSet):
     def ativar(self, request, pk=None):
         usuario = self.get_object()
         self.exigir_gestao_da_diretoria(usuario)
-        usuario.ativo = True
-        usuario.save(update_fields=['ativo'])
+        usuario.is_active = True
+        usuario.save(update_fields=['is_active'])
         return Response({'detail': f'Usuário {usuario.nome_completo} ativado com sucesso.'})
 
     @extend_schema(
@@ -217,15 +211,6 @@ class UsuarioViewSet(viewsets.ModelViewSet):
                 {'detail': 'Não é possível desativar o próprio usuário.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        usuario.ativo = False
-        usuario.save(update_fields=['ativo'])
+        usuario.is_active = False
+        usuario.save(update_fields=['is_active'])
         return Response({'detail': f'Usuário {usuario.nome_completo} desativado com sucesso.'})
-
-    @extend_schema(
-        summary='Listar tipos de usuário',
-        description='Retorna todos os tipos de usuário disponíveis no sistema com seus rótulos.',
-        responses={200: TipoOpcaoSerializer(many=True)},
-    )
-    @action(detail=False, methods=['get'], url_path='tipos')
-    def tipos(self, request):
-        return Response([{'value': v, 'label': l} for v, l in TipoUsuario.choices])

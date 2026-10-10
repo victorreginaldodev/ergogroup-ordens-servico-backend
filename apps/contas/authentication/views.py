@@ -38,12 +38,7 @@ class LoginView(TokenObtainPairView):
         },
     )
     def post(self, request, *args, **kwargs):
-        print(">>> LOGIN request.data:", request.data)
-        print(">>> LOGIN Content-Type:", request.content_type)
-        response = super().post(request, *args, **kwargs)
-        print(">>> LOGIN response.status:", response.status_code)
-        print(">>> LOGIN response.data:", response.data)
-        return response
+        return super().post(request, *args, **kwargs)
 
 
 class RefreshView(TokenRefreshView):
@@ -110,7 +105,7 @@ class PasswordResetRequestView(APIView):
         email = serializer.validated_data['email'].strip().lower()
 
         Usuario = get_user_model()
-        usuario = Usuario.objects.filter(email__iexact=email, is_active=True, ativo=True).first()
+        usuario = Usuario.objects.filter(email__iexact=email, is_active=True).first()
 
         if usuario:
             uidb64 = urlsafe_base64_encode(force_bytes(usuario.pk))

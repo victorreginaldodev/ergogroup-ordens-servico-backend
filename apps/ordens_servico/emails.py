@@ -5,7 +5,6 @@ from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 
 from apps.contas.models import Usuario
-from apps.contas.models.choices import TipoUsuario
 from apps.organizacoes.permissoes import Permissao, tem_permissao
 from apps.ordens_servico.models.ordem_servico import Prioridade
 
@@ -18,11 +17,12 @@ CORES_PRIORIDADE = {
 }
 
 
-def _usuarios_ativos(*tipos):
-    queryset = Usuario.objects.filter(is_active=True, ativo=True).exclude(email='')
-    if tipos:
-        queryset = queryset.filter(tipo_usuario__in=tipos)
-    return queryset
+def _usuarios_ativos():
+    return Usuario.objects.filter(is_active=True).exclude(email='')
+
+
+def _emails_com_permissao(permissao):
+    return [u.email for u in _usuarios_ativos() if tem_permissao(u, permissao)]
 
 
 def _enviar(assunto, template, contexto, destinatarios):
@@ -91,9 +91,8 @@ def notificar_atribuicao_tarefa(tarefa):
 
 
 def notificar_liberacao_cobranca(instancia, tipo, valor=None):
-    destinatarios = [
-        u.email for u in _usuarios_ativos(TipoUsuario.GESTOR_FINANCEIRO, TipoUsuario.FINANCEIRO)
-    ]
+    # Quem pode registrar a cobrança é quem precisa saber que ela foi liberada.
+    destinatarios = _emails_com_permissao(Permissao.FINANCEIRO_REGISTRAR_COBRANCA)
     if not destinatarios:
         return 0
 
@@ -112,12 +111,11 @@ def notificar_liberacao_cobranca(instancia, tipo, valor=None):
 
 
 def notificar_cobranca_realizada(instancia, tipo, valor=None):
+    # Quem vê valores e cuida da venda (os.gerenciar) ou da cobrança.
     destinatarios = [
-        u.email for u in _usuarios_ativos(
-            TipoUsuario.GESTOR_FINANCEIRO,
-            TipoUsuario.FINANCEIRO,
-            TipoUsuario.GESTOR_COMERCIAL,
-            TipoUsuario.COMERCIAL,
+        u.email for u in _usuarios_ativos()
+        if tem_permissao(u, Permissao.FINANCEIRO_VER_VALORES) and (
+            tem_permissao(u, Permissao.OS_GERENCIAR) or tem_permissao(u, Permissao.FINANCEIRO_REGISTRAR_COBRANCA)
         )
     ]
     if not destinatarios:

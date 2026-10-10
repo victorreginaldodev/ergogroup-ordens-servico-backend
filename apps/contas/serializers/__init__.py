@@ -4,6 +4,5 @@ from .usuario_serializer import (
     UsuarioCreateSerializer,
     UsuarioUpdateSerializer,
     AlterarSenhaSerializer,
-    TipoOpcaoSerializer,
     DetalheSerializer,
 )
