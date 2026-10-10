@@ -18,7 +18,7 @@ Base: `docs/telas-blocos-e-endpoints.md` (blocos mapeados) e ADR 0008 (decisões
 | Fase | Entrega | Situação |
 |---|---|---|
 | 6 | Camada de dados da execução e do recorrente | ✅ concluída em 10/10/2026 |
-| 7 | Regras da execução: responsável do setor, serviços na criação da OS, aviso por setor, setor sem organizador | a fazer |
+| 7 | Regras da execução: responsável do setor, serviços na criação da OS, aviso por setor, setor sem organizador | ✅ concluída em 10/10/2026 |
 | 8 | Blocos da execução (fila, distribuir, andamento, alertas, concluídos, carga, meus serviços, detalhe) | a fazer |
 | 9 | Blocos do comercial (resumo da condição, lista de vendas com andamento, resumo da venda) | a fazer |
 | 10 | Blocos do financeiro (cobranças, situação financeira, alerta, indicadores) | a fazer |
@@ -45,7 +45,19 @@ Ordem sugerida: 7 → 8 → 9 → 10 → 11. A fase 11 pode andar em paralelo co
 - OS ganha `valor_mensal`;
 - a produtividade perde `complexidade_media_concluidas` e `horas_estimadas_entregues`.
 
-## Fase 7 — Regras da execução
+## Fase 7 — Regras da execução ✅
+
+Concluída em 10/10/2026 (217 testes passando).
+
+**Quem organiza um setor:** os **membros do setor** cuja função tem `servicos.ver_setor` e `tarefas.distribuir` (`Setor.organizadores()`). A diretoria pode agir em qualquer setor por `setores.todos`, mas não conta como organizadora: não recebe o aviso de chegada de todos os setores, e um setor organizado só pela diretoria aparece como `sem_organizador`.
+
+**Mudanças na API para o frontend:**
+- `POST /ordens/` aceita `servicos: [{catalogo, descricao, prioridade}]`; o catálogo é obrigatório e precisa estar ativo. A resposta (e o detalhe da OS) traz `servicos` com setor e status. Na edição, `servicos` é somente leitura.
+- Criar, reatribuir ou mover tarefa para quem não é do setor do serviço responde 400 em `responsavel`. A lista de responsáveis da distribuição deve vir dos membros do setor (`/api/organizacoes/membros/?setor=`).
+- Setores trazem `organizadores` (`id`, `nome`) e `sem_organizador`.
+- Criar e editar catálogo devolvem `avisos` (lista de textos).
+- Novo e-mail: "N serviços para <setor>", para os organizadores do setor.
+
 
 | Item | O que muda | Testes |
 |---|---|---|

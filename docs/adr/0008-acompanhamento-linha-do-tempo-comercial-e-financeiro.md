@@ -27,11 +27,12 @@ Como isso fica garantido:
   - o setor do serviço vem do catálogo (ADR 0004);
   - as regras verificam permissões no setor do serviço, nunca o nome do setor (ADR 0003);
   - a diretoria (`setores.todos`) consegue distribuir em qualquer setor.
-- **Proposta, a implementar (fase 7):** o setor passa a dizer na API se tem quem o organize:
+- **Implementado (fase 7):** o setor diz na API se tem quem o organize:
   - `organizadores`: pessoas com `servicos.ver_setor` + `tarefas.distribuir` nele;
   - `sem_organizador: true` quando ninguém tem essas permissões.
-- **Proposta:** ao apontar um catálogo para um setor sem organizador, a API **aceita, mas avisa** na resposta, e o setor aparece com alerta na visão da diretoria. Não bloqueia, para não travar o cadastro enquanto as funções são montadas.
-- **Teste obrigatório (fase 7):** um teste cria um setor novo, uma função com as permissões de organização, um catálogo e uma venda, e percorre o fluxo inteiro: fila → distribuição → execução → conclusão → liberação. Se alguém amarrar código a um setor, esse teste quebra.
+- **Implementado:** ao apontar um catálogo para um setor sem organizador, a API **aceita, mas avisa** na resposta (`avisos`). Não bloqueia, para não travar o cadastro enquanto as funções são montadas.
+- **Organizadores são membros do setor:** a diretoria age em todos os setores por `setores.todos`, mas não conta como organizadora. Assim ela não recebe o aviso de chegada de todos os setores, e um setor que só a diretoria consegue tocar aparece como sem organizador.
+- **Teste obrigatório (implementado na fase 7):** um teste cria um setor novo, uma função com as permissões de organização, um catálogo e uma venda, e percorre o fluxo inteiro: fila → distribuição → execução → conclusão → liberação. Se alguém amarrar código a um setor, esse teste quebra.
 
 ### 2. Só quem pertence ao setor recebe tarefas dele
 **Decidido.** O responsável de uma tarefa precisa ter vínculo ativo no setor do serviço.

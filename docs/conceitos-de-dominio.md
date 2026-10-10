@@ -33,7 +33,7 @@ Ver o ADR 0006 para o contexto completo.
 | **Setor de execução** | Setor responsável por algum catálogo. É um conceito derivado, sem campo próprio. |
 | **Fila do setor** | Os serviços do setor que chegaram e ainda não foram distribuídos (sem tarefas). |
 | **Triagem / distribuição** | Escolher o responsável e o prazo de um serviço da fila. No caso comum é um passo só; "dividir entre técnicos" cria mais de uma tarefa. |
-| **Organizador do setor** | Quem tem `tarefas.distribuir` e `servicos.ver_setor` no setor. "Gestor do setor" não é um campo: é derivado das permissões, e vale igual para qualquer setor novo (ADR 0008). |
+| **Organizador do setor** | Membro do setor cuja função tem `tarefas.distribuir` e `servicos.ver_setor`. "Gestor do setor" não é um campo: é derivado das permissões, e vale igual para qualquer setor novo. A diretoria age em todos os setores, mas não é organizadora deles (ADR 0008). |
 | **Prazo** | Data limite, definida por quem distribui. É o único parâmetro de planejamento (ADR 0005). Não há prazo no catálogo nem estimativa automática. |
 | **Faixa de prazo** | *(proposta, a confirmar)* Atrasado, vence hoje, vence nesta semana, depois, sem prazo. |
 | **Replanejamento** | *(proposta, a confirmar)* Alteração de um prazo já definido. O histórico mostra o prazo original e quantas vezes mudou. |
