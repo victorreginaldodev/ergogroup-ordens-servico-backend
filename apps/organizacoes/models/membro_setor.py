@@ -35,5 +35,11 @@ class MembroSetor(models.Model):
         return f'{self.usuario} — {self.funcao} em {self.setor}'
 
     def clean(self):
-        if self.setor_id and self.funcao_id and self.setor.organizacao_id != self.funcao.organizacao_id:
+        if not (self.setor_id and self.funcao_id):
+            return
+        if self.setor.organizacao_id != self.funcao.organizacao_id:
             raise ValidationError({'funcao': 'A função precisa ser da mesma organização do setor.'})
+        if not self.funcao.liberada_no_setor(self.setor_id):
+            raise ValidationError({
+                'funcao': f'A função "{self.funcao}" não pode ser usada no setor "{self.setor}".',
+            })

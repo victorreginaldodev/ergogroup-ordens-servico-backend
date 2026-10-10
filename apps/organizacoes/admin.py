@@ -25,7 +25,8 @@ class FuncaoPermissaoInline(admin.TabularInline):
 @admin.register(Funcao)
 class FuncaoAdmin(admin.ModelAdmin):
     list_display = ['nome', 'organizacao', 'ativo']
-    list_filter = ['organizacao', 'ativo']
+    list_filter = ['organizacao', 'setores', 'ativo']
+    filter_horizontal = ['setores']
     search_fields = ['nome', 'descricao']
     readonly_fields = ['criado_em', 'atualizado_em']
     inlines = [FuncaoPermissaoInline]

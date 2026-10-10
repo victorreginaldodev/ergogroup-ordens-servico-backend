@@ -17,13 +17,17 @@ from apps.organizacoes.serializers import FuncaoSerializer, PermissaoCatalogoSer
         description='Retorna as funções da organização com as permissões que cada uma concede.',
         parameters=[
             OpenApiParameter('organizacao', int, description='Filtrar pela organização.'),
+            OpenApiParameter('setor', int, description='Só as funções liberadas neste setor.'),
             OpenApiParameter('ativo', str, description='Filtrar por status de ativação.', enum=['true', 'false']),
             OpenApiParameter('q', str, description='Busca por nome ou descrição (parcial).'),
         ],
     ),
     create=extend_schema(
         summary='Criar função',
-        description='Cria uma função com nome livre e as permissões marcadas. Exige `organizacao.configurar`.',
+        description=(
+            'Cria uma função com nome livre, as permissões marcadas e os setores em que pode ser usada '
+            '(`setores`, obrigatório). Exige `organizacao.configurar`.'
+        ),
     ),
     retrieve=extend_schema(summary='Detalhar função'),
     update=extend_schema(
@@ -40,7 +44,7 @@ from apps.organizacoes.serializers import FuncaoSerializer, PermissaoCatalogoSer
     ),
 )
 class FuncaoViewSet(PermissoesPorAcaoMixin, viewsets.ModelViewSet):
-    queryset = Funcao.objects.prefetch_related('permissoes').all()
+    queryset = Funcao.objects.prefetch_related('permissoes', 'setores').all()
     serializer_class = FuncaoSerializer
     permission_classes = [IsAuthenticated]
     permissoes_por_acao = {
@@ -59,11 +63,14 @@ class FuncaoViewSet(PermissoesPorAcaoMixin, viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = super().get_queryset()
         organizacao = self.request.query_params.get('organizacao', '').strip()
+        setor = self.request.query_params.get('setor', '').strip()
         ativo = self.request.query_params.get('ativo', '').strip().lower()
         q = self.request.query_params.get('q', '').strip()
 
         if organizacao:
             queryset = queryset.filter(organizacao_id=organizacao)
+        if setor:
+            queryset = queryset.filter(setores=setor)
         if ativo in ('true', 'false'):
             queryset = queryset.filter(ativo=(ativo == 'true'))
         if q:

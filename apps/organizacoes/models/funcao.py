@@ -5,7 +5,8 @@ from apps.organizacoes.permissoes import Permissao
 
 class Funcao(models.Model):
     """Função que um usuário exerce num setor (ex.: "Gestor Comercial"). O nome é livre por organização;
-    o que a função permite fazer vem das permissões marcadas nela."""
+    o que a função permite fazer vem das permissões marcadas nela, e ela só pode ser usada nos setores
+    em que foi liberada (``setores``)."""
     organizacao = models.ForeignKey(
         'organizacoes.Organizacao',
         on_delete=models.PROTECT,
@@ -13,6 +14,11 @@ class Funcao(models.Model):
     )
     nome = models.CharField(max_length=100)
     descricao = models.TextField(null=True, blank=True)
+    setores = models.ManyToManyField(
+        'organizacoes.Setor',
+        related_name='funcoes_permitidas',
+        help_text='Setores em que a função pode ser atribuída.',
+    )
     ativo = models.BooleanField(default=True)
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
@@ -27,6 +33,9 @@ class Funcao(models.Model):
 
     def __str__(self):
         return self.nome
+
+    def liberada_no_setor(self, setor) -> bool:
+        return self.setores.filter(pk=getattr(setor, 'pk', setor)).exists()
 
     @property
     def codigos_permissao(self):
