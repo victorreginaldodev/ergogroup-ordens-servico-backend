@@ -25,7 +25,7 @@ Requisitos do usuário ao longo da discussão:
 | Organização | `organizacoes.Organizacao` | Dados cadastrais da empresa (base da tela de configurações). Setores e funções pertencem a ela, preparando um futuro multi-tenant. |
 | Setor | `organizacoes.Setor` | Nome único por organização; pode ser desativado. |
 | Função | `organizacoes.Funcao` | **Nome livre** por organização, com as **permissões marcadas** (`FuncaoPermissao`) e a lista de **setores em que pode ser usada** (`setores`, obrigatória e não vazia). |
-| Vínculo | `organizacoes.MembroSetor` | Usuário + setor + função. Um usuário pode estar em vários setores, **no máximo um vínculo por setor**. A função precisa ser da mesma organização e estar liberada no setor. |
+| Vínculo | `organizacoes.MembroSetor` | Usuário + setor + função. **Cada usuário pertence a um único setor** (decisão de 10/10/2026, que substituiu a ideia inicial de vários setores por pessoa). A função precisa ser da mesma organização e estar liberada no setor. |
 | Permissão | `organizacoes.permissoes.Permissao` | **Lista fixa no código**, porque cada permissão corresponde a código que a verifica. O que é configurável é quem recebe cada permissão. |
 
 Tudo vive no app `organizacoes`, que o usuário pediu explicitamente para separar o domínio. Ver também `docs/conceitos-de-dominio.md`.
@@ -71,7 +71,7 @@ Os 43 usuários do dev foram vinculados, e o acesso foi conferido usuário a usu
 - `/api/organizacoes/{organizacoes,setores,funcoes,membros}/`.
 - `/funcoes/permissoes-disponiveis/` lista as permissões com o escopo de cada uma.
 - `/funcoes/?setor=` lista as funções liberadas num setor.
-- Criar e editar usuário aceitam `vinculos: [{setor, funcao}]`.
+- Criar e editar usuário aceitam `vinculos: [{setor, funcao}]`, com no máximo um item. O formato de lista foi mantido para não quebrar o frontend.
 - Login, refresh, `/auth/me/` e detalhe de usuário devolvem `vinculos` e `permissoes` (`globais`, `por_setor`, `todos_os_setores`).
 
 ### Regras de acesso em detalhe (implementadas em 09–10/10/2026)
@@ -107,7 +107,8 @@ Os 43 usuários do dev foram vinculados, e o acesso foi conferido usuário a usu
 - **Função por setor (cada função pertence a um único setor):** rejeitada, porque impede reaproveitar uma função genérica (ex.: "Gestor de Área") em vários setores.
 - **Permissões marcadas direto em cada usuário:** rejeitada; com dezenas de usuários vira configuração repetida e sujeita a erro. A função funciona como molde, e exceções por usuário podem ser acrescentadas no futuro.
 - **Permissões totalmente livres (estilo grupos do Django):** rejeitadas; multiplicam as combinações, são fáceis de configurar errado e difíceis de testar.
-- **Campo `Setor.lider`:** rejeitado; comporta uma pessoa só e não cobre subgestor nem pessoas em vários setores. Quem organiza um setor é quem tem as permissões de organização nele (ver ADR 0006).
+- **Campo `Setor.lider`:** rejeitado; comporta uma pessoa só e não cobre subgestor. Quem organiza um setor é quem tem as permissões de organização nele (ver ADR 0006).
+- **Pessoa em vários setores:** foi a ideia inicial, abandonada em 10/10/2026 para simplificar. Quem precisa atuar além do próprio setor recebe uma função com as permissões necessárias (globais, ou `setores.todos` para as de setor). Restrição única por usuário no banco (migrações `organizacoes/0016` a `0018`); a `0016` para e lista os usuários se algum tiver mais de um vínculo.
 - **Multi-tenant completo agora:** rejeitado. Exige isolamento em todas as tabelas, e o `django-tenants` só funciona com PostgreSQL. Ficou a preparação: setores e funções já pertencem à organização.
 - **Papéis fixos "líder/sublíder":** rejeitados pelo usuário.
 

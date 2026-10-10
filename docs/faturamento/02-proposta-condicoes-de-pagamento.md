@@ -1,6 +1,6 @@
 # Faturamento — condições de pagamento e lançamento no sistema financeiro
 
-> **Status (10/10/2026):** em discussão. Cada item está marcado como **decidido**, **proposta** ou **em aberto**.
+> **Status (10/10/2026):** a lista da seção 4b foi aprovada e implementada na camada de dados (ver ADR 0007). Os levantamentos da seção 6 continuam em aberto.
 >
 > **Base:** o modelo atual (organização, setores, funções, permissões configuráveis, fluxo de execução), o código atual, os dados atuais do banco de dev (`01-condicoes-de-pagamento-as-is.md`) e a discussão de 10/10/2026.
 
@@ -62,7 +62,7 @@ Como os padrões encontrados ficariam registrados:
 - **O nome é provisório.** Não se sabe como o financeiro chama esse passo. Pode virar "lançado", "faturado" ou outro termo quando for levantado.
 - **Indicador "a cobrar":** passa a significar "liberado e ainda não lançado".
 
-## 4b. Mudanças no modelo da OS (lista final, aguardando o "pode implementar")
+## 4b. Mudanças no modelo da OS (implementadas em 10/10/2026)
 
 **Campos novos**
 | Campo | Tipo | Uso |

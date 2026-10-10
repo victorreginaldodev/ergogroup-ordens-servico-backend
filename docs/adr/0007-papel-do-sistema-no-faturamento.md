@@ -1,7 +1,7 @@
 # ADR 0007: Papel do sistema no faturamento
 
 ## Status
-Parcialmente aceito (10/10/2026). As decisões abaixo foram tomadas com o usuário. A lista de mudanças no modelo da OS é **proposta**: o usuário pediu explicitamente para não implementar ainda. Detalhes, dados e levantamentos em aberto estão em `docs/faturamento/`.
+Aceito (10/10/2026). As mudanças no modelo da OS foram aprovadas e **implementadas na camada de dados** (modelo, migrações `ordens_servico/0008` a `0024`, validações, liberação, endpoint de lançamento, auditoria e e-mails). Telas e o bloco de cobranças (ADR 0006, seção 10) ficam para a etapa de visões e endpoints. Detalhes, dados e levantamentos em aberto estão em `docs/faturamento/`.
 
 ## Contexto
 A demanda: "o faturamento está confuso para o pessoal". O levantamento de 10/10/2026 (`docs/faturamento/01-condicoes-de-pagamento-as-is.md`) mostrou:
@@ -23,7 +23,7 @@ Uma primeira proposta, de gerenciar parcelas e planos de cobrança dentro do sis
 6. **Integração por API:** é desejável lançar automaticamente no outro sistema, **se não der muito trabalho**. O modelo deve ser preparado para isso sem implementar a integração agora.
 7. **A OS operacional está fora deste fluxo** e fora de escopo.
 
-## Proposta de mudanças no modelo da OS (não aprovada para implementação)
+## Mudanças no modelo da OS (implementadas em 10/10/2026)
 Detalhada na seção 4b de `docs/faturamento/02-proposta-condicoes-de-pagamento.md`. Em resumo:
 - **5 campos novos:** `tipo_condicao` (à vista, parcelado, recorrente), `intervalo_parcelas_dias`, `dia_fechamento`, `dia_vencimento` e `origem_lancamento` (manual ou integração).
 - **2 campos alterados:**
@@ -50,5 +50,12 @@ Detalhada na seção 4b de `docs/faturamento/02-proposta-condicoes-de-pagamento.
 5. Liberar na entrega do relatório (depende de a entrega existir no sistema; ver o backlog do ADR 0006).
 
 ## Consequências
-- O financeiro deixa de depender da leitura da observação para saber o que foi combinado (quando a proposta for implementada).
+- O financeiro deixa de depender da leitura da observação para saber o que foi combinado.
+- **Contrato da API que mudou** (o frontend precisa acompanhar):
+  - saem `cobranca_imediata`, `numero_nf`, `contrato`, `objeto_contrato`, `contrato_data_inicio`, `contrato_data_fim` e `gestor_contrato_*`;
+  - entram `tipo_condicao`, `intervalo_parcelas_dias`, `dia_fechamento`, `dia_vencimento`, `liberar_em`, `referencia_lancamento` e `origem_lancamento` (com os `*_display`);
+  - `PATCH /ordens/{id}/cobranca/` recebe `referencia_lancamento` (texto) e `data_cobranca`, e grava a origem `manual`;
+  - os campos de condição ficam ocultos para quem não tem `financeiro.ver_valores`;
+  - o e-mail de "novo contrato" deixou de existir.
+- Os nomes `cobranca_realizada`, `data_cobranca` e `cobranca_realizada_por` foram mantidos, porque o nome do passo "lançado" ainda é provisório.
 - O check manual de hoje e um lançamento automático no futuro usam o mesmo registro.

@@ -21,7 +21,7 @@ Plano de 09/10/2026 para implementar no backend a modelagem discutida (organiza�
 | Exclusão em cascata ao excluir catálogo | Resolvido (ADR 0002) |
 | Dependências da gestão de setores: criar setores e revisar usuários e permissões | Resolvido no backend (ADRs 0003 e 0004); frontend pendente |
 | Falta de gestão nos setores de execução: o que chegou, o que está em andamento e com quem | Analisado e parcialmente decidido (ADR 0006); visões e telas a definir; implementação pendente (fase 5) |
-| Controle de faturamento: condições definidas na venda | Papel do sistema decidido e mudanças no modelo propostas (ADR 0007, `docs/faturamento/`); sem implementação |
+| Controle de faturamento: condições definidas na venda | Papel do sistema decidido e camada de dados implementada (ADR 0007, `docs/faturamento/`): condições em campos, `liberar_em`, referência e origem do lançamento, contrato substituído pelo recorrente. Telas pendentes |
 
 ## Pendências no frontend (já conhecidas)
 - Esconder o campo de valor no formulário de OS para quem não tem `financeiro.ver_valores`. Hoje ele aparece zerado; nada é gravado, porque o backend ignora o campo, mas confunde.
@@ -167,6 +167,13 @@ Decisão de 10/10/2026: uma função só pode ser usada nos setores em que foi l
    - não é possível retirar um setor que ainda tem pessoas vinculadas à função;
    - filtro `?setor=` para a tela listar só as funções liberadas no setor escolhido.
 5. **Validação:** testes de cada regra; aplicação no dev, conferindo que todos os vínculos existentes continuam válidos.
+
+## Fase 4c — Um setor por usuário ✅
+
+Decisão de 10/10/2026: cada usuário pertence a um único setor. Concluída na branch `epic/v3`:
+- restrição única por usuário em `MembroSetor` (migrações `organizacoes/0016` a `0018`; a `0016` para e lista os usuários com mais de um vínculo, sem apagar nada);
+- API de vínculos recusa um segundo vínculo; para mudar de setor, edita-se o vínculo existente;
+- cadastro e edição de usuário aceitam `vinculos` com no máximo um item (formato de lista mantido para o frontend).
 
 ## Fase 5 — Fluxo de execução nos setores
 
