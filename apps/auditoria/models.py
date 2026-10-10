@@ -22,6 +22,7 @@ class AcaoAuditoria(models.TextChoices):
     FATURAMENTO = 'faturamento', 'Faturamento'
     LIBERACAO_COBRANCA = 'liberacao_cobranca', 'Liberação de Cobrança'
     COBRANCA_REALIZADA = 'cobranca_realizada', 'Cobrança Realizada'
+    # Mantido para o rótulo de registros históricos: o contrato da OS foi substituído pelo recorrente.
     CONTRATO = 'contrato', 'Contrato'
     BACKFILL = 'backfill', 'Backfill'
 

@@ -52,31 +52,6 @@ def _enviar(assunto, template, contexto, destinatarios):
     return len(destinatarios)
 
 
-def notificar_criacao_contrato(ordem_servico):
-    usuarios = list(_usuarios_ativos())
-    if not usuarios:
-        return 0
-
-    com_valores = [u.email for u in usuarios if tem_permissao(u, Permissao.FINANCEIRO_VER_VALORES)]
-    sem_valores = [u.email for u in usuarios if not tem_permissao(u, Permissao.FINANCEIRO_VER_VALORES)]
-
-    assunto = f'Novo contrato criado - OS #{ordem_servico.pk}'
-    total = 0
-    total += _enviar(
-        assunto,
-        'emails/novo_contrato_os.html',
-        {'ordem_servico': ordem_servico, 'mostrar_valores': True},
-        com_valores,
-    )
-    total += _enviar(
-        assunto,
-        'emails/novo_contrato_os.html',
-        {'ordem_servico': ordem_servico, 'mostrar_valores': False},
-        sem_valores,
-    )
-    return total
-
-
 def notificar_atribuicao_tarefa(tarefa):
     responsavel = tarefa.responsavel
     if not responsavel or not responsavel.email:
@@ -127,7 +102,9 @@ def notificar_cobranca_realizada(instancia, tipo, valor=None):
         'numero': instancia.pk,
         'cliente': instancia.cliente,
         'valor': valor,
-        'numero_nf': instancia.numero_nf,
+        # OS: referência do lançamento no sistema externo. OS operacional: número da NF.
+        'referencia_rotulo': 'Referência do lançamento' if hasattr(instancia, 'referencia_lancamento') else 'Número da NF',
+        'referencia': getattr(instancia, 'referencia_lancamento', None) or getattr(instancia, 'numero_nf', None),
         'data_cobranca': getattr(instancia, 'data_cobranca', None),
         'realizada_por': _nome_usuario(instancia.cobranca_realizada_por),
     }

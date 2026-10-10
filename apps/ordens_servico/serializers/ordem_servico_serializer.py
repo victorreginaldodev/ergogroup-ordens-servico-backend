@@ -2,12 +2,15 @@ from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
 
 from apps.ordens_servico.models import OrdemServico
+from apps.ordens_servico.models.ordem_servico import validar_condicao_pagamento
 from apps.clientes.models import Cliente
 from apps.clientes.serializers import ClienteListSerializer, ClienteSerializer
 from apps.organizacoes.permissoes import Permissao, tem_permissao
 
 CAMPOS_FINANCEIROS = (
-    'valor', 'forma_pagamento', 'forma_pagamento_display', 'quantidade_parcelas', 'data_acordada_cobranca',
+    'valor', 'tipo_condicao', 'tipo_condicao_display', 'forma_pagamento', 'forma_pagamento_display',
+    'quantidade_parcelas', 'data_acordada_cobranca', 'intervalo_parcelas_dias', 'dia_fechamento',
+    'dia_vencimento', 'liberar_em', 'liberar_em_display',
 )
 
 
@@ -37,6 +40,8 @@ class OcultaValoresMixin:
 
 class OrdemServicoListSerializer(OcultaValoresMixin, serializers.ModelSerializer):
     cliente_nome = serializers.CharField(source='cliente.nome', read_only=True)
+    tipo_condicao_display = serializers.CharField(source='get_tipo_condicao_display', read_only=True)
+    liberar_em_display = serializers.CharField(source='get_liberar_em_display', read_only=True)
     forma_pagamento_display = serializers.CharField(source='get_forma_pagamento_display', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     prioridade_display = serializers.CharField(source='get_prioridade_display', read_only=True)
@@ -48,9 +53,10 @@ class OrdemServicoListSerializer(OcultaValoresMixin, serializers.ModelSerializer
         model = OrdemServico
         fields = [
             'id', 'cliente', 'cliente_nome', 'data_venda', 'valor',
-            'forma_pagamento', 'forma_pagamento_display', 'status',
+            'tipo_condicao', 'tipo_condicao_display', 'forma_pagamento', 'forma_pagamento_display',
+            'liberar_em', 'liberar_em_display', 'status',
             'status_display', 'prioridade', 'prioridade_display', 'prazo',
-            'concluida', 'cobranca_realizada', 'cobranca_imediata', 'contrato',
+            'concluida', 'cobranca_realizada', 'referencia_lancamento',
             'liberada_para_cobranca', 'liberada_para_cobranca_em',
             'liberada_para_cobranca_por_nome', 'dias_em_aberto',
             'dias_entre_criacao_e_conclusao',
@@ -67,6 +73,9 @@ class OrdemServicoListSerializer(OcultaValoresMixin, serializers.ModelSerializer
 class OrdemServicoSerializer(OcultaValoresMixin, serializers.ModelSerializer):
     cliente_detail = ClienteSerializer(source='cliente', read_only=True)
     cliente = serializers.PrimaryKeyRelatedField(queryset=Cliente.objects.all())
+    tipo_condicao_display = serializers.CharField(source='get_tipo_condicao_display', read_only=True)
+    liberar_em_display = serializers.CharField(source='get_liberar_em_display', read_only=True)
+    origem_lancamento_display = serializers.CharField(source='get_origem_lancamento_display', read_only=True)
     forma_pagamento_display = serializers.CharField(source='get_forma_pagamento_display', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     prioridade_display = serializers.CharField(source='get_prioridade_display', read_only=True)
@@ -84,12 +93,12 @@ class OrdemServicoSerializer(OcultaValoresMixin, serializers.ModelSerializer):
             'id', 'cliente', 'cliente_detail',
             'criado_por', 'criado_por_nome', 'data_venda', 'criada_em',
             'status', 'status_display', 'prioridade', 'prioridade_display', 'prazo', 'valor',
+            'tipo_condicao', 'tipo_condicao_display',
             'forma_pagamento', 'forma_pagamento_display', 'quantidade_parcelas',
-            'cobranca_imediata', 'data_acordada_cobranca', 'nome_contato_envio_nf', 'contato_envio_nf',
-            'contrato', 'objeto_contrato', 'contrato_data_inicio',
-            'contrato_data_fim', 'gestor_contrato_nome',
-            'gestor_contrato_email', 'gestor_contrato_telefone',
-            'observacao', 'concluida', 'cobranca_realizada', 'numero_nf', 'data_cobranca',
+            'data_acordada_cobranca', 'intervalo_parcelas_dias', 'dia_fechamento', 'dia_vencimento',
+            'liberar_em', 'liberar_em_display', 'nome_contato_envio_nf', 'contato_envio_nf',
+            'observacao', 'concluida', 'cobranca_realizada', 'referencia_lancamento',
+            'origem_lancamento', 'origem_lancamento_display', 'data_cobranca',
             'cobranca_realizada_por', 'cobranca_realizada_por_nome',
             'liberada_para_cobranca', 'liberada_para_cobranca_em',
             'liberada_para_cobranca_por', 'liberada_para_cobranca_por_nome',
@@ -102,34 +111,21 @@ class OrdemServicoSerializer(OcultaValoresMixin, serializers.ModelSerializer):
             'criado_por', 'atualizado_por', 'liberada_para_cobranca',
             'liberada_para_cobranca_em', 'liberada_para_cobranca_por',
             # Cobrança só é registrada pelo endpoint dedicado, que valida a liberação.
-            'cobranca_realizada', 'numero_nf', 'data_cobranca',
+            'cobranca_realizada', 'referencia_lancamento', 'origem_lancamento', 'data_cobranca',
             'cobranca_realizada_por', 'dias_em_aberto', 'dias_entre_criacao_e_conclusao',
         ]
 
     def validate(self, attrs):
         attrs = super().validate(attrs)
-        contrato = attrs.get('contrato', getattr(self.instance, 'contrato', False))
+        def atual(campo):
+            return attrs.get(campo, getattr(self.instance, campo, None))
 
-        if contrato:
-            campos_obrigatorios = {
-                'objeto_contrato': 'Informe o objeto do contrato.',
-                'contrato_data_inicio': 'Informe a data de início do contrato.',
-                'contrato_data_fim': 'Informe a data de fim do contrato.',
-            }
-            erros = {}
-            for campo, mensagem in campos_obrigatorios.items():
-                valor = attrs.get(campo, getattr(self.instance, campo, None))
-                if not valor:
-                    erros[campo] = mensagem
-
-            data_inicio = attrs.get('contrato_data_inicio', getattr(self.instance, 'contrato_data_inicio', None))
-            data_fim = attrs.get('contrato_data_fim', getattr(self.instance, 'contrato_data_fim', None))
-            if data_inicio and data_fim and data_fim < data_inicio:
-                erros['contrato_data_fim'] = 'A data de fim não pode ser anterior à data de início.'
-
-            if erros:
-                raise serializers.ValidationError(erros)
-
+        erros = validar_condicao_pagamento(
+            atual('tipo_condicao'), atual('quantidade_parcelas'), atual('data_acordada_cobranca'),
+            atual('dia_vencimento'),
+        )
+        if erros:
+            raise serializers.ValidationError(erros)
         return attrs
 
     @extend_schema_field(serializers.CharField(allow_null=True))
@@ -185,7 +181,10 @@ class OrdemServicoSerializer(OcultaValoresMixin, serializers.ModelSerializer):
 
 
 class RegistrarCobrancaRequestSerializer(serializers.Serializer):
-    numero_nf = serializers.IntegerField(required=False, allow_null=True)
+    referencia_lancamento = serializers.CharField(
+        max_length=100, required=False, allow_null=True, allow_blank=True,
+        help_text='Referência do lançamento no sistema financeiro externo (número da NF ou código).',
+    )
     data_cobranca = serializers.DateField(required=False, allow_null=True)
 
 

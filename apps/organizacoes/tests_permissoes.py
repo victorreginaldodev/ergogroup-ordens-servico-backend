@@ -151,14 +151,14 @@ class RegistroDeCobrancaTestCase(APITestCase):
     def setUp(self):
         self.cliente = Cliente.objects.create(nome='Cliente Cobranca')
         self.ordem = OrdemServico.objects.create(
-            cliente=self.cliente, data_venda=timezone.localdate(), valor=100, cobranca_imediata=True,
+            cliente=self.cliente, data_venda=timezone.localdate(), valor=100, liberar_em='venda',
         )
         self.url = reverse('ordens-servico-registrar-cobranca', args=[self.ordem.id])
 
     def test_financeiro_registra_cobranca(self):
         self.client.force_authenticate(user=criar_usuario(Perfil.FINANCEIRO))
 
-        response = self.client.patch(self.url, {'numero_nf': 123})
+        response = self.client.patch(self.url, {'referencia_lancamento': 'NF 123'})
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.ordem.refresh_from_db()
@@ -167,7 +167,7 @@ class RegistroDeCobrancaTestCase(APITestCase):
     def test_comercial_nao_registra_cobranca(self):
         self.client.force_authenticate(user=criar_usuario(Perfil.COMERCIAL))
 
-        response = self.client.patch(self.url, {'numero_nf': 123})
+        response = self.client.patch(self.url, {'referencia_lancamento': 'NF 123'})
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         self.ordem.refresh_from_db()
@@ -178,12 +178,12 @@ class RegistroDeCobrancaTestCase(APITestCase):
 
         self.client.patch(
             reverse('ordens-servico-detail', args=[self.ordem.id]),
-            {'cobranca_realizada': True, 'numero_nf': 999},
+            {'cobranca_realizada': True, 'referencia_lancamento': '999'},
         )
 
         self.ordem.refresh_from_db()
         self.assertFalse(self.ordem.cobranca_realizada)
-        self.assertIsNone(self.ordem.numero_nf)
+        self.assertIsNone(self.ordem.referencia_lancamento)
 
     def test_tecnico_nao_registra_cobranca_de_os_operacional(self):
         from apps.catalogo.models import CatalogoOperacional

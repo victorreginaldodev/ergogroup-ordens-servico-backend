@@ -2,6 +2,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
 
@@ -36,8 +37,12 @@ from apps.ordens_servico.serializers import (
         summary='Criar ordem de serviço',
         description=(
             'Cria uma nova ordem de serviço. O campo `criado_por` é preenchido '
-            'automaticamente com o usuário autenticado. Se `cobranca_imediata=true`, '
-            'a OS já é criada com `liberada_para_cobranca=true`.'
+            'automaticamente com o usuário autenticado. Se `liberar_em=venda`, '
+            'a OS já é criada com `liberada_para_cobranca=true`; com `liberar_em=conclusao`, '
+            'é liberada quando todos os serviços terminam. A condição de pagamento é validada pelo '
+            '`tipo_condicao`: parcelado exige ao menos 2 parcelas e o primeiro vencimento '
+            '(`data_acordada_cobranca`); recorrente exige o número de meses (`quantidade_parcelas`) '
+            'e o `dia_vencimento`.'
         ),
     ),
     retrieve=extend_schema(
@@ -115,9 +120,10 @@ class OrdemServicoViewSet(PermissoesPorAcaoMixin, viewsets.ModelViewSet):
         return queryset
 
     @extend_schema(
-        summary='Registrar cobrança da ordem de serviço',
+        summary='Registrar o lançamento da ordem de serviço',
         description=(
-            'Marca a OS como tendo a cobrança realizada, registrando número da NF, data e o usuário responsável. '
+            'Guarda o "check" do financeiro: a OS foi lançada no sistema financeiro externo. Registra a '
+            'referência do lançamento, a data, a origem (manual) e o usuário. '
             'Retorna 400 se a OS não estiver liberada para cobrança.'
         ),
         request=RegistrarCobrancaRequestSerializer,
@@ -129,18 +135,16 @@ class OrdemServicoViewSet(PermissoesPorAcaoMixin, viewsets.ModelViewSet):
     @action(detail=True, methods=['patch'], url_path='cobranca')
     def registrar_cobranca(self, request, pk=None):
         os = self.get_object()
-        if not os.liberada_para_cobranca:
-            return Response(
-                {'detail': 'Ordem de serviço não está liberada para cobrança.'},
-                status=status.HTTP_400_BAD_REQUEST,
+        dados = RegistrarCobrancaRequestSerializer(data=request.data)
+        dados.is_valid(raise_exception=True)
+        try:
+            os.registrar_lancamento(
+                dados.validated_data.get('referencia_lancamento'),
+                dados.validated_data.get('data_cobranca'),
+                por=request.user,
             )
-        numero_nf = request.data.get('numero_nf')
-        data_cobranca = request.data.get('data_cobranca')
-        os.cobranca_realizada = True
-        os.numero_nf = numero_nf
-        os.data_cobranca = data_cobranca
-        os.cobranca_realizada_por = request.user
-        os.save(update_fields=['cobranca_realizada', 'numero_nf', 'data_cobranca', 'cobranca_realizada_por', 'data_atualizacao'])
+        except DjangoValidationError as exc:
+            return Response({'detail': exc.messages[0]}, status=status.HTTP_400_BAD_REQUEST)
         return Response(OrdemServicoSerializer(os, context={'request': request}).data)
 
     @extend_schema(

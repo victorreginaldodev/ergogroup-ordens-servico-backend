@@ -25,8 +25,8 @@
         <td style="padding:10px 14px; border-bottom:1px solid #E2E8F0;">{% if valor is not None %}R$ {{ valor }}{% else %}Não informado{% endif %}</td>
     </tr>
     <tr>
-        <td style="padding:10px 14px; background-color:#F1F5F9; font-weight:bold; color:#0F172A; border-bottom:1px solid #E2E8F0;">Número da NF</td>
-        <td style="padding:10px 14px; border-bottom:1px solid #E2E8F0;">{{ numero_nf|default:"Não informado" }}</td>
+        <td style="padding:10px 14px; background-color:#F1F5F9; font-weight:bold; color:#0F172A; border-bottom:1px solid #E2E8F0;">{{ referencia_rotulo }}</td>
+        <td style="padding:10px 14px; border-bottom:1px solid #E2E8F0;">{{ referencia|default:"Não informado" }}</td>
     </tr>
     <tr>
         <td style="padding:10px 14px; background-color:#F1F5F9; font-weight:bold; color:#0F172A; border-bottom:1px solid #E2E8F0;">Data da cobrança</td>

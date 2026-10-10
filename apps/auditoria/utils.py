@@ -20,11 +20,11 @@ ENTIDADE_POR_MODELO = {
 }
 
 
-CAMPOS_CONTRATO = {
-    'contrato', 'objeto_contrato', 'contrato_data_inicio', 'contrato_data_fim',
-    'gestor_contrato_nome', 'gestor_contrato_email', 'gestor_contrato_telefone',
+# `numero_nf` é da OS operacional; na OS, o lançamento usa `referencia_lancamento` e `origem_lancamento`.
+CAMPOS_COBRANCA_REALIZADA = {
+    'cobranca_realizada', 'numero_nf', 'referencia_lancamento', 'origem_lancamento', 'data_cobranca',
+    'cobranca_realizada_por_id',
 }
-CAMPOS_COBRANCA_REALIZADA = {'cobranca_realizada', 'numero_nf', 'data_cobranca', 'cobranca_realizada_por_id'}
 CAMPOS_LIBERACAO_COBRANCA_OS = {
     'liberada_para_cobranca',
     'liberada_para_cobranca_em',
@@ -129,8 +129,6 @@ def registrar_update_direto(instance, updates, acao=AcaoAuditoria.PROPAGACAO_STA
 
 def classificar_acao(entidade, alteracoes):
     campos = set(alteracoes.keys())
-    if entidade == EntidadeAuditada.ORDEM_SERVICO and campos & CAMPOS_CONTRATO:
-        return AcaoAuditoria.CONTRATO
     if entidade == EntidadeAuditada.ORDEM_SERVICO and campos & CAMPOS_LIBERACAO_COBRANCA_OS:
         return AcaoAuditoria.LIBERACAO_COBRANCA
     if campos & CAMPOS_COBRANCA_REALIZADA:

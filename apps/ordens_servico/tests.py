@@ -217,25 +217,6 @@ class NotificacoesEmailTestCase(APITestCase):
             perfil=Perfil.ADMINISTRATIVO,
         )
 
-    def test_criacao_contrato_segmenta_por_acesso_a_valores(self):
-        mail.outbox = []
-        with self.captureOnCommitCallbacks(execute=True):
-            OrdemServico.objects.create(
-                cliente=self.cliente, data_venda=timezone.localdate(), valor=1000,
-                contrato=True, objeto_contrato='Objeto', contrato_data_inicio=timezone.localdate(),
-                contrato_data_fim=timezone.localdate() + timedelta(days=30),
-            )
-
-        self.assertEqual(len(mail.outbox), 2)
-        emails_enviados = {to for msg in mail.outbox for to in msg.to}
-        self.assertIn(self.tecnico.email, emails_enviados)
-        self.assertIn(self.gestor_financeiro.email, emails_enviados)
-
-        msg_sem_valores = next(msg for msg in mail.outbox if self.tecnico.email in msg.to)
-        msg_com_valores = next(msg for msg in mail.outbox if self.gestor_financeiro.email in msg.to)
-        self.assertNotIn('Dados financeiros', msg_sem_valores.alternatives[0][0])
-        self.assertIn('Dados financeiros', msg_com_valores.alternatives[0][0])
-
     def test_atribuicao_de_tarefa_notifica_responsavel(self):
         ordem_servico = OrdemServico.objects.create(
             cliente=self.cliente, data_venda=timezone.localdate(), valor=0,
@@ -291,8 +272,8 @@ class NotificacoesEmailTestCase(APITestCase):
         mail.outbox = []
         with self.captureOnCommitCallbacks(execute=True):
             ordem_servico.cobranca_realizada = True
-            ordem_servico.numero_nf = 123
-            ordem_servico.save(update_fields=['cobranca_realizada', 'numero_nf'])
+            ordem_servico.referencia_lancamento = 'NF 123'
+            ordem_servico.save(update_fields=['cobranca_realizada', 'referencia_lancamento'])
 
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(

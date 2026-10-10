@@ -1,6 +1,7 @@
 from django.db import models, transaction
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.utils import timezone
 from datetime import datetime, time
 
@@ -13,6 +14,40 @@ class FormaPagamento(models.TextChoices):
     DINHEIRO = 'dinheiro', 'Dinheiro'
     CHEQUE = 'cheque', 'Cheque'
     OUTRO = 'outro', 'Outro'
+
+class TipoCondicao(models.TextChoices):
+    A_VISTA = 'a_vista', 'À vista'
+    PARCELADO = 'parcelado', 'Parcelado'
+    RECORRENTE = 'recorrente', 'Recorrente'
+
+class LiberarEm(models.TextChoices):
+    VENDA = 'venda', 'Na venda'
+    CONCLUSAO = 'conclusao', 'Na conclusão dos serviços'
+
+class OrigemLancamento(models.TextChoices):
+    MANUAL = 'manual', 'Manual'
+    INTEGRACAO = 'integracao', 'Integração'
+
+INTERVALO_PARCELAS_PADRAO_DIAS = 30
+DIA_DO_MES = [MinValueValidator(1), MaxValueValidator(31)]
+
+
+def validar_condicao_pagamento(tipo_condicao, quantidade_parcelas, data_acordada_cobranca, dia_vencimento):
+    """Regras da condição de pagamento por tipo (ADR 0007). Devolve ``{campo: mensagem}``; vazio se válida.
+
+    No recorrente, ``quantidade_parcelas`` é o número de meses."""
+    erros = {}
+    if tipo_condicao == TipoCondicao.PARCELADO:
+        if not quantidade_parcelas or quantidade_parcelas < 2:
+            erros['quantidade_parcelas'] = 'O parcelado precisa de pelo menos 2 parcelas.'
+        if not data_acordada_cobranca:
+            erros['data_acordada_cobranca'] = 'Informe o primeiro vencimento.'
+    elif tipo_condicao == TipoCondicao.RECORRENTE:
+        if not quantidade_parcelas or quantidade_parcelas < 1:
+            erros['quantidade_parcelas'] = 'Informe o número de meses do recorrente.'
+        if not dia_vencimento:
+            erros['dia_vencimento'] = 'Informe o dia de vencimento do recorrente.'
+    return erros
 
 class Prioridade(models.TextChoices):
     BAIXA = 'baixa', 'Baixa'
@@ -33,24 +68,21 @@ class OrdemServico(models.Model):
     prioridade = models.CharField(max_length=10, choices=Prioridade.choices, default=Prioridade.BAIXA)
     prazo = models.DateField(null=True, blank=True)
 
-    # Dados da cobrança
+    # Condições de pagamento combinadas na venda (ADR 0007). O sistema registra, não controla parcelas.
     valor = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    tipo_condicao = models.CharField(max_length=10, choices=TipoCondicao.choices, default=TipoCondicao.A_VISTA)
     forma_pagamento = models.CharField(max_length=15, choices=FormaPagamento.choices, default=FormaPagamento.BOLETO)
+    # Parcelado: número de parcelas. Recorrente: número de meses.
     quantidade_parcelas = models.IntegerField(null=True, blank=True)
-    cobranca_imediata = models.BooleanField(default=False)
+    # Primeiro vencimento.
     data_acordada_cobranca = models.DateField(null=True, blank=True)
+    intervalo_parcelas_dias = models.PositiveSmallIntegerField(null=True, blank=True)
+    dia_fechamento = models.PositiveSmallIntegerField(null=True, blank=True, validators=DIA_DO_MES)
+    dia_vencimento = models.PositiveSmallIntegerField(null=True, blank=True, validators=DIA_DO_MES)
+    liberar_em = models.CharField(max_length=10, choices=LiberarEm.choices, default=LiberarEm.CONCLUSAO)
     nome_contato_envio_nf = models.CharField(max_length=50, default='')
     contato_envio_nf = models.EmailField(default='')
     observacao = models.TextField(null=True, blank=True)
-
-    # Dados do contrato
-    contrato = models.BooleanField(default=False)
-    objeto_contrato = models.CharField(max_length=255, null=True, blank=True)
-    contrato_data_inicio = models.DateField(null=True, blank=True)
-    contrato_data_fim = models.DateField(null=True, blank=True)
-    gestor_contrato_nome = models.CharField(max_length=255, null=True, blank=True)
-    gestor_contrato_email = models.EmailField(null=True, blank=True)
-    gestor_contrato_telefone = models.CharField(max_length=30, null=True, blank=True)
 
     liberada_para_cobranca = models.BooleanField(default=False)
     liberada_para_cobranca_em = models.DateTimeField(null=True, blank=True)
@@ -61,8 +93,10 @@ class OrdemServico(models.Model):
         blank=True,
         related_name='ordens_liberadas_para_cobranca',
     )
+    # Lançamento ("check") do financeiro no sistema externo. Nome provisório (ADR 0007).
     cobranca_realizada = models.BooleanField(default=False)
-    numero_nf = models.IntegerField(null=True, blank=True)
+    referencia_lancamento = models.CharField(max_length=100, null=True, blank=True)
+    origem_lancamento = models.CharField(max_length=10, choices=OrigemLancamento.choices, null=True, blank=True)
     data_cobranca = models.DateField(null=True, blank=True)
     cobranca_realizada_por = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -97,23 +131,19 @@ class OrdemServico(models.Model):
 
     def clean(self):
         super().clean()
-        if not self.contrato:
-            return
-
-        erros = {}
-        if not self.objeto_contrato:
-            erros['objeto_contrato'] = 'Informe o objeto do contrato.'
-        if not self.contrato_data_inicio:
-            erros['contrato_data_inicio'] = 'Informe a data de início do contrato.'
-        if not self.contrato_data_fim:
-            erros['contrato_data_fim'] = 'Informe a data de fim do contrato.'
-        if self.contrato_data_inicio and self.contrato_data_fim and self.contrato_data_fim < self.contrato_data_inicio:
-            erros['contrato_data_fim'] = 'A data de fim não pode ser anterior à data de início.'
+        erros = validar_condicao_pagamento(
+            self.tipo_condicao, self.quantidade_parcelas, self.data_acordada_cobranca, self.dia_vencimento,
+        )
         if erros:
             raise ValidationError(erros)
 
     def save(self, *args, **kwargs):
-        liberando_na_criacao = self.pk is None and self.cobranca_imediata
+        if self.tipo_condicao == TipoCondicao.PARCELADO and self.intervalo_parcelas_dias is None:
+            self.intervalo_parcelas_dias = INTERVALO_PARCELAS_PADRAO_DIAS
+            update_fields = kwargs.get('update_fields')
+            if update_fields is not None:
+                kwargs['update_fields'] = {*update_fields, 'intervalo_parcelas_dias'}
+        liberando_na_criacao = self.pk is None and self.liberar_em == LiberarEm.VENDA
         if liberando_na_criacao:
             self.liberada_para_cobranca = True
             if self.liberada_para_cobranca_em is None:
@@ -155,7 +185,7 @@ class OrdemServico(models.Model):
                 updates['concluida'] = nova_conclusao
 
         if not self.liberada_para_cobranca:
-            if self.cobranca_imediata:
+            if self.liberar_em == LiberarEm.VENDA:
                 updates['liberada_para_cobranca'] = True
                 updates['liberada_para_cobranca_em'] = timezone.now()
                 updates['liberada_para_cobranca_por_id'] = self.criado_por_id
@@ -192,6 +222,20 @@ class OrdemServico(models.Model):
                 self._notificar_liberacao_para_cobranca()
 
         return self.concluida
+
+    def registrar_lancamento(self, referencia, data, por, origem=OrigemLancamento.MANUAL):
+        """Guarda o "check" do financeiro: a OS foi lançada no sistema externo. Exige a OS liberada."""
+        if not self.liberada_para_cobranca:
+            raise ValidationError('Ordem de serviço não está liberada para cobrança.')
+        self.cobranca_realizada = True
+        self.referencia_lancamento = referencia or None
+        self.origem_lancamento = origem
+        self.data_cobranca = data
+        self.cobranca_realizada_por = por
+        self.save(update_fields=[
+            'cobranca_realizada', 'referencia_lancamento', 'origem_lancamento', 'data_cobranca',
+            'cobranca_realizada_por', 'data_atualizacao',
+        ])
 
     def _notificar_liberacao_para_cobranca(self):
         from apps.ordens_servico.emails import notificar_liberacao_cobranca

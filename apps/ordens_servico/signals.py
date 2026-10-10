@@ -5,18 +5,9 @@ from django.dispatch import receiver
 from apps.ordens_servico.emails import (
     notificar_atribuicao_tarefa,
     notificar_cobranca_realizada,
-    notificar_criacao_contrato,
     notificar_liberacao_cobranca,
 )
 from apps.ordens_servico.models import OrdemServico, OrdemServicoOperacional, Tarefa
-
-
-@receiver(post_save, sender=OrdemServico)
-def enviar_email_novo_contrato(sender, instance, created, **kwargs):
-    if not created or not instance.contrato:
-        return
-
-    transaction.on_commit(lambda: notificar_criacao_contrato(instance))
 
 
 @receiver(pre_save, sender=Tarefa)

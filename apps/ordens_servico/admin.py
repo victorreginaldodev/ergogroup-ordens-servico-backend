@@ -6,14 +6,14 @@ from apps.ordens_servico.models import OrdemServico, Servico, Tarefa, OrdemServi
 class OrdemServicoAdmin(admin.ModelAdmin):
     list_display = [
         'id', 'cliente', 'data_venda', 'status', 'prioridade', 'prazo',
-        'valor', 'forma_pagamento', 'contrato', 'liberada_para_cobranca',
+        'valor', 'tipo_condicao', 'forma_pagamento', 'liberada_para_cobranca',
         'cobranca_realizada', 'cobranca_realizada_por',
     ]
     list_filter = [
         'status', 'prioridade', 'forma_pagamento', 'concluida',
-        'cobranca_realizada', 'cobranca_imediata', 'contrato', 'liberada_para_cobranca',
+        'cobranca_realizada', 'tipo_condicao', 'liberar_em', 'liberada_para_cobranca',
     ]
-    search_fields = ['cliente__nome', 'numero_nf']
+    search_fields = ['cliente__nome', 'referencia_lancamento']
     ordering = ['-data_venda']
     raw_id_fields = ['cliente', 'criado_por', 'atualizado_por', 'liberada_para_cobranca_por', 'cobranca_realizada_por']
     readonly_fields = [
