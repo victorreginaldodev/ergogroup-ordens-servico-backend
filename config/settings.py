@@ -145,6 +145,9 @@ EMAIL_NOTIFICATIONS_ENABLED = os.getenv('EMAIL_NOTIFICATIONS_ENABLED', 'True') =
 # Dias sem movimentação para um serviço aberto entrar em alerta (ADR 0008, 3).
 DIAS_ALERTA_SEM_MOVIMENTACAO = int(os.getenv('DIAS_ALERTA_SEM_MOVIMENTACAO', '7'))
 
+# Dias de uma OS liberada sem lançamento para entrar em alerta no financeiro (ADR 0008, 9; proposta: 3).
+DIAS_ALERTA_SEM_LANCAMENTO = int(os.getenv('DIAS_ALERTA_SEM_LANCAMENTO', '3'))
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',

@@ -14,6 +14,7 @@ urlpatterns = [
     path('api/ordens-servico/', include('apps.ordens_servico.urls')),
     path('api/execucao/', include('apps.ordens_servico.urls_execucao')),
     path('api/comercial/', include('apps.ordens_servico.urls_comercial')),
+    path('api/financeiro/', include('apps.ordens_servico.urls_financeiro')),
     path('api/analise/', include('apps.analise.urls')),
     path('api/auditoria/', include('apps.auditoria.urls')),
 
