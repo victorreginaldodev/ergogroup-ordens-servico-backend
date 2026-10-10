@@ -24,14 +24,16 @@ Leia antes de qualquer ação. O projeto tem dois repositórios: `ergogroup-orde
    - 0004: setor responsável pela execução e catálogo;
    - 0005: prazo como único parâmetro de planejamento;
    - 0006: fluxo de execução nos setores;
-   - 0007: papel do sistema no faturamento.
+   - 0007: papel do sistema no faturamento;
+   - 0008: acompanhamento da execução, linha do tempo, visão comercial e controle financeiro.
 
    Cada ADR diz o que está aceito e o que é proposta.
 2. `telas-blocos-e-endpoints.md`: telas, blocos de informação, quem vê o quê (permissões) e endpoints candidatos. Também há uma cópia no frontend.
 3. `conceitos-de-dominio.md`: glossário. Use estes termos.
 4. `mapa-de-permissoes.md`: o que cada permissão libera.
 5. `plano-setores-e-permissoes.md`: fases, fora de escopo e situação dos problemas originais.
-6. `faturamento/01-condicoes-de-pagamento-as-is.md` (estado atual) e `faturamento/02-proposta-condicoes-de-pagamento.md` (proposta).
+6. `faturamento/01-condicoes-de-pagamento-as-is.md` (estado anterior) e `faturamento/02-proposta-condicoes-de-pagamento.md` (implementada na camada de dados).
+7. `docs/adr/0008-acompanhamento-linha-do-tempo-comercial-e-financeiro.md` e `docs/plano-execucao-comercial-financeiro.md` — decisões e plano das próximas fases.
 
 No frontend: `docs/ui/` (design system, UI kit, plano de setores e time, wireframes).
 
@@ -52,10 +54,9 @@ No frontend: `docs/ui/` (design system, UI kit, plano de setores e time, wirefra
   - ele registra as condições, avisa a liberação e guarda o check de lançamento no outro sistema (Asaas, Conta Azul ou SOC, a confirmar);
   - camada de dados implementada: `tipo_condicao`, `liberar_em`, `referencia_lancamento`, `origem_lancamento` etc.; o contrato saiu e virou o tipo recorrente (ADR 0007).
 
-### Pendente de decisão (NÃO implementar sem pedido)
-- Agrupamento dos blocos em páginas e endpoints novos de execução (`telas-blocos-e-endpoints.md`).
-- Telas e blocos do faturamento (a camada de dados do ADR 0007 já está implementada).
-- Remoção de horas e complexidade de serviço e tarefa (ADR 0005: aceita, implementação pendente).
+### Próximos passos
+- Plano em `docs/plano-execucao-comercial-financeiro.md` (fases 6 a 12; a fase 6, camada de dados, está concluída). Decisões no ADR 0008.
+- Implementar cada fase só quando o usuário pedir. O agrupamento dos blocos em páginas é decisão do frontend.
 
 ### Cuidados técnicos (backend)
 - MySQL não desfaz DDL em transação: uma alteração de schema por migração, separada da migração de dados.

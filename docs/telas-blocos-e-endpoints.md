@@ -84,6 +84,8 @@ A ordem das regras ainda vai ser definida.
 
 ## 4. Blocos de informação (mapeados)
 
+> **Atualização de 10/10/2026:** os blocos foram detalhados, com permissão e endpoint definitivos, nas fases 8 a 11 de `docs/plano-execucao-comercial-financeiro.md`, a partir das decisões do ADR 0008. Entraram dois blocos novos: **resumo da venda** (comercial) e **linha do tempo** (todos). A tabela abaixo fica como registro do mapeamento.
+
 Em cada bloco, a permissão exigida e o endpoint candidato são **propostas**. Os endpoints marcados como "existe" já estão na API.
 
 ### Comercial
@@ -92,6 +94,8 @@ Em cada bloco, a permissão exigida e o endpoint candidato são **propostas**. O
 | Lista de vendas | Todas as OS, com cliente, valor, condições e **a etapa da execução** de cada uma | `os.gerenciar` (valores só com `financeiro.ver_valores`) | existe: `GET /api/ordens-servico/ordens/`; **falta** a etapa da execução, derivada dos serviços |
 | Criação e edição da venda | A venda com cliente, condições comerciais e os serviços vendidos | `os.gerenciar` | existe: `POST/PATCH /ordens/` e `/servicos/` |
 | Andamento dos serviços de uma OS | Cada serviço da OS: setor, responsável, status e prazo, para responder ao cliente sem perguntar à equipe técnica | `os.gerenciar` ou `os.ver_todas` | existe em parte: `GET /servicos/?ordem_servico=` |
+| Resumo da venda | Quem vendeu e quando, condições (`condicao_resumo`), e por serviço: setor, etapa, quem executou e quando (ADR 0008, 6) | quem vê a OS; valores só com `financeiro.ver_valores` | novo: `GET /api/comercial/vendas/{id}/` |
+| Linha do tempo | O que aconteceu com a OS e com cada serviço, em eventos legíveis (ADR 0008, 4) | quem vê a OS ou o serviço | novo: `GET /ordens/{id}/linha-do-tempo/` e `/servicos/{id}/linha-do-tempo/` |
 
 ### Setor de execução
 | Bloco | O que mostra / faz | Permissão (proposta) | Endpoint (proposta) |
@@ -99,7 +103,7 @@ Em cada bloco, a permissão exigida e o endpoint candidato são **propostas**. O
 | Fila de triagem | O que chegou ao setor e ainda não foi distribuído (serviços sem tarefa), com cliente, OS e data da venda; opção de agrupar por cliente/OS | `servicos.ver_setor` + `tarefas.distribuir` no setor | novo: `GET /api/execucao/fila/?setor=` |
 | Ação de distribuir | Responsável + prazo em um passo (cria a tarefa); "dividir entre técnicos" acrescenta tarefas | `tarefas.distribuir` no setor | novo: `POST /servicos/{id}/distribuir/`; dividir: existe `POST /tarefas/` |
 | Em andamento por responsável | O que está em execução, agrupado por pessoa | `servicos.ver_setor` | novo: `GET /api/execucao/andamento/?setor=` |
-| Atrasados, aguardando e parados | Prazo vencido; marcação "aguardando" com motivo; "parado há N dias" | `servicos.ver_setor` | novo: `GET /api/execucao/alertas/?setor=` (depende da marcação de aguardando e do cálculo de parado, ADR 0006) |
+| Atrasados e sem movimentação | Prazo vencido; alerta de serviço sem movimentação há 7 dias, com "estou ciente" e motivo (ADR 0008, substitui "aguardando" e "parado") | `servicos.ver_setor` | novo: `GET /api/execucao/alertas/?setor=`; ciência: `POST /api/execucao/servicos/{id}/ciencia/` |
 | Concluídos no período | O que o setor concluiu entre duas datas | `servicos.ver_setor` | novo: `GET /api/execucao/concluidos/?setor=&de=&ate=` |
 | Carga da equipe | Por pessoa: itens ativos por faixa de prazo e idade do que está com ela (sem horas) | `servicos.ver_setor` | novo: `GET /api/execucao/carga/?setor=` |
 | Meus serviços | Para quem executa: o que está comigo, o que vence primeiro e o que está atrasado | nenhuma (só o próprio) | novo: `GET /api/execucao/meus-servicos/` |

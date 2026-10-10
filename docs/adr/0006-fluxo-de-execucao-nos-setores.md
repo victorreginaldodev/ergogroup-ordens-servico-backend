@@ -1,7 +1,7 @@
 # ADR 0006: Fluxo de execução nos setores
 
 ## Status
-Parcialmente aceito (10/10/2026). Implementação pendente.
+Aceito (10/10/2026), com a seção 6 substituída pelo ADR 0008. O prazo do serviço calculado (5.1) está implementado; os endpoints estão na fase 8 de `docs/plano-execucao-comercial-financeiro.md`.
 
 | Seção | Situação |
 |---|---|
@@ -10,10 +10,10 @@ Parcialmente aceito (10/10/2026). Implementação pendente.
 | 3. Agregação: unidade de trabalho é o serviço | **Aceita** pelo usuário |
 | 4. Distribuição em um passo | **Aceita** pelo usuário |
 | 5. Prazos | Prazo definido na distribuição, sem catálogo e sem estimativa: **aceito**. Faixas, alerta de "sem prazo" e histórico de replanejamento: **proposta, a confirmar** |
-| 6. "Aguardando" e trabalho parado | **Aceita** pelo usuário |
+| 6. "Aguardando" e trabalho parado | **Substituída** pelo ADR 0008, seção 3: alerta de serviço sem movimentação com "estou ciente" |
 | 7. Carga por pessoa | **Aceita** pelo usuário |
-| 8. Quem organiza o setor e o que cada pessoa vê | **Proposta, não decidida.** As visões e telas serão definidas numa frente de trabalho própria |
-| 9. Aviso de chegada por e-mail | Aceito em princípio (o usuário confirmou que quer notificar por e-mail); formato a definir |
+| 8. Quem organiza o setor e o que cada pessoa vê | Quem organiza: **decidido** pelas permissões, valendo para qualquer setor novo (ADR 0008, seção 1). O que cada pessoa vê: blocos e permissões no plano de execução; páginas no frontend |
+| 9. Aviso de chegada por e-mail | **Decidido** (ADR 0008, seção 5): serviços enviados junto na criação da OS e um e-mail por setor |
 | 10. Blocos de informação | Lista de blocos **mapeada com o usuário**. A composição em páginas é decidida no frontend. "Um endpoint por bloco" e o acesso às telas por permissão: **proposta, a confirmar** |
 
 ## Contexto

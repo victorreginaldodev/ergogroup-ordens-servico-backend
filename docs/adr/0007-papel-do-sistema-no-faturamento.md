@@ -53,7 +53,7 @@ Detalhada na seção 4b de `docs/faturamento/02-proposta-condicoes-de-pagamento.
 - O financeiro deixa de depender da leitura da observação para saber o que foi combinado.
 - **Contrato da API que mudou** (o frontend precisa acompanhar):
   - saem `cobranca_imediata`, `numero_nf`, `contrato`, `objeto_contrato`, `contrato_data_inicio`, `contrato_data_fim` e `gestor_contrato_*`;
-  - entram `tipo_condicao`, `intervalo_parcelas_dias`, `dia_fechamento`, `dia_vencimento`, `liberar_em`, `referencia_lancamento` e `origem_lancamento` (com os `*_display`);
+  - entram `tipo_condicao`, `valor_mensal` (recorrente, ADR 0008), `intervalo_parcelas_dias`, `dia_fechamento`, `dia_vencimento`, `liberar_em`, `referencia_lancamento` e `origem_lancamento` (com os `*_display`);
   - `PATCH /ordens/{id}/cobranca/` recebe `referencia_lancamento` (texto) e `data_cobranca`, e grava a origem `manual`;
   - os campos de condição ficam ocultos para quem não tem `financeiro.ver_valores`;
   - o e-mail de "novo contrato" deixou de existir.

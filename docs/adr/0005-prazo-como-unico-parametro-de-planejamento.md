@@ -1,7 +1,7 @@
 # ADR 0005: Prazo como único parâmetro de planejamento
 
 ## Status
-Aceito (10/10/2026). Implementação pendente.
+Aceito e implementado (10/10/2026): migrações `ordens_servico/0025` a `0028` e `0035` (prazo do serviço calculado a partir das tarefas). Ver a fase 6 de `docs/plano-execucao-comercial-financeiro.md`.
 
 ## Contexto
 O sistema tinha horas estimadas e complexidade no catálogo, no serviço, na tarefa e na OS operacional, com regras de cópia e herança entre eles (`docs/flows/horas-estimadas-prazos-e-indicadores.md` e ADR 0001).

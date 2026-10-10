@@ -177,7 +177,9 @@ Decisão de 10/10/2026: cada usuário pertence a um único setor. Concluída na 
 
 ## Fase 5 — Fluxo de execução nos setores
 
-Substitui o "painel do setor" pensado de início. O contexto completo, os dados e as decisões estão nos ADRs 0005 e 0006.
+Substitui o "painel do setor" pensado de início. O contexto completo, os dados e as decisões estão nos ADRs 0005, 0006 e 0008.
+
+> **Detalhada e substituída em 10/10/2026 por `docs/plano-execucao-comercial-financeiro.md`** (fases 6 a 12). A lista abaixo fica como histórico.
 
 1. **Remover horas e complexidade de serviço e tarefa,** com os indicadores que dependem delas (ADR 0005).
 2. **Visões de trabalho:** a definir na frente de definição de telas (`docs/telas-blocos-e-endpoints.md`). Só depois disso entram os endpoints dedicados.
