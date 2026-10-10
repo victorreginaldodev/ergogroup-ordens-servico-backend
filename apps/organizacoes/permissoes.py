@@ -30,6 +30,7 @@ class Permissao(models.TextChoices):
     ORGANIZACAO_CONFIGURAR = 'organizacao.configurar', 'Configurar organização e setores'
     INDICADORES_VER_GERAL = 'indicadores.ver_geral', 'Ver indicadores de toda a equipe'
     AUDITORIA_VER = 'auditoria.ver', 'Ver o histórico de auditoria'
+    SETORES_TODOS = 'setores.todos', 'As permissões por setor valem em todos os setores'
 
 
 # Permissões que valem só nos setores do vínculo que as concede; as demais valem para a organização toda.
@@ -130,6 +131,9 @@ def _perfil_pelos_vinculos(vinculos) -> PerfilDeAcesso:
                 por_setor.setdefault(vinculo.setor_id, set()).add(item.permissao)
             else:
                 globais.add(item.permissao)
+    if Permissao.SETORES_TODOS in globais:
+        # Ex.: diretoria. As permissões por setor que a pessoa tem em algum vínculo valem em todos os setores.
+        return PerfilDeAcesso(globais.union(*por_setor.values()), todos_os_setores=True)
     return PerfilDeAcesso(globais, {k: frozenset(v) for k, v in por_setor.items()})
 
 
