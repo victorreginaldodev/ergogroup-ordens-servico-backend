@@ -38,7 +38,7 @@ No frontend: `docs/ui/` (design system, UI kit, plano de setores e time, wirefra
 ### Modelo atual (resumo)
 - **Organização → Setor → Função → Vínculo.**
   - A função tem nome livre, as permissões marcadas e os setores em que pode ser usada.
-  - O vínculo é usuário + setor + função; uma pessoa pode estar em vários setores, com um vínculo por setor.
+  - O vínculo é usuário + setor + função; **cada pessoa pertence a um único setor** (um vínculo por pessoa).
 - **Não existe mais `tipo_usuario`.** O código verifica CÓDIGOS DE PERMISSÃO (`apps/organizacoes/permissoes.py`), nunca nomes de função ou setor.
   - Há permissões globais e por setor.
   - `setores.todos` faz as permissões por setor valerem em todos os setores.
@@ -49,11 +49,12 @@ No frontend: `docs/ui/` (design system, UI kit, plano de setores e time, wirefra
 - **Faturamento:**
   - a cobrança é por OS;
   - o sistema NÃO gerencia parcelas;
-  - ele registra as condições, avisa a liberação e guarda o check de lançamento no outro sistema (Asaas, Conta Azul ou SOC, a confirmar).
+  - ele registra as condições, avisa a liberação e guarda o check de lançamento no outro sistema (Asaas, Conta Azul ou SOC, a confirmar);
+  - camada de dados implementada: `tipo_condicao`, `liberar_em`, `referencia_lancamento`, `origem_lancamento` etc.; o contrato saiu e virou o tipo recorrente (ADR 0007).
 
 ### Pendente de decisão (NÃO implementar sem pedido)
 - Agrupamento dos blocos em páginas e endpoints novos de execução (`telas-blocos-e-endpoints.md`).
-- Mudanças na OS para o faturamento (ADR 0007).
+- Telas e blocos do faturamento (a camada de dados do ADR 0007 já está implementada).
 - Remoção de horas e complexidade de serviço e tarefa (ADR 0005: aceita, implementação pendente).
 
 ### Cuidados técnicos (backend)

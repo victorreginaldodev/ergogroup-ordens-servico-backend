@@ -92,7 +92,7 @@ Os 43 usuários do dev foram vinculados, e o acesso foi conferido usuário a usu
   - destinatários escolhidos por permissão:
     - liberação para cobrança → quem tem `financeiro.registrar_cobranca`;
     - cobrança realizada → quem tem `financeiro.ver_valores` e (`os.gerenciar` ou `financeiro.registrar_cobranca`);
-    - nova OS com contrato → todos, com ou sem valores conforme `financeiro.ver_valores`;
+    - o e-mail de nova OS com contrato deixou de existir junto com o contrato (ADR 0007);
   - as notificações estão **desligadas pela configuração `EMAIL_NOTIFICATIONS_ENABLED`**; os testes rodam com elas ligadas.
 
 ### Achado de segurança (10/10/2026)

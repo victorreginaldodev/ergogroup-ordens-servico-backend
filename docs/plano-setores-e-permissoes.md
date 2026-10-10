@@ -32,7 +32,7 @@ Plano de 09/10/2026 para implementar no backend a modelagem discutida (organiza�
 2. **Tipos de usuário em produção:** a migração `organizacoes/0013` vincula cada usuário pelo tipo. Conferir se todos os tipos existentes estão no mapeamento; usuários com tipo desconhecido ficariam sem vínculo e sem acesso.
 3. **`ativo` × `is_active`:** quem está desativado em qualquer das duas flags fica inativo. No dev foi 1 usuário (id 28). Conferir em produção quem será afetado.
 4. **Catálogos:** todos vão para Segurança do Trabalho (`catalogo/0007`); os serviços recebem esse setor (`ordens_servico/0007`, sem registro de auditoria, porque é atualização direta).
-5. **Contratos:** conferir quantas OS têm contrato antes da mudança proposta no ADR 0007 (no dev há 1).
+5. **Faturamento (ADR 0007):** conferir quantas OS têm contrato antes de migrar (no dev há 1); a migração `ordens_servico/0015` copia os dados para a observação e lista as OS afetadas. Conferir também que nenhum usuário tem vínculo em mais de um setor: a `organizacoes/0016` para se tiver.
 6. **Logs:** verificar se os logs de produção têm senhas ou tokens gravados pelo login (ADR 0003, achado de segurança).
 7. **Primeiro acesso de diretoria:** se algum diretor ficar sem vínculo, o primeiro vínculo de diretoria precisa ser criado por superusuário ou pelo admin.
 8. **E-mails:** as notificações continuam desligadas por `EMAIL_NOTIFICATIONS_ENABLED`; ligá-las é uma decisão à parte.

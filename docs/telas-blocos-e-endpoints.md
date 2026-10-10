@@ -153,4 +153,4 @@ Registrada só como histórico. Foi substituída pelos blocos (seção 4) porque
 - **Aguardando e parado:** aceitos (ADR 0006), implementação pendente.
 - **Faixas de prazo e histórico de replanejamento:** proposta (ADR 0006).
 - **Remoção de horas e complexidade de serviço e tarefa:** aceita, pendente (ADR 0005).
-- **Mudanças na OS para o faturamento:** proposta (ADR 0007 e `docs/faturamento/02-proposta-condicoes-de-pagamento.md`).
+- **Mudanças na OS para o faturamento:** implementadas na camada de dados (ADR 0007); faltam os blocos e telas.
