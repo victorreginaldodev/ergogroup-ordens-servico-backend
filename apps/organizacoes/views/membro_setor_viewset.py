@@ -21,8 +21,8 @@ from apps.organizacoes.serializers import MembroSetorSerializer
     create=extend_schema(
         summary='Vincular usuário a setor',
         description=(
-            'Vincula o usuário a um setor com uma função da mesma organização. Um usuário tem no máximo '
-            'um vínculo por setor. Exige `usuarios.gerenciar`.'
+            'Vincula o usuário a um setor com uma função da mesma organização. Cada usuário pertence a um '
+            'único setor: para mudar de setor, edite o vínculo existente. Exige `usuarios.gerenciar`.'
         ),
     ),
     retrieve=extend_schema(summary='Detalhar vínculo'),

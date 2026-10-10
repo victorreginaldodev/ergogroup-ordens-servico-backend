@@ -51,7 +51,8 @@ class ProprioUsuarioOuGestor(BasePermission):
     create=extend_schema(
         summary='Criar usuário',
         description=(
-            'Cria um usuário e, opcionalmente, seus vínculos (`vinculos`: lista de `setor` e `funcao`). '
+            'Cria um usuário e, opcionalmente, o seu vínculo (`vinculos`: lista com no máximo um item, '
+            'com `setor` e `funcao`; cada usuário pertence a um único setor). '
             'Exige `usuarios.gerenciar`, e só é possível atribuir funções cujas permissões você tem no setor. '
             'Sem vínculos, o usuário só acessa o que é dele.'
         ),

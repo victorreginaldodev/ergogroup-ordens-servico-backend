@@ -4,7 +4,7 @@ from django.db import models
 
 
 class MembroSetor(models.Model):
-    """Vínculo de um usuário com um setor, exercendo uma função. Um usuário pode estar em vários setores."""
+    """Vínculo de um usuário com o seu setor, exercendo uma função. Cada usuário pertence a um único setor."""
     usuario = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -28,7 +28,7 @@ class MembroSetor(models.Model):
         verbose_name = 'Membro de setor'
         verbose_name_plural = 'Membros de setor'
         constraints = [
-            models.UniqueConstraint(fields=['usuario', 'setor'], name='membro_setor_unico_por_usuario'),
+            models.UniqueConstraint(fields=['usuario'], name='membro_setor_um_setor_por_usuario'),
         ]
 
     def __str__(self):

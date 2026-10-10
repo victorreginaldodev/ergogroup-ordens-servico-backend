@@ -1,3 +1,4 @@
+from django.db import IntegrityError, transaction
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -12,6 +13,7 @@ class EstruturaBaseTestCase(APITestCase):
         self.ergogroup = Organizacao.objects.get(nome='Ergogroup')
         self.diretor = criar_usuario(Perfil.DIRETOR)
         self.tecnico = criar_usuario(Perfil.TECNICO)
+        self.novato = criar_usuario(None)
         self.ergonomia = Setor.objects.create(organizacao=self.ergogroup, nome='Ergonomia')
         self.gestor_execucao = Funcao.objects.create(organizacao=self.ergogroup, nome='Gestor de Execução')
         self.gestor_execucao.setores.add(self.ergonomia)
@@ -85,7 +87,7 @@ class FuncaoApiTestCase(EstruturaBaseTestCase):
         self.assertEqual(escopos['financeiro.ver_valores'], 'global')
 
     def test_excluir_funcao_em_uso_retorna_409(self):
-        MembroSetor.objects.create(usuario=self.tecnico, setor=self.ergonomia, funcao=self.gestor_execucao)
+        MembroSetor.objects.create(usuario=self.novato, setor=self.ergonomia, funcao=self.gestor_execucao)
         self.client.force_authenticate(user=self.diretor)
 
         response = self.client.delete(reverse('funcoes-detail', args=[self.gestor_execucao.id]))
@@ -96,7 +98,7 @@ class FuncaoApiTestCase(EstruturaBaseTestCase):
 
 class MembroSetorApiTestCase(EstruturaBaseTestCase):
     def payload(self, **extra):
-        return {'usuario': self.tecnico.id, 'setor': self.ergonomia.id, 'funcao': self.gestor_execucao.id, **extra}
+        return {'usuario': self.novato.id, 'setor': self.ergonomia.id, 'funcao': self.gestor_execucao.id, **extra}
 
     def test_gestor_vincula_usuario_a_setor(self):
         self.client.force_authenticate(user=self.diretor)
@@ -107,26 +109,39 @@ class MembroSetorApiTestCase(EstruturaBaseTestCase):
         self.assertEqual(response.data['setor_nome'], 'Ergonomia')
         self.assertEqual(response.data['funcao_nome'], 'Gestor de Execução')
 
-    def test_usuario_tem_um_vinculo_por_setor(self):
-        MembroSetor.objects.create(usuario=self.tecnico, setor=self.ergonomia, funcao=self.gestor_execucao)
-        self.client.force_authenticate(user=self.diretor)
-
-        response = self.client.post(reverse('membros-setor-list'), self.payload())
-
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
-    def test_usuario_pode_estar_em_varios_setores(self):
+    def test_usuario_pertence_a_um_unico_setor(self):
         medicina = Setor.objects.create(organizacao=self.ergogroup, nome='Medicina')
         self.gestor_execucao.setores.add(medicina)
-        MembroSetor.objects.create(usuario=self.tecnico, setor=self.ergonomia, funcao=self.gestor_execucao)
+        MembroSetor.objects.create(usuario=self.novato, setor=self.ergonomia, funcao=self.gestor_execucao)
         self.client.force_authenticate(user=self.diretor)
 
-        response = self.client.post(reverse('membros-setor-list'), self.payload(setor=medicina.id))
+        mesmo_setor = self.client.post(reverse('membros-setor-list'), self.payload())
+        outro_setor = self.client.post(reverse('membros-setor-list'), self.payload(setor=medicina.id))
 
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(
-            self.tecnico.vinculos_setor.filter(setor__in=[self.ergonomia, medicina]).count(), 2,
+        self.assertEqual(mesmo_setor.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(outro_setor.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('usuario', outro_setor.data)
+        self.assertEqual(self.novato.vinculos_setor.count(), 1)
+
+    def test_mudar_de_setor_edita_o_vinculo(self):
+        medicina = Setor.objects.create(organizacao=self.ergogroup, nome='Medicina')
+        self.gestor_execucao.setores.add(medicina)
+        vinculo = MembroSetor.objects.create(usuario=self.novato, setor=self.ergonomia, funcao=self.gestor_execucao)
+        self.client.force_authenticate(user=self.diretor)
+
+        response = self.client.patch(
+            reverse('membros-setor-detail', args=[vinculo.id]), {'setor': medicina.id}, format='json',
         )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(list(self.novato.vinculos_setor.values_list('setor__nome', flat=True)), ['Medicina'])
+
+    def test_banco_recusa_segundo_vinculo(self):
+        medicina = Setor.objects.create(organizacao=self.ergogroup, nome='Medicina')
+        MembroSetor.objects.create(usuario=self.novato, setor=self.ergonomia, funcao=self.gestor_execucao)
+
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            MembroSetor.objects.create(usuario=self.novato, setor=medicina, funcao=self.gestor_execucao)
 
     def test_funcao_de_outra_organizacao_e_rejeitada(self):
         outra = Organizacao.objects.create(nome='Outra Empresa')
@@ -146,7 +161,7 @@ class MembroSetorApiTestCase(EstruturaBaseTestCase):
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_excluir_setor_com_membros_retorna_409(self):
-        MembroSetor.objects.create(usuario=self.tecnico, setor=self.ergonomia, funcao=self.gestor_execucao)
+        MembroSetor.objects.create(usuario=self.novato, setor=self.ergonomia, funcao=self.gestor_execucao)
         self.client.force_authenticate(user=self.diretor)
 
         response = self.client.delete(reverse('setores-detail', args=[self.ergonomia.id]))

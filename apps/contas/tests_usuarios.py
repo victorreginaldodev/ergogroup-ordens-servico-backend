@@ -60,7 +60,19 @@ class CadastroComVinculosTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         self.assertFalse(Usuario.objects.filter(email='novo@ergogroup.test').exists())
 
-    def test_editar_vinculos_substitui_a_lista(self):
+    def test_editar_vinculo_troca_setor_e_funcao(self):
+        tecnico = criar_usuario(Perfil.TECNICO)
+
+        response = self.client.patch(
+            reverse('usuarios-detail', args=[tecnico.id]), {'vinculos': [vinculo(Perfil.COMERCIAL)]}, format='json',
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            list(tecnico.vinculos_setor.values_list('setor__nome', 'funcao__nome')), [('Comercial', 'Comercial')],
+        )
+
+    def test_usuario_nao_recebe_dois_setores(self):
         tecnico = criar_usuario(Perfil.TECNICO)
 
         response = self.client.patch(
@@ -68,11 +80,9 @@ class CadastroComVinculosTestCase(APITestCase):
             {'vinculos': [vinculo(Perfil.SUB_GESTOR_TECNICO), vinculo(Perfil.COMERCIAL)]}, format='json',
         )
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(
-            set(tecnico.vinculos_setor.values_list('funcao__nome', flat=True)),
-            {'Sub-Gestor Técnico', 'Comercial'},
-        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('vinculos', response.data)
+        self.assertEqual(list(tecnico.vinculos_setor.values_list('funcao__nome', flat=True)), ['Técnico'])
 
     def test_editar_sem_enviar_vinculos_preserva_os_atuais(self):
         tecnico = criar_usuario(Perfil.TECNICO)

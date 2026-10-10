@@ -14,7 +14,7 @@ P = Permissao
 
 
 class PermissoesPorSetorBase(APITestCase):
-    """Ana gerencia a execução em Ergonomia e é só técnica em Medicina."""
+    """Ana gerencia a execução em Ergonomia e tem uma tarefa num serviço de Medicina, setor do qual não faz parte."""
 
     def setUp(self):
         self.ergogroup = Organizacao.objects.get(nome='Ergogroup')
@@ -28,7 +28,6 @@ class PermissoesPorSetorBase(APITestCase):
 
         self.ana = criar_usuario(None)
         self.vincular(self.ana, self.ergonomia, self.gestor_execucao)
-        self.vincular(self.ana, self.medicina, self.tecnico)
         self.colega = criar_usuario(None)
 
         ordem = OrdemServico.objects.create(
@@ -70,10 +69,9 @@ class PerfilDeAcessoTestCase(PermissoesPorSetorBase):
     def test_sem_setor_basta_ter_a_permissao_em_algum_setor(self):
         self.assertTrue(tem_permissao(self.ana, P.TAREFAS_DISTRIBUIR))
 
-    def test_permissoes_somam_todos_os_vinculos(self):
+    def test_funcao_soma_permissoes_globais_e_do_setor(self):
         usuario = criar_usuario(None)
-        self.vincular(usuario, self.ergonomia, self.gestor_execucao)
-        self.vincular(usuario, self.medicina, self.funcao('Vendas', [P.OS_VER_TODAS]))
+        self.vincular(usuario, self.ergonomia, self.funcao('Gestor e Vendas', [P.OS_VER_TODAS, P.TAREFAS_DISTRIBUIR]))
 
         self.assertTrue(tem_permissao(usuario, P.OS_VER_TODAS))
         self.assertTrue(tem_permissao(usuario, P.TAREFAS_DISTRIBUIR, self.ergonomia))
@@ -109,7 +107,7 @@ class VisibilidadePorSetorTestCase(PermissoesPorSetorBase):
         self.assertNotIn(self.tarefa_medicina_do_colega.id, self.ids(response))
 
     def test_funcao_com_ver_todas_libera_todas_as_os(self):
-        comercial = criar_usuario(Perfil.TECNICO)
+        comercial = criar_usuario(None)
         self.vincular(comercial, self.ergonomia, self.funcao('Vendas', [P.OS_VER_TODAS]))
         self.client.force_authenticate(user=comercial)
 
@@ -202,9 +200,9 @@ class NinguemConcedeOQueNaoTemTestCase(PermissoesPorSetorBase):
     def test_nao_se_vincula_a_funcao_mais_poderosa(self):
         comercial = self.funcao('Vendas', [P.OS_VER_TODAS, P.FINANCEIRO_VER_VALORES])
 
-        response = self.client.post(reverse('membros-setor-list'), {
-            'usuario': self.rh.id, 'setor': self.medicina.id, 'funcao': comercial.id,
-        })
+        response = self.client.patch(
+            reverse('membros-setor-detail', args=[self.rh.vinculos_setor.get().id]), {'funcao': comercial.id},
+        )
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('funcao', response.data)
@@ -216,14 +214,14 @@ class NinguemConcedeOQueNaoTemTestCase(PermissoesPorSetorBase):
             'usuario': self.colega.id, 'setor': self.medicina.id, 'funcao': distribuidor.id,
         })
         em_ergonomia = self.client.post(reverse('membros-setor-list'), {
-            'usuario': self.colega.id, 'setor': self.ergonomia.id, 'funcao': distribuidor.id,
+            'usuario': criar_usuario(None).id, 'setor': self.ergonomia.id, 'funcao': distribuidor.id,
         })
 
         self.assertEqual(em_medicina.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(em_ergonomia.status_code, status.HTTP_201_CREATED)
 
     def test_quem_tem_poder_de_diretoria_pelos_vinculos_fica_protegido(self):
-        socio = criar_usuario(Perfil.ADMINISTRATIVO)
+        socio = criar_usuario(None)
         self.vincular(socio, self.medicina, self.funcao('Sócio', [P.USUARIOS_GERENCIAR_DIRETORIA]))
 
         response = self.client.patch(reverse('usuarios-desativar', args=[socio.id]))

@@ -96,7 +96,7 @@ class UsuarioCreateSerializer(VinculosEscritaMixin, serializers.ModelSerializer)
     password = serializers.CharField(write_only=True, validators=[validate_password])
     password_confirmacao = serializers.CharField(write_only=True)
     ativo = serializers.BooleanField(source='is_active', default=True)
-    vinculos = VinculoSerializer(many=True, required=False, help_text='Setores e funções do usuário.')
+    vinculos = VinculoSerializer(many=True, required=False, help_text='Setor e função do usuário: lista com no máximo um item.')
 
     class Meta:
         model = Usuario
@@ -128,7 +128,7 @@ class UsuarioUpdateSerializer(VinculosEscritaMixin, serializers.ModelSerializer)
     ativo = serializers.BooleanField(source='is_active', required=False)
     vinculos = VinculoSerializer(
         many=True, required=False,
-        help_text='Se enviado, substitui todos os vínculos do usuário.',
+        help_text='Se enviado, substitui o vínculo do usuário (lista com no máximo um item; vazia remove o vínculo).',
     )
 
     class Meta:

@@ -23,6 +23,13 @@ class MembroSetorSerializer(serializers.ModelSerializer):
         if self.instance is not None:
             atuais = {'usuario': self.instance.usuario, 'setor': self.instance.setor, 'funcao': self.instance.funcao}
         vinculo = MembroSetor(**{**atuais, **attrs})
+        outros = MembroSetor.objects.filter(usuario=vinculo.usuario)
+        if self.instance is not None:
+            outros = outros.exclude(pk=self.instance.pk)
+        if outros.exists():
+            raise serializers.ValidationError(
+                {'usuario': 'Este usuário já pertence a um setor. Cada usuário pertence a um único setor.'}
+            )
         try:
             vinculo.clean()
         except DjangoValidationError as exc:

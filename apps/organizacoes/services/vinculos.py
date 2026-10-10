@@ -9,9 +9,8 @@ from apps.organizacoes.permissoes import pode_conceder
 def validar_vinculos(itens, por):
     """``itens``: lista de ``{'setor': Setor, 'funcao': Funcao}``. Levanta ``ValidationError`` se a lista
     for inconsistente e ``PermissionDenied`` se ``por`` não puder conceder alguma função."""
-    setores = [item['setor'].pk for item in itens]
-    if len(setores) != len(set(setores)):
-        raise ValidationError('Um usuário tem no máximo um vínculo por setor.')
+    if len(itens) > 1:
+        raise ValidationError('Um usuário pertence a um único setor: informe no máximo um vínculo.')
     for item in itens:
         MembroSetor(setor=item['setor'], funcao=item['funcao']).clean()
         if not pode_conceder(por, item['funcao'].codigos_permissao, item['setor']):
