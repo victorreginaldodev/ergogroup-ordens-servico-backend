@@ -187,5 +187,6 @@ SPECTACULAR_SETTINGS = {
         'StatusOSETarefaEnum': 'apps.ordens_servico.models.ordem_servico.Status',
         'StatusServicoEnum':   'apps.ordens_servico.models.servico.StatusServico',
         'StatusMiniOSEnum':    'apps.ordens_servico.models.ordem_servico_operacional.StatusOrdemServicoOperacional',
+        'MotivoCienciaEnum':   'apps.ordens_servico.models.servico.MotivoCiencia',
     },
 }

@@ -12,6 +12,7 @@ urlpatterns = [
     path('api/clientes/', include('apps.clientes.urls')),
     path('api/catalogo/', include('apps.catalogo.urls')),
     path('api/ordens-servico/', include('apps.ordens_servico.urls')),
+    path('api/execucao/', include('apps.ordens_servico.urls_execucao')),
     path('api/analise/', include('apps.analise.urls')),
     path('api/auditoria/', include('apps.auditoria.urls')),
 
