@@ -156,7 +156,7 @@ Decisão de 10/10/2026: uma função só pode ser usada nos setores em que foi l
 Substitui o "painel do setor" pensado de início. O contexto completo, os dados e as decisões estão nos ADRs 0005 e 0006.
 
 1. **Remover horas e complexidade de serviço e tarefa,** com os indicadores que dependem delas (ADR 0005).
-2. **Visões de trabalho:** a definir na frente de definição de telas. Só depois disso entram os endpoints dedicados.
+2. **Visões de trabalho:** a definir na frente de definição de telas (`docs/telas-blocos-e-endpoints.md`). Só depois disso entram os endpoints dedicados.
 3. **Distribuição em um passo:** um endpoint que recebe responsável e prazo e cria a tarefa; "dividir" acrescenta tarefas.
 4. **Aguardando e parado:** marcação opcional com motivo na tarefa e cálculo de "parado há N dias".
 5. **Prazos:** faixas, alerta de "sem prazo" e histórico de replanejamento (proposta, a confirmar).

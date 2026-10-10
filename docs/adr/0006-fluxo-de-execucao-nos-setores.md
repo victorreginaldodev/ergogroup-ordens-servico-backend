@@ -127,6 +127,8 @@ Só com prazo e datas, sem horas nem complexidade (ADR 0005):
 - **Sem limite fixo de itens por pessoa por enquanto;** pode virar configuração do setor no futuro.
 
 ### 8. Quem organiza o setor e o que cada pessoa vê
+> Ver também `docs/telas-blocos-e-endpoints.md`, seção 3.
+
 > **Proposta, não decidida (10/10/2026).** Registrada como ponto de partida para a frente de definição de telas. Nada aqui deve ser implementado antes dessa definição.
 
 - **"Gestor do setor" não é um campo.** O sistema sabe quem organiza cada setor pelas permissões: quem tem `tarefas.distribuir` e `servicos.ver_setor` no setor X organiza o setor X, seja qual for o nome da função.
@@ -148,6 +150,8 @@ Só com prazo e datas, sem horas nem complexidade (ADR 0005):
 - **Resumo diário por e-mail pela manhã:** combina com a rotina, mas exige agendador de tarefas, que o sistema não tem. Fica para o futuro.
 
 ### 10. Blocos de informação (comercial, execução e financeiro)
+> **Documento de referência completo:** `docs/telas-blocos-e-endpoints.md`. Reúne a discussão sobre telas, quem vê o quê, blocos, permissões e endpoints candidatos.
+
 Mapeados em 10/10/2026, deixando de fora telas de configuração e cadastro (perfil, catálogo, setores, organização).
 
 **Distinção importante, feita pelo usuário:** isto é uma lista de **blocos de informação**, não de páginas.

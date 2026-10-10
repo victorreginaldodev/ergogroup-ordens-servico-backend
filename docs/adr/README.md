@@ -14,6 +14,7 @@ Cada ADR registra uma decisão, o contexto em que foi tomada, as alternativas de
 
 Documentos relacionados:
 - `docs/conceitos-de-dominio.md` — glossário do domínio.
+- `docs/telas-blocos-e-endpoints.md` — telas, blocos de informação, quem vê o quê (permissões) e endpoints candidatos.
 - `docs/mapa-de-permissoes.md` — o que cada permissão libera e as regras do frontend.
 - `docs/plano-setores-e-permissoes.md` — plano de implementação por fases.
 - `docs/briefing-sprint-setores.md` e `docs/as-is/` — o problema original e o sistema antes da sprint.
