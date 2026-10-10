@@ -9,6 +9,16 @@ def get_auditoria_context():
     return getattr(_state, 'context', {})
 
 
+def usuario_do_contexto(contexto):
+    """O usuário explícito do contexto ou, numa requisição, o autenticado nela. O DRF copia para a requisição do
+    Django o usuário que autenticou (inclusive por JWT), então ele já está lá quando o registro é gravado."""
+    if contexto.get('usuario') is not None:
+        return contexto['usuario']
+    requisicao = contexto.get('requisicao')
+    usuario = getattr(requisicao, 'user', None)
+    return usuario if usuario is not None and usuario.is_authenticated else None
+
+
 def set_auditoria_context(**context):
     _state.context = context
 

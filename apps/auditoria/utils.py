@@ -3,7 +3,7 @@ from decimal import Decimal
 
 from django.db import models
 
-from apps.auditoria.context import get_auditoria_context
+from apps.auditoria.context import get_auditoria_context, usuario_do_contexto
 from apps.auditoria.models import (
     AcaoAuditoria,
     EntidadeAuditada,
@@ -77,7 +77,7 @@ def registrar_auditoria(
         acao=acao,
         origem=origem or contexto.get('origem') or OrigemAuditoria.SISTEMA,
         motivo=motivo,
-        usuario=usuario if usuario is not None else contexto.get('usuario'),
+        usuario=usuario if usuario is not None else usuario_do_contexto(contexto),
         alteracoes=alteracoes or {},
         snapshot=snapshot or {},
         ordem_servico_id=ordem_servico_id,

@@ -8,9 +8,10 @@ class AuditoriaContextMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        user = request.user if getattr(request, 'user', None) and request.user.is_authenticated else None
+        # O usuário não é lido aqui: com JWT, a autenticação só acontece dentro da view do DRF, depois deste
+        # middleware. Guardamos a requisição e o usuário é resolvido na hora de gravar o registro.
         set_auditoria_context(
-            usuario=user,
+            requisicao=request,
             origem='api',
             request_id=request.headers.get('X-Request-ID') or uuid4().hex,
             ip=_get_client_ip(request),
