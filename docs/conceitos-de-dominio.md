@@ -41,7 +41,7 @@ Ver o ADR 0006 para o contexto completo.
 | **Alerta sem movimentação** | Serviço aberto ou em andamento sem movimentação há 7 dias ou mais. O sistema **não** marca o serviço como parado: só avisa (ADR 0008). |
 | **Ciência ("estou ciente")** | Resposta ao alerta: quem acompanha o serviço confirma que está tudo bem, com motivo opcional (cliente, documentação, agendamento, terceiro, outro). Silencia o alerta por mais 7 dias; deixa de valer quando o serviço se move. Substitui a antiga ideia de "aguardando" na tarefa. |
 | **Carga** | Itens ativos de uma pessoa por faixa de prazo, mais a idade desses itens. Não usa horas. |
-| **Linha do tempo** | O que aconteceu com uma OS ou um serviço, contado em eventos legíveis a partir da auditoria (ADR 0008). |
+| **Linha do tempo** | O que aconteceu com uma OS ou um serviço, contado em eventos legíveis a partir da auditoria (ADR 0008). Vendas anteriores à auditoria começam com um aviso de que o histórico detalhado começa depois. |
 | **Visão de trabalho** | *(proposta, a definir)* O que cada pessoa vê, montado pelas permissões dela. As visões serão definidas na frente de definição de telas. |
 
 ## Faturamento

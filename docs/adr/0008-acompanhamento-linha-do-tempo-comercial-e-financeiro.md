@@ -69,7 +69,7 @@ Como isso fica garantido:
 ### 4. Linha do tempo
 **Decidido (necessidade):** hoje a visão do Comercial é só a lista de OS. Comercial, diretoria, financeiro e setores técnicos precisam ver **o que aconteceu e o que está acontecendo** com uma venda e com cada serviço.
 
-**Modelagem (proposta, fase 11):**
+**Modelagem (implementada na fase 11; definições da implementação no plano):**
 - **Duas linhas do tempo:**
   - **da OS:** a venda inteira, com os eventos da OS e de todos os serviços dela;
   - **do serviço:** só aquele serviço e suas tarefas.

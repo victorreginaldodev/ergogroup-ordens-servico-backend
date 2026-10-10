@@ -22,7 +22,7 @@ Base: `docs/telas-blocos-e-endpoints.md` (blocos mapeados) e ADR 0008 (decisões
 | 8 | Blocos da execução (fila, distribuir, andamento, alertas, concluídos, carga, meus serviços, detalhe) | ✅ concluída em 10/10/2026 |
 | 9 | Blocos do comercial (resumo da condição, lista de vendas com andamento, resumo da venda) | ✅ concluída em 10/10/2026 |
 | 10 | Blocos do financeiro (cobranças, situação financeira, alerta, indicadores) | ✅ concluída em 10/10/2026 |
-| 11 | Linha do tempo da OS e do serviço | a fazer |
+| 11 | Linha do tempo da OS e do serviço | ✅ concluída em 10/10/2026 |
 | 12 | Frontend (projeto `ergogroup-ordens-servico-frontend`) | a fazer, fase a fase |
 
 Ordem sugerida: 7 → 8 → 9 → 10 → 11. A fase 11 pode andar em paralelo com a 9 e a 10. O frontend acompanha cada fase do backend.
@@ -142,7 +142,22 @@ Concluída em 10/10/2026 (269 testes passando). Código: `services/financeiro.py
 | 10.4 | Situação financeira de uma OS | `GET /api/financeiro/ordens/{id}/` | `financeiro.ver_valores` | tudo da linha de 10.1 + os eventos financeiros da linha do tempo |
 | 10.5 | Indicadores | `GET /api/analise/financeiro/` (ajuste) | `financeiro.ver_valores` | a faturar, faturado e previsão; por tipo de condição; receita recorrente mensal |
 
-## Fase 11 — Linha do tempo
+## Fase 11 — Linha do tempo ✅
+
+Concluída em 10/10/2026 (274 testes passando). Código: `services/linha_do_tempo.py` (tradutor), `serializers/linha_do_tempo_serializer.py` e as ações `linha-do-tempo` nos viewsets de OS e de serviço:
+- `GET /api/ordens-servico/ordens/{id}/linha-do-tempo/`: a venda inteira (OS, serviços e tarefas);
+- `GET /api/ordens-servico/servicos/{id}/linha-do-tempo/`: só o serviço e suas tarefas.
+
+Cada evento: `quando`, `quem` (nome completo; vazio quando foi o sistema), `tipo`, `texto`, `ordem_servico_id`, `servico_id`, `tarefa_id`. Os tipos estão no Swagger.
+
+**Definições tomadas na implementação (proposta, a confirmar):**
+- **Registros do preenchimento inicial da auditoria ficam de fora** (origem `migracao`), porque a data deles é a da migração. No lugar, a OS antiga ganha um evento `historico_anterior`: "Venda de dd/mm/aaaa, registrada antes do histórico detalhado".
+- **Sem eventos repetidos:** o "em execução" do serviço e da OS não aparece, porque repete o "iniciou" da tarefa. Aparecem a conclusão, o cancelamento e a reabertura.
+- **Liberação e faturamento aparecem para todos**; a condição de pagamento (no evento da venda e nas alterações) e a referência do lançamento só com `financeiro.ver_valores`.
+- **Replanejamento:** cada alteração de prazo de tarefa vira um evento "Prazo de X (Fulano) alterado de A para B". Isso cobre o histórico de replanejamento (ADR 0006, 5.3) sem campo novo; a contagem e as faixas continuam como proposta.
+
+**Correção encontrada:** a auditoria gravava `usuario` vazio em todas as ações feitas pela API com JWT, porque o middleware lia o usuário antes de o DRF autenticar o token. Agora o usuário é resolvido na hora de gravar o registro (`apps/auditoria/context.py`). Os registros já gravados sem usuário não são recuperáveis; a linha do tempo mostra "quem" vazio neles.
+
 
 | # | Item | Detalhe |
 |---|---|---|

@@ -55,7 +55,7 @@ No frontend: `docs/ui/` (design system, UI kit, plano de setores e time, wirefra
   - camada de dados implementada: `tipo_condicao`, `liberar_em`, `referencia_lancamento`, `origem_lancamento` etc.; o contrato saiu e virou o tipo recorrente (ADR 0007).
 
 ### Próximos passos
-- Plano em `docs/plano-execucao-comercial-financeiro.md` (fases 6 a 12; as fases 6 a 10 estão concluídas). Decisões no ADR 0008.
+- Plano em `docs/plano-execucao-comercial-financeiro.md` (fases 6 a 12; as fases 6 a 11 estão concluídas, falta o frontend). Decisões no ADR 0008.
 - Implementar cada fase só quando o usuário pedir. O agrupamento dos blocos em páginas é decisão do frontend.
 
 ### Cuidados técnicos (backend)

@@ -11,7 +11,7 @@ Cada ADR registra uma decisão, o contexto em que foi tomada, as alternativas de
 | [0005](0005-prazo-como-unico-parametro-de-planejamento.md) | Prazo como único parâmetro de planejamento | Aceito e implementado |
 | [0006](0006-fluxo-de-execucao-nos-setores.md) | Fluxo de execução nos setores | Aceito; seção 6 substituída pelo ADR 0008; endpoints no plano de execução |
 | [0007](0007-papel-do-sistema-no-faturamento.md) | Papel do sistema no faturamento | Aceito; camada de dados implementada, telas pendentes |
-| [0008](0008-acompanhamento-linha-do-tempo-comercial-e-financeiro.md) | Acompanhamento da execução, linha do tempo, visão comercial e controle financeiro | Aceito; fases 6 a 10 implementadas, demais fases no plano |
+| [0008](0008-acompanhamento-linha-do-tempo-comercial-e-financeiro.md) | Acompanhamento da execução, linha do tempo, visão comercial e controle financeiro | Aceito; backend implementado (fases 6 a 11); frontend pendente |
 
 Documentos relacionados:
 - `docs/conceitos-de-dominio.md` — glossário do domínio.
