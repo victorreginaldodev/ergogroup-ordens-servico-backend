@@ -4,6 +4,7 @@ from drf_spectacular.utils import extend_schema_field
 from apps.ordens_servico.models import OrdemServico
 from apps.ordens_servico.models.ordem_servico import validar_condicao_pagamento
 from apps.ordens_servico.serializers.servico_serializer import ServicoDaVendaSerializer
+from apps.ordens_servico.services import comercial
 from apps.ordens_servico.services.venda import registrar_venda
 from apps.clientes.models import Cliente
 from apps.clientes.serializers import ClienteListSerializer, ClienteSerializer
@@ -12,7 +13,7 @@ from apps.organizacoes.permissoes import Permissao, tem_permissao
 CAMPOS_FINANCEIROS = (
     'valor', 'valor_mensal', 'tipo_condicao', 'tipo_condicao_display', 'forma_pagamento', 'forma_pagamento_display',
     'quantidade_parcelas', 'data_acordada_cobranca', 'intervalo_parcelas_dias', 'dia_fechamento',
-    'dia_vencimento', 'liberar_em', 'liberar_em_display',
+    'dia_vencimento', 'liberar_em', 'liberar_em_display', 'condicao_resumo',
 )
 
 
@@ -40,8 +41,20 @@ class OcultaValoresMixin:
         return data
 
 
+class AndamentoSerializer(serializers.Serializer):
+    total = serializers.IntegerField()
+    na_fila = serializers.IntegerField()
+    distribuido = serializers.IntegerField()
+    em_execucao = serializers.IntegerField()
+    concluido = serializers.IntegerField()
+    cancelado = serializers.IntegerField()
+
+
 class OrdemServicoListSerializer(OcultaValoresMixin, serializers.ModelSerializer):
     cliente_nome = serializers.CharField(source='cliente.nome', read_only=True)
+    vendido_por_nome = serializers.CharField(source='criado_por.nome_completo', read_only=True, default=None)
+    condicao_resumo = serializers.CharField(read_only=True)
+    andamento = serializers.SerializerMethodField()
     tipo_condicao_display = serializers.CharField(source='get_tipo_condicao_display', read_only=True)
     liberar_em_display = serializers.CharField(source='get_liberar_em_display', read_only=True)
     forma_pagamento_display = serializers.CharField(source='get_forma_pagamento_display', read_only=True)
@@ -54,9 +67,9 @@ class OrdemServicoListSerializer(OcultaValoresMixin, serializers.ModelSerializer
     class Meta:
         model = OrdemServico
         fields = [
-            'id', 'cliente', 'cliente_nome', 'data_venda', 'valor', 'valor_mensal',
-            'tipo_condicao', 'tipo_condicao_display', 'forma_pagamento', 'forma_pagamento_display',
-            'liberar_em', 'liberar_em_display', 'status',
+            'id', 'cliente', 'cliente_nome', 'data_venda', 'vendido_por_nome', 'valor', 'valor_mensal',
+            'tipo_condicao', 'tipo_condicao_display', 'condicao_resumo', 'forma_pagamento', 'forma_pagamento_display',
+            'liberar_em', 'liberar_em_display', 'andamento', 'status',
             'status_display', 'prioridade', 'prioridade_display', 'prazo',
             'concluida', 'cobranca_realizada', 'referencia_lancamento',
             'liberada_para_cobranca', 'liberada_para_cobranca_em',
@@ -71,12 +84,18 @@ class OrdemServicoListSerializer(OcultaValoresMixin, serializers.ModelSerializer
         usuario = obj.liberada_para_cobranca_por
         return usuario.nome_completo or usuario.get_full_name() or usuario.username
 
+    @extend_schema_field(AndamentoSerializer)
+    def get_andamento(self, obj):
+        """Quantos serviços da OS estão em cada etapa da execução (ex.: "2 de 4 concluídos")."""
+        return comercial.andamento(obj)
+
 
 class OrdemServicoSerializer(OcultaValoresMixin, serializers.ModelSerializer):
     cliente_detail = ClienteSerializer(source='cliente', read_only=True)
     cliente = serializers.PrimaryKeyRelatedField(queryset=Cliente.objects.all())
     tipo_condicao_display = serializers.CharField(source='get_tipo_condicao_display', read_only=True)
     liberar_em_display = serializers.CharField(source='get_liberar_em_display', read_only=True)
+    condicao_resumo = serializers.CharField(read_only=True)
     origem_lancamento_display = serializers.CharField(source='get_origem_lancamento_display', read_only=True)
     forma_pagamento_display = serializers.CharField(source='get_forma_pagamento_display', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
@@ -100,7 +119,7 @@ class OrdemServicoSerializer(OcultaValoresMixin, serializers.ModelSerializer):
             'id', 'cliente', 'cliente_detail', 'servicos',
             'criado_por', 'criado_por_nome', 'data_venda', 'criada_em',
             'status', 'status_display', 'prioridade', 'prioridade_display', 'prazo', 'valor',
-            'valor_mensal', 'tipo_condicao', 'tipo_condicao_display',
+            'valor_mensal', 'tipo_condicao', 'tipo_condicao_display', 'condicao_resumo',
             'forma_pagamento', 'forma_pagamento_display', 'quantidade_parcelas',
             'data_acordada_cobranca', 'intervalo_parcelas_dias', 'dia_fechamento', 'dia_vencimento',
             'liberar_em', 'liberar_em_display', 'nome_contato_envio_nf', 'contato_envio_nf',

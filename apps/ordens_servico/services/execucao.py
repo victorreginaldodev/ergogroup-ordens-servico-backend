@@ -81,6 +81,21 @@ def com_etapa(queryset):
     ))
 
 
+def etapa_do_servico(servico):
+    """Mesma regra de `com_etapa`, em Python, para serviços já carregados com `tarefas` (sem consulta extra
+    quando as tarefas vêm de `prefetch_related`)."""
+    if servico.status == StatusServico.CONCLUIDA:
+        return Etapa.CONCLUIDO
+    if servico.status == StatusServico.CANCELADO:
+        return Etapa.CANCELADO
+    if servico.status == StatusServico.EM_ANDAMENTO:
+        return Etapa.EM_EXECUCAO
+    return Etapa.DISTRIBUIDO if servico.tarefas.all() else Etapa.NA_FILA
+
+
+ETAPAS = [Etapa.NA_FILA, Etapa.DISTRIBUIDO, Etapa.EM_EXECUCAO, Etapa.CONCLUIDO, Etapa.CANCELADO]
+
+
 def filtro_em_alerta(prefixo=''):
     """Serviços ativos sem movimentação nem ciência há `DIAS_ALERTA_SEM_MOVIMENTACAO` dias, no banco.
     Equivale a `Servico.em_alerta_sem_movimentacao`."""

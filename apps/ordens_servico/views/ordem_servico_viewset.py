@@ -6,6 +6,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
 
+from apps.ordens_servico.services import comercial
 from apps.ordens_servico.services.visibilidade import ordens_visiveis
 from apps.organizacoes.permissoes import Permissao, PermissoesPorAcaoMixin
 from apps.ordens_servico.models import OrdemServico
@@ -31,6 +32,11 @@ from apps.ordens_servico.serializers import (
             OpenApiParameter('concluida', str, description='Filtrar por conclusão.', enum=['true', 'false']),
             OpenApiParameter('cobranca_realizada', str, description='Filtrar por status de cobrança.', enum=['true', 'false']),
             OpenApiParameter('liberada', str, description='Filtrar por liberação para cobrança.', enum=['true', 'false']),
+            OpenApiParameter('minhas', str, description='Se "true", só as vendas registradas pelo usuário.', enum=['true']),
+            OpenApiParameter(
+                'etapa', str, enum=['na_fila', 'distribuido', 'em_execucao', 'concluido', 'cancelado'],
+                description='OS com ao menos um serviço na etapa (ex.: `na_fila` = vendas com algo ainda não distribuído).',
+            ),
         ],
     ),
     create=extend_schema(
@@ -103,6 +109,8 @@ class OrdemServicoViewSet(PermissoesPorAcaoMixin, viewsets.ModelViewSet):
         concluida = self.request.query_params.get('concluida', '').strip()
         cobranca_realizada = self.request.query_params.get('cobranca_realizada', '').strip()
         liberada = self.request.query_params.get('liberada', '').strip()
+        minhas = self.request.query_params.get('minhas', '').strip()
+        etapa = self.request.query_params.get('etapa', '').strip()
 
         if q:
             queryset = queryset.filter(
@@ -116,6 +124,10 @@ class OrdemServicoViewSet(PermissoesPorAcaoMixin, viewsets.ModelViewSet):
             queryset = queryset.filter(cobranca_realizada=(cobranca_realizada == 'true'))
         if liberada in ('true', 'false'):
             queryset = queryset.filter(liberada_para_cobranca=(liberada == 'true'))
+        if minhas == 'true':
+            queryset = queryset.filter(criado_por=user)
+        if etapa in comercial.ETAPAS:
+            queryset = comercial.filtrar_por_etapa(queryset, etapa)
 
         return queryset
 

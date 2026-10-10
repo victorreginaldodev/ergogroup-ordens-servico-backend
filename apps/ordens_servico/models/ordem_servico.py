@@ -52,6 +52,16 @@ def validar_condicao_pagamento(
             erros['valor_mensal'] = 'Informe o valor mensal do recorrente.'
     return erros
 
+def formatar_reais(valor):
+    """R$ 1.500,00"""
+    texto = f'{valor:,.2f}'.replace(',', '_').replace('.', ',').replace('_', '.')
+    return f'R$ {texto}'
+
+
+def formatar_data(data):
+    return data.strftime('%d/%m/%Y')
+
+
 class Prioridade(models.TextChoices):
     BAIXA = 'baixa', 'Baixa'
     MEDIA = 'media', 'Média'
@@ -228,6 +238,31 @@ class OrdemServico(models.Model):
                 self._notificar_liberacao_para_cobranca()
 
         return self.concluida
+
+    @property
+    def condicao_resumo(self):
+        """Texto pronto da condição de pagamento, o mesmo no comercial, no financeiro e nos e-mails
+        (ADR 0008, 6). Ex.: "Parcelado em 6x a cada 30 dias, 1º vencimento 10/08/2026"."""
+        partes = []
+        if self.tipo_condicao == TipoCondicao.PARCELADO:
+            texto = f'Parcelado em {self.quantidade_parcelas or "?"}x'
+            if self.intervalo_parcelas_dias:
+                texto += f' a cada {self.intervalo_parcelas_dias} dias'
+            partes.append(texto)
+        elif self.tipo_condicao == TipoCondicao.RECORRENTE:
+            texto = f'Recorrente: {self.quantidade_parcelas or "?"} meses'
+            if self.valor_mensal is not None:
+                texto += f' de {formatar_reais(self.valor_mensal)}'
+            partes.append(texto)
+            if self.dia_fechamento:
+                partes.append(f'fecha dia {self.dia_fechamento}')
+            if self.dia_vencimento:
+                partes.append(f'vence dia {self.dia_vencimento}')
+        else:
+            partes.append('À vista')
+        if self.data_acordada_cobranca:
+            partes.append(f'1º vencimento {formatar_data(self.data_acordada_cobranca)}')
+        return ', '.join(partes)
 
     def registrar_lancamento(self, referencia, data, por, origem=OrigemLancamento.MANUAL):
         """Guarda o "check" do financeiro: a OS foi lançada no sistema externo. Exige a OS liberada."""
