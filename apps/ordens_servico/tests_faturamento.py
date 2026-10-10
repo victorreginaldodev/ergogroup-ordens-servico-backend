@@ -61,15 +61,23 @@ class CondicaoDePagamentoTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('quantidade_parcelas', response.data)
         self.assertIn('dia_vencimento', response.data)
+        self.assertIn('valor_mensal', response.data)
 
     def test_recorrente_valido(self):
-        response = self.criar(tipo_condicao='recorrente', quantidade_parcelas=24, dia_fechamento=25, dia_vencimento=15)
+        response = self.criar(
+            tipo_condicao='recorrente', quantidade_parcelas=24, dia_fechamento=25, dia_vencimento=15,
+            valor_mensal='1500.00', valor='36000.00',
+        )
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data['tipo_condicao_display'], 'Recorrente')
+        self.assertEqual(response.data['valor_mensal'], '1500.00')
+        self.assertEqual(response.data['valor'], '36000.00')
 
     def test_dias_do_mes_entre_1_e_31(self):
-        response = self.criar(tipo_condicao='recorrente', quantidade_parcelas=12, dia_fechamento=0, dia_vencimento=32)
+        response = self.criar(
+            tipo_condicao='recorrente', quantidade_parcelas=12, dia_fechamento=0, dia_vencimento=32, valor_mensal='10.00',
+        )
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('dia_fechamento', response.data)
@@ -160,12 +168,15 @@ class OcultacaoDaCondicaoTestCase(APITestCase):
         ordem = OrdemServico.objects.create(
             cliente=Cliente.objects.create(nome='Cliente Oculto'), data_venda=timezone.localdate(), valor=100,
             tipo_condicao=TipoCondicao.RECORRENTE, quantidade_parcelas=12, dia_vencimento=15, dia_fechamento=25,
+            valor_mensal=100,
         )
         self.client.force_authenticate(user=criar_usuario(Perfil.ADMINISTRATIVO))
 
         detalhe = self.client.get(reverse('ordens-servico-detail', args=[ordem.id]))
 
-        for campo in ('tipo_condicao', 'dia_vencimento', 'dia_fechamento', 'intervalo_parcelas_dias', 'liberar_em'):
+        for campo in (
+            'tipo_condicao', 'dia_vencimento', 'dia_fechamento', 'intervalo_parcelas_dias', 'liberar_em', 'valor_mensal',
+        ):
             self.assertNotIn(campo, detalhe.data)
 
 

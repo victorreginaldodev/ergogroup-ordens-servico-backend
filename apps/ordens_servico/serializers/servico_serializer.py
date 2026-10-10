@@ -2,7 +2,7 @@ from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
 
 from apps.ordens_servico.models import Servico, Prioridade
-from apps.catalogo.models import Catalogo, Complexidade
+from apps.catalogo.models import Catalogo
 from apps.catalogo.serializers import CatalogoSerializer
 
 
@@ -11,9 +11,10 @@ class ServicoListSerializer(serializers.ModelSerializer):
     setor_nome = serializers.CharField(source='setor.nome', read_only=True, default=None)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     prioridade_display = serializers.CharField(source='get_prioridade_display', read_only=True)
-    complexidade_display = serializers.SerializerMethodField()
-    horas_estimadas_efetivas = serializers.DecimalField(max_digits=6, decimal_places=2, read_only=True, allow_null=True)
-    complexidade_efetiva = serializers.IntegerField(read_only=True, allow_null=True)
+    dias_sem_movimentacao = serializers.IntegerField(read_only=True)
+    em_alerta_sem_movimentacao = serializers.BooleanField(read_only=True)
+    ciencia_vigente = serializers.BooleanField(read_only=True)
+    alerta_ciente_por_nome = serializers.CharField(source='alerta_ciente_por.nome_completo', read_only=True, default=None)
     cliente_nome = serializers.CharField(source='ordem_servico.cliente.nome', read_only=True, default='')
     data_venda = serializers.DateField(source='ordem_servico.data_venda', read_only=True, default=None)
     terminado_por_nome = serializers.SerializerMethodField()
@@ -25,18 +26,13 @@ class ServicoListSerializer(serializers.ModelSerializer):
             'id', 'ordem_servico', 'catalogo', 'catalogo_nome', 'setor', 'setor_nome',
             'descricao', 'status', 'status_display',
             'prioridade', 'prioridade_display', 'prazo',
-            'horas_estimadas', 'horas_estimadas_efetivas',
-            'complexidade', 'complexidade_display', 'complexidade_efetiva',
             'data_inicio', 'data_termino', 'data_conclusao', 'terminado_por',
             'terminado_por_nome', 'criado_em', 'atualizado_em',
+            'ultima_movimentacao_em', 'dias_sem_movimentacao', 'em_alerta_sem_movimentacao',
+            'alerta_ciente_em', 'alerta_ciente_por', 'alerta_ciente_por_nome', 'alerta_ciente_motivo',
+            'alerta_ciente_observacao', 'ciencia_vigente',
             'cliente_nome', 'data_venda', 'tem_tarefas',
         ]
-
-    @extend_schema_field(serializers.CharField(allow_null=True))
-    def get_complexidade_display(self, obj):
-        if obj.complexidade_efetiva is None:
-            return None
-        return Complexidade(obj.complexidade_efetiva).label
 
     @extend_schema_field(serializers.BooleanField())
     def get_tem_tarefas(self, obj):
@@ -59,9 +55,10 @@ class ServicoSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     prioridade = serializers.ChoiceField(choices=Prioridade.choices, required=False)
     prioridade_display = serializers.CharField(source='get_prioridade_display', read_only=True)
-    complexidade_display = serializers.SerializerMethodField()
-    horas_estimadas_efetivas = serializers.DecimalField(max_digits=6, decimal_places=2, read_only=True, allow_null=True)
-    complexidade_efetiva = serializers.IntegerField(read_only=True, allow_null=True)
+    dias_sem_movimentacao = serializers.IntegerField(read_only=True)
+    em_alerta_sem_movimentacao = serializers.BooleanField(read_only=True)
+    ciencia_vigente = serializers.BooleanField(read_only=True)
+    alerta_ciente_por_nome = serializers.CharField(source='alerta_ciente_por.nome_completo', read_only=True, default=None)
     terminado_por_nome = serializers.SerializerMethodField()
 
     class Meta:
@@ -70,21 +67,18 @@ class ServicoSerializer(serializers.ModelSerializer):
             'id', 'ordem_servico', 'catalogo', 'catalogo_detail', 'setor', 'setor_nome',
             'descricao', 'status', 'status_display',
             'prioridade', 'prioridade_display', 'prazo',
-            'horas_estimadas', 'horas_estimadas_efetivas',
-            'complexidade', 'complexidade_display', 'complexidade_efetiva',
             'data_inicio', 'data_termino', 'data_conclusao', 'terminado_por',
             'terminado_por_nome', 'criado_em', 'atualizado_em',
+            'ultima_movimentacao_em', 'dias_sem_movimentacao', 'em_alerta_sem_movimentacao',
+            'alerta_ciente_em', 'alerta_ciente_por', 'alerta_ciente_por_nome', 'alerta_ciente_motivo',
+            'alerta_ciente_observacao', 'ciencia_vigente',
         ]
+        # Prazo, status, datas e alerta são calculados pelo sistema a partir das tarefas.
         read_only_fields = [
-            'setor', 'status', 'data_inicio', 'data_termino', 'data_conclusao',
-            'terminado_por', 'criado_em', 'atualizado_em',
+            'setor', 'status', 'prazo', 'data_inicio', 'data_termino', 'data_conclusao',
+            'terminado_por', 'criado_em', 'atualizado_em', 'ultima_movimentacao_em',
+            'alerta_ciente_em', 'alerta_ciente_por', 'alerta_ciente_motivo', 'alerta_ciente_observacao',
         ]
-
-    @extend_schema_field(serializers.CharField(allow_null=True))
-    def get_complexidade_display(self, obj):
-        if obj.complexidade_efetiva is None:
-            return None
-        return Complexidade(obj.complexidade_efetiva).label
 
     @extend_schema_field(serializers.CharField(allow_null=True))
     def get_terminado_por_nome(self, obj):

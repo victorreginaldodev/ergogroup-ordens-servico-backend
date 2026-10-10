@@ -26,7 +26,6 @@ class Tarefa(models.Model):
     descricao = models.TextField(null=True, blank=True)
     prioridade = models.CharField(max_length=10, choices=Prioridade.choices, default=Prioridade.BAIXA)
     prazo = models.DateField(null=True, blank=True)
-    horas_estimadas = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
     data_inicio = models.DateField(null=True, blank=True)
     data_termino = models.DateField(null=True, blank=True)
     status = models.CharField(max_length=15, choices=StatusTarefa.choices, default=StatusTarefa.ABERTA)
@@ -41,11 +40,8 @@ class Tarefa(models.Model):
     def __str__(self):
         return f'Tarefa #{self.pk} — {self.responsavel}'
 
-    @property
-    def horas_estimadas_efetivas(self):
-        if self.horas_estimadas is not None:
-            return self.horas_estimadas
-        return self.servico.horas_estimadas_efetivas
+    # Mudanças que contam como movimentação do serviço (ADR 0008, 3). Corrigir a descrição não conta.
+    CAMPOS_DE_MOVIMENTACAO = ('status', 'responsavel_id', 'prazo', 'servico_id')
 
     def save(self, *args, **kwargs):
         from apps.ordens_servico.models import Servico
@@ -58,24 +54,28 @@ class Tarefa(models.Model):
         if self.status != StatusTarefa.CONCLUIDA and self.data_termino is not None:
             self.data_termino = None
 
-        servico_anterior_id = None
+        anterior = None
         if self.pk:
-            servico_anterior_id = (
-                Tarefa.objects.filter(pk=self.pk)
-                .values_list('servico_id', flat=True)
-                .first()
-            )
+            anterior = Tarefa.objects.filter(pk=self.pk).values(*self.CAMPOS_DE_MOVIMENTACAO).first()
+        servico_anterior_id = anterior['servico_id'] if anterior else None
+        movimentou = anterior is None or any(
+            anterior[campo] != getattr(self, campo) for campo in self.CAMPOS_DE_MOVIMENTACAO
+        )
 
         super().save(*args, **kwargs)
 
         if servico_anterior_id and servico_anterior_id != self.servico_id:
             servico_anterior = Servico.objects.filter(pk=servico_anterior_id).first()
             if servico_anterior:
+                servico_anterior.registrar_movimentacao()
                 servico_anterior.sincronizar_status_e_rastreio()
 
+        if movimentou:
+            self.servico.registrar_movimentacao()
         self.servico.sincronizar_status_e_rastreio()
 
     def delete(self, *args, **kwargs):
         servico = self.servico
         super().delete(*args, **kwargs)
+        servico.registrar_movimentacao()
         servico.sincronizar_status_e_rastreio()

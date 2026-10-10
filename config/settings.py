@@ -142,6 +142,9 @@ EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
 # rodando, só o envio de fato é pulado. Ver apps/ordens_servico/emails.py.
 EMAIL_NOTIFICATIONS_ENABLED = os.getenv('EMAIL_NOTIFICATIONS_ENABLED', 'True') == 'True'
 
+# Dias sem movimentação para um serviço aberto entrar em alerta (ADR 0008, 3).
+DIAS_ALERTA_SEM_MOVIMENTACAO = int(os.getenv('DIAS_ALERTA_SEM_MOVIMENTACAO', '7'))
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',

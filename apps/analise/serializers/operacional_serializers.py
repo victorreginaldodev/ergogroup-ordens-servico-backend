@@ -132,8 +132,6 @@ class TecnicoProdutividadeSerializer(serializers.Serializer):
     tecnico_nome = serializers.CharField(allow_null=True)
     tarefas_concluidas = serializers.IntegerField()
     tempo_medio_tarefa_dias = serializers.FloatField(allow_null=True)
-    complexidade_media_concluidas = serializers.FloatField(allow_null=True)
-    horas_estimadas_entregues = serializers.DecimalField(max_digits=8, decimal_places=2)
     mini_os_concluidas = serializers.IntegerField()
     tarefas_em_aberto = serializers.IntegerField()
     mini_os_em_aberto = serializers.IntegerField()

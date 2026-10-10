@@ -1,5 +1,4 @@
 from datetime import timedelta
-from decimal import Decimal
 
 from django.core import mail
 from django.test import override_settings
@@ -11,68 +10,12 @@ from rest_framework.test import APITestCase
 from apps.clientes.models import Cliente
 from apps.contas.models import Usuario
 from apps.organizacoes.apoio_testes import Perfil, criar_usuario_com_perfil, setor_padrao
-from apps.catalogo.models import Catalogo, CatalogoOperacional, Complexidade
+from apps.catalogo.models import Catalogo, CatalogoOperacional
 from apps.ordens_servico.models import (
     OrdemServico, OrdemServicoOperacional, Servico, Tarefa, Prioridade,
 )
 from apps.ordens_servico.models.ordem_servico_operacional import StatusOrdemServicoOperacional
 from apps.ordens_servico.models.tarefa import StatusTarefa
-
-
-class ProdutividadeModelTestCase(APITestCase):
-    def setUp(self):
-        self.usuario = criar_usuario_com_perfil(
-            username='tecnico_teste',
-            email='tecnico@ergogroup.test',
-            password='senha-teste-123',
-            nome_completo='Tecnico Teste',
-            perfil=Perfil.TECNICO,
-        )
-        self.cliente = Cliente.objects.create(nome='Cliente Teste')
-        self.catalogo = Catalogo.objects.create(setor=setor_padrao(), nome='Catalogo Teste')
-        self.ordem_servico = OrdemServico.objects.create(
-            cliente=self.cliente, data_venda=timezone.localdate(), valor=0, prioridade=Prioridade.ALTA,
-        )
-
-    def test_horas_e_complexidade_efetivas_usam_valores_do_servico(self):
-        servico = Servico.objects.create(
-            ordem_servico=self.ordem_servico, catalogo=self.catalogo, descricao='com override',
-            horas_estimadas=Decimal('2.00'), complexidade=Complexidade.BAIXA,
-        )
-        self.assertEqual(servico.horas_estimadas_efetivas, Decimal('2.00'))
-        self.assertEqual(servico.complexidade_efetiva, Complexidade.BAIXA)
-
-    def test_horas_e_complexidade_efetivas_none_quando_servico_nao_define(self):
-        servico = Servico.objects.create(
-            ordem_servico=self.ordem_servico, catalogo=self.catalogo, descricao='sem valores',
-        )
-        self.assertIsNone(servico.horas_estimadas_efetivas)
-        self.assertIsNone(servico.complexidade_efetiva)
-
-    def test_tarefa_horas_estimadas_efetivas_cai_no_servico_quando_sem_override(self):
-        servico = Servico.objects.create(
-            ordem_servico=self.ordem_servico, catalogo=self.catalogo, descricao='servico',
-            horas_estimadas=Decimal('5.50'),
-        )
-        tarefa = Tarefa.objects.create(servico=servico, responsavel=self.usuario, descricao='sem override')
-        self.assertEqual(tarefa.horas_estimadas_efetivas, Decimal('5.50'))
-
-    def test_tarefa_horas_estimadas_efetivas_override_tem_prioridade_sobre_servico(self):
-        servico = Servico.objects.create(
-            ordem_servico=self.ordem_servico, catalogo=self.catalogo, descricao='servico',
-            horas_estimadas=Decimal('3.00'),
-        )
-        tarefa = Tarefa.objects.create(
-            servico=servico, responsavel=self.usuario, descricao='com override', horas_estimadas=Decimal('1.00'),
-        )
-        self.assertEqual(tarefa.horas_estimadas_efetivas, Decimal('1.00'))
-
-    def test_tarefa_horas_estimadas_efetivas_none_quando_nada_definido(self):
-        servico = Servico.objects.create(
-            ordem_servico=self.ordem_servico, catalogo=None, descricao='sem catalogo',
-        )
-        tarefa = Tarefa.objects.create(servico=servico, responsavel=self.usuario, descricao='sem nada')
-        self.assertIsNone(tarefa.horas_estimadas_efetivas)
 
 
 class HerancaPrioridadeSerializerTestCase(APITestCase):

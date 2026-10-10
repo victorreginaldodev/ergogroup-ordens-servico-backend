@@ -76,8 +76,6 @@ class AnaliseTestCase(APITestCase):
             ordem_servico=self.os_chain,
             catalogo=self.catalogo,
             descricao='Servico de teste',
-            horas_estimadas=Decimal('4.00'),
-            complexidade=Complexidade.ALTA,
         )
         self.tarefa_chain = Tarefa.objects.create(
             servico=self.servico_chain,

@@ -153,10 +153,10 @@ class AcoesPorSetorTestCase(PermissoesPorSetorBase):
 
     def test_ajusta_servico_so_no_setor_que_gerencia(self):
         no_setor = self.client.patch(
-            reverse('servicos-detail', args=[self.servico_ergonomia.id]), {'prazo': '2030-01-01'},
+            reverse('servicos-detail', args=[self.servico_ergonomia.id]), {'prioridade': 'alta'},
         )
         fora_do_setor = self.client.patch(
-            reverse('servicos-detail', args=[self.servico_medicina_meu.id]), {'prazo': '2030-01-01'},
+            reverse('servicos-detail', args=[self.servico_medicina_meu.id]), {'prioridade': 'alta'},
         )
 
         self.assertEqual(no_setor.status_code, status.HTTP_200_OK)

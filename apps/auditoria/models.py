@@ -24,6 +24,7 @@ class AcaoAuditoria(models.TextChoices):
     COBRANCA_REALIZADA = 'cobranca_realizada', 'Cobrança Realizada'
     # Mantido para o rótulo de registros históricos: o contrato da OS foi substituído pelo recorrente.
     CONTRATO = 'contrato', 'Contrato'
+    CIENCIA_ALERTA = 'ciencia_alerta', 'Ciência de alerta'
     BACKFILL = 'backfill', 'Backfill'
 
 

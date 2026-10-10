@@ -8,7 +8,7 @@ from apps.clientes.serializers import ClienteListSerializer, ClienteSerializer
 from apps.organizacoes.permissoes import Permissao, tem_permissao
 
 CAMPOS_FINANCEIROS = (
-    'valor', 'tipo_condicao', 'tipo_condicao_display', 'forma_pagamento', 'forma_pagamento_display',
+    'valor', 'valor_mensal', 'tipo_condicao', 'tipo_condicao_display', 'forma_pagamento', 'forma_pagamento_display',
     'quantidade_parcelas', 'data_acordada_cobranca', 'intervalo_parcelas_dias', 'dia_fechamento',
     'dia_vencimento', 'liberar_em', 'liberar_em_display',
 )
@@ -52,7 +52,7 @@ class OrdemServicoListSerializer(OcultaValoresMixin, serializers.ModelSerializer
     class Meta:
         model = OrdemServico
         fields = [
-            'id', 'cliente', 'cliente_nome', 'data_venda', 'valor',
+            'id', 'cliente', 'cliente_nome', 'data_venda', 'valor', 'valor_mensal',
             'tipo_condicao', 'tipo_condicao_display', 'forma_pagamento', 'forma_pagamento_display',
             'liberar_em', 'liberar_em_display', 'status',
             'status_display', 'prioridade', 'prioridade_display', 'prazo',
@@ -93,7 +93,7 @@ class OrdemServicoSerializer(OcultaValoresMixin, serializers.ModelSerializer):
             'id', 'cliente', 'cliente_detail',
             'criado_por', 'criado_por_nome', 'data_venda', 'criada_em',
             'status', 'status_display', 'prioridade', 'prioridade_display', 'prazo', 'valor',
-            'tipo_condicao', 'tipo_condicao_display',
+            'valor_mensal', 'tipo_condicao', 'tipo_condicao_display',
             'forma_pagamento', 'forma_pagamento_display', 'quantidade_parcelas',
             'data_acordada_cobranca', 'intervalo_parcelas_dias', 'dia_fechamento', 'dia_vencimento',
             'liberar_em', 'liberar_em_display', 'nome_contato_envio_nf', 'contato_envio_nf',
@@ -122,7 +122,7 @@ class OrdemServicoSerializer(OcultaValoresMixin, serializers.ModelSerializer):
 
         erros = validar_condicao_pagamento(
             atual('tipo_condicao'), atual('quantidade_parcelas'), atual('data_acordada_cobranca'),
-            atual('dia_vencimento'),
+            atual('dia_vencimento'), atual('valor_mensal'),
         )
         if erros:
             raise serializers.ValidationError(erros)

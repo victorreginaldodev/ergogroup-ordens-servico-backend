@@ -50,8 +50,6 @@ def calcular_por_tecnico(data_inicio, meses, usuario) -> list[dict]:
 
     dados = {}
     duracoes_por_tecnico = {}
-    complexidades_por_tecnico = {}
-    horas_entregues_por_tecnico = {}
     com_prazo_tarefas_por_tecnico = {}
     no_prazo_tarefas_por_tecnico = {}
     com_prazo_minios_por_tecnico = {}
@@ -60,26 +58,13 @@ def calcular_por_tecnico(data_inicio, meses, usuario) -> list[dict]:
     minios_concluidas_por_mes = _mapa_por_responsavel_e_mes(minios_concluidas_qs, 'data_termino')
 
     # KPIs e tempo médio usam o histórico completo
-    for (
-        responsavel_id, nome, inicio, termino, complexidade_servico,
-        horas_tarefa, horas_servico, prazo,
-    ) in tarefas_hist_qs.values_list(
-        'responsavel_id', 'responsavel__nome_completo', 'data_inicio', 'data_termino',
-        'servico__complexidade',
-        'horas_estimadas', 'servico__horas_estimadas',
-        'prazo',
+    for responsavel_id, nome, inicio, termino, prazo in tarefas_hist_qs.values_list(
+        'responsavel_id', 'responsavel__nome_completo', 'data_inicio', 'data_termino', 'prazo',
     ):
         entry = dados.setdefault(responsavel_id, _linha_tecnico(responsavel_id, nome))
         entry['tarefas_concluidas'] += 1
         if inicio and termino:
             duracoes_por_tecnico.setdefault(responsavel_id, []).append((termino - inicio).days)
-        if complexidade_servico is not None:
-            complexidades_por_tecnico.setdefault(responsavel_id, []).append(complexidade_servico)
-        horas_efetivas = horas_tarefa if horas_tarefa is not None else horas_servico
-        if horas_efetivas is not None:
-            horas_entregues_por_tecnico[responsavel_id] = (
-                horas_entregues_por_tecnico.get(responsavel_id, 0) + horas_efetivas
-            )
         if prazo is not None:
             com_prazo_tarefas_por_tecnico[responsavel_id] = com_prazo_tarefas_por_tecnico.get(responsavel_id, 0) + 1
             if termino is not None and termino <= prazo:
@@ -136,11 +121,6 @@ def calcular_por_tecnico(data_inicio, meses, usuario) -> list[dict]:
         entry['tempo_medio_tarefa_dias'] = (
             round(sum(duracoes) / len(duracoes), 1) if duracoes else None
         )
-        complexidades = complexidades_por_tecnico.get(responsavel_id) or []
-        entry['complexidade_media_concluidas'] = (
-            round(sum(complexidades) / len(complexidades), 1) if complexidades else None
-        )
-        entry['horas_estimadas_entregues'] = horas_entregues_por_tecnico.get(responsavel_id, 0)
         entry['tarefas_concluidas_por_mes'] = preencher_meses(
             meses, tarefas_concluidas_por_mes.get(responsavel_id, {})
         )
@@ -179,8 +159,6 @@ def _linha_tecnico(responsavel_id, nome):
         'tecnico_nome': nome,
         'tarefas_concluidas': 0,
         'tempo_medio_tarefa_dias': None,
-        'complexidade_media_concluidas': None,
-        'horas_estimadas_entregues': 0,
         'mini_os_concluidas': 0,
         'tarefas_em_aberto': 0,
         'mini_os_em_aberto': 0,

@@ -2,8 +2,15 @@ from django.db import models
 from django.conf import settings
 from django.utils import timezone
 
-from apps.catalogo.models.catalogo import Complexidade
 from apps.ordens_servico.models.ordem_servico import Prioridade
+
+
+class MotivoCiencia(models.TextChoices):
+    CLIENTE = 'cliente', 'Aguardando o cliente'
+    DOCUMENTACAO = 'documentacao', 'Aguardando documentação'
+    AGENDAMENTO = 'agendamento', 'Aguardando agendamento'
+    TERCEIRO = 'terceiro', 'Aguardando terceiro'
+    OUTRO = 'outro', 'Outro'
 
 
 class StatusServico(models.TextChoices):
@@ -37,9 +44,8 @@ class Servico(models.Model):
     descricao = models.TextField()
     status = models.CharField(max_length=15, choices=StatusServico.choices, default=StatusServico.ABERTO)
     prioridade = models.CharField(max_length=10, choices=Prioridade.choices, default=Prioridade.BAIXA)
+    # Calculado: a maior data entre os prazos das tarefas não canceladas (ADR 0006, 5.1).
     prazo = models.DateField(null=True, blank=True)
-    horas_estimadas = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
-    complexidade = models.PositiveSmallIntegerField(choices=Complexidade.choices, null=True, blank=True)
     data_inicio = models.DateField(null=True, blank=True)
     data_termino = models.DateField(null=True, blank=True)
     data_conclusao = models.DateField(null=True, blank=True)
@@ -53,6 +59,20 @@ class Servico(models.Model):
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
 
+    # Alerta de serviço sem movimentação (ADR 0008, 3). A movimentação é atualizada pelo sistema; a ciência
+    # é o "estou ciente, deixar assim" de quem acompanha o serviço e silencia o alerta por mais um período.
+    ultima_movimentacao_em = models.DateTimeField(default=timezone.now)
+    alerta_ciente_em = models.DateTimeField(null=True, blank=True)
+    alerta_ciente_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='ciencias_de_alerta',
+    )
+    alerta_ciente_motivo = models.CharField(max_length=15, choices=MotivoCiencia.choices, null=True, blank=True)
+    alerta_ciente_observacao = models.TextField(null=True, blank=True)
+
     class Meta:
         ordering = ['ordem_servico', 'status']
         verbose_name = 'Serviço'
@@ -62,12 +82,54 @@ class Servico(models.Model):
         return f'Serviço #{self.pk} — OS #{self.ordem_servico_id}'
 
     @property
-    def horas_estimadas_efetivas(self):
-        return self.horas_estimadas
+    def ativo(self):
+        return self.status in (StatusServico.ABERTO, StatusServico.EM_ANDAMENTO)
 
     @property
-    def complexidade_efetiva(self):
-        return self.complexidade
+    def referencia_do_alerta(self):
+        """A mais recente entre a última movimentação e a última ciência."""
+        if self.alerta_ciente_em and self.alerta_ciente_em > self.ultima_movimentacao_em:
+            return self.alerta_ciente_em
+        return self.ultima_movimentacao_em
+
+    @property
+    def dias_sem_movimentacao(self):
+        return (timezone.localdate() - timezone.localtime(self.ultima_movimentacao_em).date()).days
+
+    @property
+    def em_alerta_sem_movimentacao(self):
+        if not self.ativo:
+            return False
+        dias = (timezone.localdate() - timezone.localtime(self.referencia_do_alerta).date()).days
+        return dias >= settings.DIAS_ALERTA_SEM_MOVIMENTACAO
+
+    @property
+    def ciencia_vigente(self):
+        """A ciência só vale enquanto nada se moveu depois dela."""
+        return bool(self.alerta_ciente_em and self.alerta_ciente_em >= self.ultima_movimentacao_em)
+
+    def registrar_movimentacao(self):
+        agora = timezone.now()
+        Servico.objects.filter(pk=self.pk).update(ultima_movimentacao_em=agora)
+        self.ultima_movimentacao_em = agora
+
+    def registrar_ciencia(self, por, motivo=None, observacao=None):
+        """Registra o "estou ciente, deixar assim": silencia o alerta por mais um período. Fica na auditoria."""
+        from apps.auditoria.models import AcaoAuditoria
+        from apps.auditoria.utils import registrar_update_direto
+
+        updates = {
+            'alerta_ciente_em': timezone.now(),
+            'alerta_ciente_por_id': getattr(por, 'pk', por),
+            'alerta_ciente_motivo': motivo or None,
+            'alerta_ciente_observacao': observacao or None,
+        }
+        registrar_update_direto(
+            self, updates, acao=AcaoAuditoria.CIENCIA_ALERTA, motivo='Ciência do alerta de serviço sem movimentação.',
+        )
+        Servico.objects.filter(pk=self.pk).update(**updates)
+        for campo, valor in updates.items():
+            setattr(self, campo, valor)
 
     def save(self, *args, **kwargs):
         self.definir_setor_pelo_catalogo()
@@ -93,6 +155,13 @@ class Servico(models.Model):
         if self.status == StatusServico.CANCELADO:
             self.ordem_servico.sincronizar_status_e_cobranca()
             return self.status
+
+        prazo = (
+            self.tarefas.exclude(status='cancelada').aggregate(maior=models.Max('prazo'))['maior']
+            if tem_tarefas else None
+        )
+        if self.prazo != prazo:
+            updates['prazo'] = prazo
 
         if tem_tarefas:
             tarefas = self.tarefas.all()

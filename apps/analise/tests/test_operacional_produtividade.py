@@ -76,10 +76,9 @@ class OperacionalAnaliseViewProdutividadeTests(AnaliseTestCase):
         self.assertEqual(linha['tarefas_atrasadas'], 1)
         # tarefa_wip e tarefa_lead_time sao alta prioridade (atrasada ou nao).
         self.assertEqual(linha['tarefas_alta_prioridade_abertas'], 2)
-        # unica tarefa concluida (tarefa_chain) pertence a um servico com complexidade ALTA (3).
-        self.assertEqual(linha['complexidade_media_concluidas'], 3.0)
-        # tarefa_chain nao tem horas_estimadas propria; cai no servico_chain (horas_estimadas=4.00).
-        self.assertEqual(Decimal(str(linha['horas_estimadas_entregues'])), Decimal('4.00'))
+        # Horas e complexidade saíram do serviço e da tarefa (ADR 0005).
+        self.assertNotIn('complexidade_media_concluidas', linha)
+        self.assertNotIn('horas_estimadas_entregues', linha)
         # self.tecnico nao tem nenhuma tarefa/OSO concluida COM prazo definido.
         self.assertIsNone(linha['taxa_cumprimento_prazo_tarefas'])
         self.assertIsNone(linha['taxa_cumprimento_prazo_minios'])

@@ -32,10 +32,11 @@ INTERVALO_PARCELAS_PADRAO_DIAS = 30
 DIA_DO_MES = [MinValueValidator(1), MaxValueValidator(31)]
 
 
-def validar_condicao_pagamento(tipo_condicao, quantidade_parcelas, data_acordada_cobranca, dia_vencimento):
-    """Regras da condição de pagamento por tipo (ADR 0007). Devolve ``{campo: mensagem}``; vazio se válida.
-
-    No recorrente, ``quantidade_parcelas`` é o número de meses."""
+def validar_condicao_pagamento(
+    tipo_condicao, quantidade_parcelas, data_acordada_cobranca, dia_vencimento, valor_mensal=None,
+):
+    """Regras da condição de pagamento por tipo (ADRs 0007 e 0008). Devolve ``{campo: mensagem}``; vazio se
+    válida. No recorrente, ``quantidade_parcelas`` é o número de meses."""
     erros = {}
     if tipo_condicao == TipoCondicao.PARCELADO:
         if not quantidade_parcelas or quantidade_parcelas < 2:
@@ -47,6 +48,8 @@ def validar_condicao_pagamento(tipo_condicao, quantidade_parcelas, data_acordada
             erros['quantidade_parcelas'] = 'Informe o número de meses do recorrente.'
         if not dia_vencimento:
             erros['dia_vencimento'] = 'Informe o dia de vencimento do recorrente.'
+        if not valor_mensal:
+            erros['valor_mensal'] = 'Informe o valor mensal do recorrente.'
     return erros
 
 class Prioridade(models.TextChoices):
@@ -70,6 +73,8 @@ class OrdemServico(models.Model):
 
     # Condições de pagamento combinadas na venda (ADR 0007). O sistema registra, não controla parcelas.
     valor = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    # Recorrente: valor de cada mês. O valor total continua em `valor`; um não é calculado do outro.
+    valor_mensal = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     tipo_condicao = models.CharField(max_length=10, choices=TipoCondicao.choices, default=TipoCondicao.A_VISTA)
     forma_pagamento = models.CharField(max_length=15, choices=FormaPagamento.choices, default=FormaPagamento.BOLETO)
     # Parcelado: número de parcelas. Recorrente: número de meses.
@@ -133,6 +138,7 @@ class OrdemServico(models.Model):
         super().clean()
         erros = validar_condicao_pagamento(
             self.tipo_condicao, self.quantidade_parcelas, self.data_acordada_cobranca, self.dia_vencimento,
+            self.valor_mensal,
         )
         if erros:
             raise ValidationError(erros)

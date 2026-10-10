@@ -26,15 +26,15 @@ class OrdemServicoAdmin(admin.ModelAdmin):
 @admin.register(Servico)
 class ServicoAdmin(admin.ModelAdmin):
     list_display = [
-        'id', 'ordem_servico', 'catalogo', 'status', 'prioridade', 'prazo',
-        'horas_estimadas', 'complexidade', 'data_inicio', 'data_termino', 'terminado_por',
+        'id', 'ordem_servico', 'catalogo', 'setor', 'status', 'prioridade', 'prazo',
+        'ultima_movimentacao_em', 'data_inicio', 'data_termino', 'terminado_por',
     ]
-    list_filter = ['status', 'prioridade', 'complexidade']
+    list_filter = ['status', 'prioridade', 'setor']
     search_fields = ['descricao', 'ordem_servico__cliente__nome']
-    raw_id_fields = ['ordem_servico', 'catalogo', 'terminado_por']
+    raw_id_fields = ['ordem_servico', 'catalogo', 'terminado_por', 'alerta_ciente_por']
     readonly_fields = [
-        'status', 'data_inicio', 'data_termino', 'data_conclusao',
-        'terminado_por', 'criado_em', 'atualizado_em',
+        'status', 'prazo', 'data_inicio', 'data_termino', 'data_conclusao',
+        'terminado_por', 'criado_em', 'atualizado_em', 'ultima_movimentacao_em',
     ]
 
 
@@ -42,7 +42,7 @@ class ServicoAdmin(admin.ModelAdmin):
 class TarefaAdmin(admin.ModelAdmin):
     list_display = [
         'id', 'servico', 'responsavel', 'status', 'prioridade', 'prazo',
-        'horas_estimadas', 'data_inicio', 'data_termino',
+        'data_inicio', 'data_termino',
     ]
     list_filter = ['status', 'prioridade']
     search_fields = ['descricao', 'responsavel__nome_completo']
