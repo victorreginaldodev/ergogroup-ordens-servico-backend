@@ -84,7 +84,7 @@ A ordem das regras ainda vai ser definida.
 
 ## 4. Blocos de informação (mapeados)
 
-> **Atualização de 10/10/2026:** os blocos da execução estão implementados em `/api/execucao/` (fase 8) e os do comercial em `/api/comercial/` e na lista de OS (fase 9). Os blocos foram detalhados, com permissão e endpoint definitivos, nas fases 8 a 11 de `docs/plano-execucao-comercial-financeiro.md`, a partir das decisões do ADR 0008. Entraram dois blocos novos: **resumo da venda** (comercial) e **linha do tempo** (todos). A tabela abaixo fica como registro do mapeamento.
+> **Atualização de 10/10/2026:** os blocos da execução estão implementados em `/api/execucao/` (fase 8) os do comercial em `/api/comercial/` e na lista de OS (fase 9) e os do financeiro em `/api/financeiro/` e `/api/analise/financeiro/` (fase 10). Os blocos foram detalhados, com permissão e endpoint definitivos, nas fases 8 a 11 de `docs/plano-execucao-comercial-financeiro.md`, a partir das decisões do ADR 0008. Entraram dois blocos novos: **resumo da venda** (comercial) e **linha do tempo** (todos). A tabela abaixo fica como registro do mapeamento.
 
 Em cada bloco, a permissão exigida e o endpoint candidato são **propostas**. Os endpoints marcados como "existe" já estão na API.
 

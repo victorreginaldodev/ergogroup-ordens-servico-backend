@@ -124,7 +124,7 @@ Como isso fica garantido:
 
 "Faturar", no vocabulário do usuário, é **dar o OK no sistema (o lançamento) e lançar no sistema financeiro externo**.
 
-Blocos (proposta, fase 10):
+Blocos (implementados na fase 10; detalhes e definições da implementação no plano):
 
 **Cobranças:** um endpoint com as três situações, contadores e filtros.
 

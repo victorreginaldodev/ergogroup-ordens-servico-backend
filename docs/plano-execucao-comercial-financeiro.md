@@ -21,7 +21,7 @@ Base: `docs/telas-blocos-e-endpoints.md` (blocos mapeados) e ADR 0008 (decisões
 | 7 | Regras da execução: responsável do setor, serviços na criação da OS, aviso por setor, setor sem organizador | ✅ concluída em 10/10/2026 |
 | 8 | Blocos da execução (fila, distribuir, andamento, alertas, concluídos, carga, meus serviços, detalhe) | ✅ concluída em 10/10/2026 |
 | 9 | Blocos do comercial (resumo da condição, lista de vendas com andamento, resumo da venda) | ✅ concluída em 10/10/2026 |
-| 10 | Blocos do financeiro (cobranças, situação financeira, alerta, indicadores) | a fazer |
+| 10 | Blocos do financeiro (cobranças, situação financeira, alerta, indicadores) | ✅ concluída em 10/10/2026 |
 | 11 | Linha do tempo da OS e do serviço | a fazer |
 | 12 | Frontend (projeto `ergogroup-ordens-servico-frontend`) | a fazer, fase a fase |
 
@@ -121,7 +121,18 @@ Concluída em 10/10/2026 (257 testes passando). Código: `OrdemServico.condicao_
 | 9.2 | Lista de vendas com andamento | `GET /api/ordens-servico/ordens/` (ajuste) | regras atuais | `andamento: {total, na_fila, distribuido, em_execucao, concluido, cancelado}`, `vendido_por_nome`; filtros `?minhas=true` e `?etapa=` |
 | 9.3 | Resumo da venda | `GET /api/comercial/vendas/{id}/` | quem vê a OS; valores só com `financeiro.ver_valores` | quem vendeu e quando; condições e `condicao_resumo`; por serviço: catálogo, setor, etapa, responsáveis, início, término, quem concluiu, prazo; liberação e lançamento (só com `financeiro.ver_valores`) |
 
-## Fase 10 — Blocos do financeiro
+## Fase 10 — Blocos do financeiro ✅
+
+Concluída em 10/10/2026 (269 testes passando). Código: `services/financeiro.py`, `views/financeiro_views.py`, `serializers/financeiro_serializer.py` e `urls_financeiro.py`, montado em `/api/financeiro/` (tag **financeiro** no Swagger); indicadores em `apps/analise/services/financeiro.py`.
+
+**Definições tomadas na implementação (proposta, a confirmar):**
+- **OS cancelada fica fora da previsão**, porque nunca vai ser liberada. Uma OS cancelada depois de liberada continua em "a faturar", para o financeiro decidir.
+- **Previsão ordenada pelo progresso:** a maior fração de serviços concluídos primeiro, depois a data da venda.
+- **Faturadas sem data de lançamento** (dados antigos) vão para o fim da lista.
+- **Alerta:** `DIAS_ALERTA_SEM_LANCAMENTO` = 3 dias, configurável. Os contadores e `em_alerta` respeitam os mesmos filtros da consulta.
+- **10.4:** os eventos (venda, liberação, lançamento) saem dos próprios campos da OS. A linha do tempo completa, a partir da auditoria, é a fase 11. Acessa quem tem `financeiro.ver_valores`, sem a regra de visibilidade da OS.
+- **10.5:** os nomes atuais dos indicadores (`total_cobrado`, `total_para_cobrar`, `total_sem_liberacao`) continuam, para não quebrar o frontend. Entraram `total_previsao`, `por_tipo_condicao` (a faturar, faturado e previsão por tipo), `receita_recorrente_mensal` e `recorrentes_ativos`. "Recorrente ativo" = recorrente não cancelado.
+
 
 | # | Bloco | Endpoint | Permissão | Conteúdo |
 |---|---|---|---|---|
