@@ -34,10 +34,10 @@ class SetorViewSetTestCase(APITestCase):
     def test_gestor_cria_setor(self):
         self.client.force_authenticate(user=self.gestor)
 
-        response = self.client.post(reverse('setores-list'), {'organizacao': ergogroup().id, 'nome': 'Segurança do Trabalho'})
+        response = self.client.post(reverse('setores-list'), {'organizacao': ergogroup().id, 'nome': 'Engenharia'})
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertTrue(Setor.objects.get(nome='Segurança do Trabalho').ativo)
+        self.assertTrue(Setor.objects.get(nome='Engenharia').ativo)
 
     def test_nome_de_setor_e_unico(self):
         self.client.force_authenticate(user=self.gestor)
@@ -63,7 +63,9 @@ class SetorViewSetTestCase(APITestCase):
 
         response = self.client.get(reverse('setores-list'), {'ativo': 'true'})
 
-        self.assertEqual([s['nome'] for s in response.data], ['Ergonomia'])
+        nomes = [s['nome'] for s in response.data]
+        self.assertIn('Ergonomia', nomes)
+        self.assertNotIn('Setor Antigo', nomes)
 
     def test_excluir_setor_em_uso_retorna_409(self):
         Catalogo.objects.create(nome='AET', setor=self.ergonomia)
@@ -85,7 +87,7 @@ class SetorDoServicoTestCase(APITestCase):
             tipo_usuario=TipoUsuario.COMERCIAL,
         )
         self.ergonomia = Setor.objects.create(organizacao=ergogroup(), nome='Ergonomia')
-        self.seguranca = Setor.objects.create(organizacao=ergogroup(), nome='Segurança do Trabalho')
+        self.seguranca = Setor.objects.create(organizacao=ergogroup(), nome='Engenharia')
         self.catalogo_aet = Catalogo.objects.create(nome='AET', setor=self.ergonomia)
         self.catalogo_pgr = Catalogo.objects.create(nome='PGR', setor=self.seguranca)
         self.ordem_servico = OrdemServico.objects.create(

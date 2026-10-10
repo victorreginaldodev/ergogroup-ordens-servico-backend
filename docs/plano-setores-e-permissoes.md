@@ -78,7 +78,17 @@ Só schema e API de cadastro; nenhuma regra ainda lê isso.
 
 ## Fase 3 — Permissões vindas dos vínculos (parte técnica ✅)
 
-Parte técnica concluída em 09/10/2026, na branch `feat/permissoes-por-setor` (itens 1 a 3 abaixo, mais a regra "ninguém concede o que não tem" em funções e vínculos). Ficam pendentes a migração dos usuários (item 4) e o fim do fallback (item 5), que dependem da definição dos setores e funções iniciais.
+Parte técnica concluída em 09/10/2026, na branch `feat/permissoes-por-setor` (itens 1 a 3 abaixo, mais a regra "ninguém concede o que não tem" em funções e vínculos). Item 4 concluído em 10/10/2026, na branch `epic/v3` (migração `organizacoes/0013`):
+- **Setores criados:**
+  - Diretoria: Diretor;
+  - Comercial: Gestor Comercial e Comercial;
+  - Segurança do Trabalho: Gestor Técnico, Sub-Gestor Técnico e Técnico;
+  - Financeiro: Gestor Financeiro e Financeiro;
+  - Administrativo: Gestor Administrativo e Administrativo.
+- **Funções e vínculos:** cada tipo virou uma função com as mesmas permissões do tipo, e os 43 usuários do dev foram vinculados. Conferido usuário a usuário: o acesso de ninguém mudou.
+- **Permissão nova `setores.todos`**, dada a Diretor e Gestor Comercial: as permissões por setor deles valem em todos os setores, como antes.
+
+Pendente: fim do fallback (item 5).
 
 Regras adotadas:
 - **Vínculo substitui o tipo.** Quem tem ao menos um vínculo passa a ter só as permissões das suas funções; o `tipo_usuario` deixa de valer para essa pessoa.

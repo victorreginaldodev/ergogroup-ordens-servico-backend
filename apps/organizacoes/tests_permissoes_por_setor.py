@@ -25,7 +25,7 @@ class PermissoesPorSetorBase(APITestCase):
         self.gestor_execucao = self.funcao('Gestor de Execução', [
             P.SERVICOS_VER_SETOR, P.SERVICOS_GERENCIAR, P.TAREFAS_DISTRIBUIR, P.TAREFAS_EDITAR_SETOR,
         ])
-        self.tecnico = self.funcao('Técnico', [])
+        self.tecnico = self.funcao('Executor', [])
 
         self.ana = criar_usuario(TipoUsuario.TECNICO)
         self.vincular(self.ana, self.ergonomia, self.gestor_execucao)
@@ -108,7 +108,7 @@ class VisibilidadePorSetorTestCase(PermissoesPorSetorBase):
 
     def test_funcao_com_ver_todas_libera_todas_as_os(self):
         comercial = criar_usuario(TipoUsuario.TECNICO)
-        self.vincular(comercial, self.ergonomia, self.funcao('Comercial', [P.OS_VER_TODAS]))
+        self.vincular(comercial, self.ergonomia, self.funcao('Vendas', [P.OS_VER_TODAS]))
         self.client.force_authenticate(user=comercial)
 
         response = self.client.get(reverse('servicos-list'))
@@ -198,7 +198,7 @@ class NinguemConcedeOQueNaoTemTestCase(PermissoesPorSetorBase):
         self.assertEqual(len(diretoria.codigos_permissao), len(Permissao))
 
     def test_nao_se_vincula_a_funcao_mais_poderosa(self):
-        comercial = self.funcao('Comercial', [P.OS_VER_TODAS, P.FINANCEIRO_VER_VALORES])
+        comercial = self.funcao('Vendas', [P.OS_VER_TODAS, P.FINANCEIRO_VER_VALORES])
 
         response = self.client.post(reverse('membros-setor-list'), {
             'usuario': self.rh.id, 'setor': self.medicina.id, 'funcao': comercial.id,
