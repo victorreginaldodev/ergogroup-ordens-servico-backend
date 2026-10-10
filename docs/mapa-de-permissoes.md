@@ -141,7 +141,7 @@ Hoje não tem setor. Até ser incorporada, sugiro manter regras próprias com as
 
 ## 3. Catálogo de permissões proposto (rascunho)
 
-> **Implementado na fase 1** (09/10/2026). A fonte de verdade agora é `apps/organizacoes/permissoes.py`: o enum `Permissao` e a tabela `PERMISSOES_POR_TIPO_USUARIO`, que segue as travas do frontend (seção 5) com as decisões abaixo. Em relação a este rascunho, a implementação acrescentou:
+> **Implementado na fase 1** (09/10/2026). A fonte de verdade é o enum `Permissao` em `apps/organizacoes/permissoes.py` e as permissões marcadas em cada função (`/api/organizacoes/funcoes/`). Desde 10/10/2026, a tabela por tipo de usuário foi removida; as funções iniciais saíram dela (migração `organizacoes/0013`) e seguem as travas do frontend (seção 5) com as decisões abaixo. Em relação a este rascunho, a implementação acrescentou:
 > - `os_operacional.gerenciar`: OS operacional e catálogo operacional, que na tela têm regra própria;
 > - `usuarios.gerenciar_diretoria`: gerenciar diretor e gestor comercial (A8);
 > - `usuarios.redefinir_senha`: alterar a senha de terceiros.

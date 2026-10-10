@@ -1,5 +1,7 @@
 # Horas Estimadas, Prazos e Indicadores
 
+> **Obsoleto quanto a horas e complexidade (10/10/2026).** Horas e complexidade saíram do catálogo (ADR 0004) e sairão do serviço e da tarefa (ADR 0005); o prazo passa a ser o único parâmetro de planejamento. As regras de prazo da execução estão no ADR 0006. Este documento fica como registro histórico.
+
 ## Objetivo
 
 Este documento descreve as regras de negócio sobre estimativas de horas, complexidade, prazos e prioridades entre os apps `catalogo`, `ordens_servico` e `analise`.

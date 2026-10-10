@@ -10,6 +10,19 @@ Plano de 09/10/2026 para implementar no backend a modelagem discutida (organiza�
 4. **Migrações pequenas.** Uma alteração de schema por migração, separada da migração de dados, porque o MySQL não desfaz DDL em transação.
 5. **Lógica em `services`**, não em serializers ou views.
 
+## Fora de escopo
+
+- **OS operacional** (`OrdemServicoOperacional`, OSO, "mini OS") e catálogo operacional: fora de escopo. Não entram em análises, propostas nem implementações sem pedido explícito.
+
+## Situação dos problemas originais (10/10/2026)
+
+| Problema | Situação |
+|---|---|
+| Exclusão em cascata ao excluir catálogo | Resolvido (ADR 0002) |
+| Dependências da gestão de setores: criar setores e revisar usuários e permissões | Resolvido no backend (ADRs 0003 e 0004); frontend pendente |
+| Falta de gestão nos setores de execução: o que chegou, o que está em andamento e com quem | Analisado e parcialmente decidido (ADR 0006); visões e telas a definir; implementação pendente (fase 5) |
+| Controle de faturamento: condições definidas na venda | Papel do sistema decidido e mudanças no modelo propostas (ADR 0007, `docs/faturamento/`); sem implementação |
+
 ## Visão geral
 
 | Fase | Entrega | Muda comportamento? | Depende de |
@@ -76,7 +89,7 @@ Só schema e API de cadastro; nenhuma regra ainda lê isso.
 | API | CRUD de funções (com lista de permissões) e de vínculos; `GET` do catálogo de permissões com descrição e escopo, para a tela de configurações; tudo exige `organizacao.configurar` ou `usuarios.gerenciar` |
 | Proteções | Excluir setor ou função em uso responde 409 (handler já existente) |
 
-## Fase 3 — Permissões vindas dos vínculos (parte técnica ✅)
+## Fase 3 — Permissões vindas dos vínculos ✅
 
 Parte técnica concluída em 09/10/2026, na branch `feat/permissoes-por-setor` (itens 1 a 3 abaixo, mais a regra "ninguém concede o que não tem" em funções e vínculos). Item 4 concluído em 10/10/2026, na branch `epic/v3` (migração `organizacoes/0013`):
 - **Setores criados:**
@@ -88,7 +101,7 @@ Parte técnica concluída em 09/10/2026, na branch `feat/permissoes-por-setor` (
 - **Funções e vínculos:** cada tipo virou uma função com as mesmas permissões do tipo, e os 43 usuários do dev foram vinculados. Conferido usuário a usuário: o acesso de ninguém mudou.
 - **Permissão nova `setores.todos`**, dada a Diretor e Gestor Comercial: as permissões por setor deles valem em todos os setores, como antes.
 
-Pendente: fim do fallback (item 5).
+Item 5 (fim do fallback) concluído em 10/10/2026, junto com a fase 4: sem vínculo, o usuário só acessa o que é dele.
 
 Regras adotadas:
 - **Vínculo substitui o tipo.** Quem tem ao menos um vínculo passa a ter só as permissões das suas funções; o `tipo_usuario` deixa de valer para essa pessoa.
@@ -101,25 +114,54 @@ Regras adotadas:
 4. **Migração dos usuários atuais**, no momento que vocês escolherem. É preciso definir os setores e funções iniciais; a tabela de equivalência do mapa é o ponto de partida. A migração é um comando que cria funções equivalentes aos tipos e os vínculos. Testado primeiro no dev com os dados reais, e você confere a lista antes de rodar.
 5. **Fim do fallback:** depois de todos os usuários vinculados, o `tipo_usuario` deixa de ser consultado.
 
-## Fase 4 — Limpeza
+## Fase 4 — Limpeza (backend ✅)
+
+Backend concluído em 10/10/2026, na branch `epic/v3`:
+- **Tipo de usuário removido:** saíram `tipo_usuario`, `/usuarios/tipos/` e a tabela de permissões por tipo.
+- **Cadastro de usuário com vínculos:** criar e editar usuário aceita `vinculos` (setor + função), com as proteções de "não conceder o que não tem".
+- **Login, refresh, `/auth/me/` e detalhe de usuário** devolvem `vinculos` e `permissoes` (globais, por setor e `todos_os_setores`).
+- **`ativo` unificado em `is_active`.** O campo da API continua `ativo`. No dev, 1 usuário desativado só pela flag antiga passou a inativo.
+- **E-mails** escolhem destinatários por permissão, e os testes de e-mail voltaram a passar.
+
+Pendente: frontend (último item abaixo).
 
 - Remover `tipo_usuario`, o endpoint `/usuarios/tipos/` e as permissões antigas. O diretor vira uma função com todas as permissões no setor "Diretoria".
 - Unificar `ativo` e `is_active` (INC-06), com levantamento prévio de onde divergem no banco.
 - Frontend: trocar as travas por tipo pelas permissões que o backend devolve no `/auth/me/`, com a lista de permissões do usuário e por setor.
 
-## Fase 5 — Painel do setor
+## Fase 4b — Funções liberadas por setor ✅
 
-Retoma o item original da sprint:
-- fila de serviços aguardando triagem (sem tarefas);
-- em andamento agrupado por responsável;
-- atrasados e concluídos no período;
-- criação e atribuição de tarefas a partir do painel.
+Concluída em 10/10/2026, na branch `epic/v3` (migrações `organizacoes/0014` e `0015`). No dev, os 43 vínculos existentes continuam válidos.
 
-**Depende de:**
-- **Fase 3**, para o painel mostrar só os setores de cada gestor;
-- **Catálogos classificados por setor**, com um comando para copiar o setor do catálogo para os serviços existentes.
+Decisão de 10/10/2026: uma função só pode ser usada nos setores em que foi liberada. Exemplo: não pode existir um vínculo "Técnico" no setor Comercial. Optou-se por uma lista de setores por função, em vez de uma função por setor, para permitir funções reaproveitáveis (ex.: um "Gestor de Área" liberado em vários setores).
 
----
+1. **Modelo:** `Funcao.setores`, muitos-para-muitos com `Setor`.
+2. **Migrações:**
+   - uma cria a tabela de ligação;
+   - outra, de dados, libera cada função nos setores onde ela já tem vínculos e aplica a tabela inicial:
+     - Diretor → Diretoria;
+     - Gestor Comercial e Comercial → Comercial;
+     - Gestor Técnico, Sub-Gestor Técnico e Técnico → Segurança do Trabalho;
+     - Gestor Financeiro e Financeiro → Financeiro;
+     - Gestor Administrativo e Administrativo → Administrativo.
+3. **Regra no vínculo:** `MembroSetor.clean()` recusa função não liberada no setor. Vale em todos os caminhos: API de vínculos, cadastro e edição de usuário, e admin.
+4. **API de funções:**
+   - `setores` obrigatório, não vazio e só com setores da mesma organização;
+   - não é possível retirar um setor que ainda tem pessoas vinculadas à função;
+   - filtro `?setor=` para a tela listar só as funções liberadas no setor escolhido.
+5. **Validação:** testes de cada regra; aplicação no dev, conferindo que todos os vínculos existentes continuam válidos.
+
+## Fase 5 — Fluxo de execução nos setores
+
+Substitui o "painel do setor" pensado de início. O contexto completo, os dados e as decisões estão nos ADRs 0005 e 0006.
+
+1. **Remover horas e complexidade de serviço e tarefa,** com os indicadores que dependem delas (ADR 0005).
+2. **Visões de trabalho:** a definir na frente de definição de telas. Só depois disso entram os endpoints dedicados.
+3. **Distribuição em um passo:** um endpoint que recebe responsável e prazo e cria a tarefa; "dividir" acrescenta tarefas.
+4. **Aguardando e parado:** marcação opcional com motivo na tarefa e cálculo de "parado há N dias".
+5. **Prazos:** faixas, alerta de "sem prazo" e histórico de replanejamento (proposta, a confirmar).
+6. **Aviso de chegada por e-mail** para quem organiza o setor.
+7. **Frontend:** telas montadas a partir das visões que as permissões de cada pessoa liberam.
 
 ## Decisões pendentes
 
@@ -128,4 +170,4 @@ Retoma o item original da sprint:
 | Antes da fase 1 | Divergências entre as travas do front e a tabela de equivalência (resultado do passo 1.1) |
 | Antes da fase 3 | As 8 perguntas da seção 4 do mapa |
 | Antes da fase 3, passo 4 | Setores e funções iniciais e o vínculo de cada usuário atual |
-| Antes da fase 5 | Classificação dos catálogos por setor |
+| Antes da fase 5 | Classificação fina dos catálogos por setor. Por padrão, desde 10/10/2026 todos estão em Segurança do Trabalho e os serviços já têm setor (ver `docs/conceitos-de-dominio.md`) |
