@@ -6,7 +6,7 @@ from rest_framework.test import APITestCase
 from apps.catalogo.models import Catalogo
 from apps.clientes.models import Cliente
 from apps.contas.models import Usuario
-from apps.contas.models.choices import TipoUsuario
+from apps.organizacoes.apoio_testes import Perfil, criar_usuario_com_perfil
 from apps.ordens_servico.models import OrdemServico, Servico
 from apps.organizacoes.models import Organizacao, Setor
 
@@ -18,15 +18,15 @@ def ergogroup():
 
 class SetorViewSetTestCase(APITestCase):
     def setUp(self):
-        self.gestor = Usuario.objects.create_user(
+        self.gestor = criar_usuario_com_perfil(
             username='gestor_setor', email='gestor.setor@ergogroup.test',
             password='senha-teste-123', nome_completo='Gestor Setor',
-            tipo_usuario=TipoUsuario.DIRETOR,
+            perfil=Perfil.DIRETOR,
         )
-        self.tecnico = Usuario.objects.create_user(
+        self.tecnico = criar_usuario_com_perfil(
             username='tecnico_setor', email='tecnico.setor@ergogroup.test',
             password='senha-teste-123', nome_completo='Tecnico Setor',
-            tipo_usuario=TipoUsuario.TECNICO,
+            perfil=Perfil.TECNICO,
         )
         self.ergonomia = Setor.objects.create(organizacao=ergogroup(), nome='Ergonomia')
         self.inativo = Setor.objects.create(organizacao=ergogroup(), nome='Setor Antigo', ativo=False)
@@ -81,10 +81,10 @@ class SetorViewSetTestCase(APITestCase):
 
 class SetorDoServicoTestCase(APITestCase):
     def setUp(self):
-        self.usuario = Usuario.objects.create_user(
+        self.usuario = criar_usuario_com_perfil(
             username='comercial_setor', email='comercial.setor@ergogroup.test',
             password='senha-teste-123', nome_completo='Comercial Setor',
-            tipo_usuario=TipoUsuario.COMERCIAL,
+            perfil=Perfil.COMERCIAL,
         )
         self.ergonomia = Setor.objects.create(organizacao=ergogroup(), nome='Ergonomia')
         self.seguranca = Setor.objects.create(organizacao=ergogroup(), nome='Engenharia')
@@ -159,15 +159,15 @@ class SetorDoServicoTestCase(APITestCase):
 
 class OrganizacaoViewSetTestCase(APITestCase):
     def setUp(self):
-        self.gestor = Usuario.objects.create_user(
+        self.gestor = criar_usuario_com_perfil(
             username='gestor_org', email='gestor.org@ergogroup.test',
             password='senha-teste-123', nome_completo='Gestor Org',
-            tipo_usuario=TipoUsuario.DIRETOR,
+            perfil=Perfil.DIRETOR,
         )
-        self.tecnico = Usuario.objects.create_user(
+        self.tecnico = criar_usuario_com_perfil(
             username='tecnico_org', email='tecnico.org@ergogroup.test',
             password='senha-teste-123', nome_completo='Tecnico Org',
-            tipo_usuario=TipoUsuario.TECNICO,
+            perfil=Perfil.TECNICO,
         )
         self.ergogroup = Organizacao.objects.get(nome='Ergogroup')
 

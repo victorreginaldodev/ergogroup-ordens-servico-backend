@@ -2,7 +2,7 @@ from django.urls import reverse
 from rest_framework import status
 
 from apps.ordens_servico.models import OrdemServico
-from apps.contas.models.choices import TipoUsuario
+from apps.organizacoes.apoio_testes import Perfil, criar_usuario_com_perfil
 
 from .fixtures import PERFIS_SEM_VALORES, AnaliseTestCase
 
@@ -26,7 +26,7 @@ class OperacionalAnaliseViewContadoresTests(AnaliseTestCase):
                 self.assertEqual(response.data['ordens_servico']['total'], OrdemServico.objects.count())
 
     def test_percentual_servicos_por_catalogo(self):
-        self._login(self.usuarios[TipoUsuario.GESTOR_TECNICO])
+        self._login(self.usuarios[Perfil.GESTOR_TECNICO])
         response = self.client.get(self.url)
 
         principais = {
@@ -43,7 +43,7 @@ class OperacionalAnaliseViewContadoresTests(AnaliseTestCase):
         self.assertEqual(item_secundario['percentual'], 25.0)
 
     def test_percentual_revisoes_por_cliente(self):
-        self._login(self.usuarios[TipoUsuario.GESTOR_TECNICO])
+        self._login(self.usuarios[Perfil.GESTOR_TECNICO])
         response = self.client.get(self.url)
 
         revisoes = {
@@ -58,7 +58,7 @@ class OperacionalAnaliseViewContadoresTests(AnaliseTestCase):
         self.assertEqual(revisoes[self.cliente_secundario.id]['percentual'], round(2 / 3 * 100, 1))
 
     def test_tempo_por_catalogo_operacional(self):
-        self._login(self.usuarios[TipoUsuario.GESTOR_TECNICO])
+        self._login(self.usuarios[Perfil.GESTOR_TECNICO])
         response = self.client.get(self.url)
 
         entradas = {

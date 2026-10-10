@@ -3,7 +3,7 @@ from decimal import Decimal
 from django.urls import reverse
 from rest_framework import status
 
-from apps.contas.models.choices import TipoUsuario
+from apps.organizacoes.apoio_testes import Perfil, criar_usuario_com_perfil
 from apps.ordens_servico.models import Servico, Tarefa
 
 from .fixtures import AnaliseTestCase
@@ -13,7 +13,7 @@ class OperacionalAnaliseViewProdutividadeTests(AnaliseTestCase):
     url = reverse('analise-operacional')
 
     def test_tempos_medios(self):
-        self._login(self.usuarios[TipoUsuario.GESTOR_TECNICO])
+        self._login(self.usuarios[Perfil.GESTOR_TECNICO])
         response = self.client.get(self.url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -22,7 +22,7 @@ class OperacionalAnaliseViewProdutividadeTests(AnaliseTestCase):
         self.assertIn('tempo_por_catalogo_oso', tempos)
 
     def test_taxa_cancelamento(self):
-        self._login(self.usuarios[TipoUsuario.GESTOR_TECNICO])
+        self._login(self.usuarios[Perfil.GESTOR_TECNICO])
         response = self.client.get(self.url)
 
         taxa = response.data['taxa_cancelamento']
@@ -35,7 +35,7 @@ class OperacionalAnaliseViewProdutividadeTests(AnaliseTestCase):
         )
 
     def test_cancelamento_por_catalogo(self):
-        self._login(self.usuarios[TipoUsuario.GESTOR_TECNICO])
+        self._login(self.usuarios[Perfil.GESTOR_TECNICO])
         response = self.client.get(self.url)
 
         por_catalogo = {
@@ -51,7 +51,7 @@ class OperacionalAnaliseViewProdutividadeTests(AnaliseTestCase):
         self.assertEqual(secundario['percentual'], 50.0)
 
     def test_gestor_ve_todos_os_tecnicos(self):
-        self._login(self.usuarios[TipoUsuario.GESTOR_TECNICO])
+        self._login(self.usuarios[Perfil.GESTOR_TECNICO])
         response = self.client.get(self.url)
 
         ids = {item['tecnico_id'] for item in response.data['por_tecnico']}
@@ -85,7 +85,7 @@ class OperacionalAnaliseViewProdutividadeTests(AnaliseTestCase):
         self.assertIsNone(linha['taxa_cumprimento_prazo_minios'])
 
     def test_tempo_por_catalogo_de_servico_nao_tem_horas_nem_complexidade(self):
-        self._login(self.usuarios[TipoUsuario.GESTOR_TECNICO])
+        self._login(self.usuarios[Perfil.GESTOR_TECNICO])
         response = self.client.get(self.url)
 
         entradas = {
@@ -97,7 +97,7 @@ class OperacionalAnaliseViewProdutividadeTests(AnaliseTestCase):
         self.assertIsNone(entrada['complexidade'])
 
     def test_taxa_cumprimento_prazo_global(self):
-        self._login(self.usuarios[TipoUsuario.GESTOR_TECNICO])
+        self._login(self.usuarios[Perfil.GESTOR_TECNICO])
         response = self.client.get(self.url)
 
         taxa = response.data['taxa_cumprimento_prazo']
@@ -109,7 +109,7 @@ class OperacionalAnaliseViewProdutividadeTests(AnaliseTestCase):
         self.assertEqual(taxa['minios']['percentual'], 50.0)
 
     def test_taxa_cumprimento_prazo_por_tecnico(self):
-        self._login(self.usuarios[TipoUsuario.GESTOR_TECNICO])
+        self._login(self.usuarios[Perfil.GESTOR_TECNICO])
         response = self.client.get(self.url)
 
         linha_outro = next(

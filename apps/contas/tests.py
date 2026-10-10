@@ -18,7 +18,6 @@ class PasswordResetTests(TestCase):
             username='testuser',
             nome_completo='Test User',
             password='OldPassword@123',
-            ativo=True,
             is_active=True,
         )
 

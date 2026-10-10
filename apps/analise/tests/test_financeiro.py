@@ -1,7 +1,7 @@
 from django.urls import reverse
 from rest_framework import status
 
-from apps.contas.models.choices import TipoUsuario
+from apps.organizacoes.apoio_testes import Perfil, criar_usuario_com_perfil
 
 from .fixtures import PERFIS_SEM_VALORES, AnaliseTestCase
 
@@ -21,7 +21,7 @@ class FinanceiroAnaliseViewTests(AnaliseTestCase):
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_perfil_autorizado_recebe_kpis_corretos(self):
-        self._login(self.usuarios[TipoUsuario.GESTOR_FINANCEIRO])
+        self._login(self.usuarios[Perfil.GESTOR_FINANCEIRO])
         response = self.client.get(self.url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -30,7 +30,7 @@ class FinanceiroAnaliseViewTests(AnaliseTestCase):
         self.assertEqual(response.data['total_sem_liberacao'], 300)
 
     def test_perfil_autorizado_recebe_vendas_e_clientes(self):
-        self._login(self.usuarios[TipoUsuario.GESTOR_FINANCEIRO])
+        self._login(self.usuarios[Perfil.GESTOR_FINANCEIRO])
         response = self.client.get(self.url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -44,7 +44,7 @@ class FinanceiroAnaliseViewTests(AnaliseTestCase):
         self.assertEqual(mais_cobranca[0]['total_valor_cobrado'], 1000)
 
     def test_ticket_medio(self):
-        self._login(self.usuarios[TipoUsuario.GESTOR_FINANCEIRO])
+        self._login(self.usuarios[Perfil.GESTOR_FINANCEIRO])
         response = self.client.get(self.url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)

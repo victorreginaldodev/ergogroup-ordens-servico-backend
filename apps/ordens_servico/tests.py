@@ -2,6 +2,7 @@ from datetime import timedelta
 from decimal import Decimal
 
 from django.core import mail
+from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
@@ -9,7 +10,7 @@ from rest_framework.test import APITestCase
 
 from apps.clientes.models import Cliente
 from apps.contas.models import Usuario
-from apps.contas.models.choices import TipoUsuario
+from apps.organizacoes.apoio_testes import Perfil, criar_usuario_com_perfil, setor_padrao
 from apps.catalogo.models import Catalogo, CatalogoOperacional, Complexidade
 from apps.ordens_servico.models import (
     OrdemServico, OrdemServicoOperacional, Servico, Tarefa, Prioridade,
@@ -20,15 +21,15 @@ from apps.ordens_servico.models.tarefa import StatusTarefa
 
 class ProdutividadeModelTestCase(APITestCase):
     def setUp(self):
-        self.usuario = Usuario.objects.create_user(
+        self.usuario = criar_usuario_com_perfil(
             username='tecnico_teste',
             email='tecnico@ergogroup.test',
             password='senha-teste-123',
             nome_completo='Tecnico Teste',
-            tipo_usuario=TipoUsuario.TECNICO,
+            perfil=Perfil.TECNICO,
         )
         self.cliente = Cliente.objects.create(nome='Cliente Teste')
-        self.catalogo = Catalogo.objects.create(nome='Catalogo Teste')
+        self.catalogo = Catalogo.objects.create(setor=setor_padrao(), nome='Catalogo Teste')
         self.ordem_servico = OrdemServico.objects.create(
             cliente=self.cliente, data_venda=timezone.localdate(), valor=0, prioridade=Prioridade.ALTA,
         )
@@ -76,12 +77,12 @@ class ProdutividadeModelTestCase(APITestCase):
 
 class HerancaPrioridadeSerializerTestCase(APITestCase):
     def setUp(self):
-        self.usuario = Usuario.objects.create_user(
+        self.usuario = criar_usuario_com_perfil(
             username='gestor_heranca',
             email='heranca@ergogroup.test',
             password='senha-teste-123',
             nome_completo='Gestor Heranca',
-            tipo_usuario=TipoUsuario.GESTOR_TECNICO,
+            perfil=Perfil.GESTOR_TECNICO,
         )
         self.cliente = Cliente.objects.create(nome='Cliente Heranca')
         self.ordem_servico = OrdemServico.objects.create(
@@ -130,12 +131,12 @@ class HerancaPrioridadeSerializerTestCase(APITestCase):
 
 class TarefaFiltrosTestCase(APITestCase):
     def setUp(self):
-        self.usuario = Usuario.objects.create_user(
+        self.usuario = criar_usuario_com_perfil(
             username='tecnico_filtros',
             email='filtros@ergogroup.test',
             password='senha-teste-123',
             nome_completo='Tecnico Filtros',
-            tipo_usuario=TipoUsuario.GESTOR_TECNICO,
+            perfil=Perfil.GESTOR_TECNICO,
         )
         self.cliente = Cliente.objects.create(nome='Cliente Filtros')
         self.ordem_servico = OrdemServico.objects.create(
@@ -178,40 +179,42 @@ class TarefaFiltrosTestCase(APITestCase):
         self.assertEqual(response.data, [])
 
 
+# As notificações estão desligadas no .env de dev (EMAIL_NOTIFICATIONS_ENABLED); aqui o envio é testado ligado.
+@override_settings(EMAIL_NOTIFICATIONS_ENABLED=True)
 class NotificacoesEmailTestCase(APITestCase):
     def setUp(self):
         mail.outbox = []
         self.cliente = Cliente.objects.create(nome='Cliente Notificacoes')
 
-        self.gestor_financeiro = Usuario.objects.create_user(
+        self.gestor_financeiro = criar_usuario_com_perfil(
             username='gestor_financeiro', email='gestor_financeiro@ergogroup.test',
             password='senha-teste-123', nome_completo='Gestor Financeiro',
-            tipo_usuario=TipoUsuario.GESTOR_FINANCEIRO,
+            perfil=Perfil.GESTOR_FINANCEIRO,
         )
-        self.financeiro = Usuario.objects.create_user(
+        self.financeiro = criar_usuario_com_perfil(
             username='financeiro', email='financeiro@ergogroup.test',
             password='senha-teste-123', nome_completo='Financeiro',
-            tipo_usuario=TipoUsuario.FINANCEIRO,
+            perfil=Perfil.FINANCEIRO,
         )
-        self.comercial = Usuario.objects.create_user(
+        self.comercial = criar_usuario_com_perfil(
             username='comercial', email='comercial@ergogroup.test',
             password='senha-teste-123', nome_completo='Comercial',
-            tipo_usuario=TipoUsuario.COMERCIAL,
+            perfil=Perfil.COMERCIAL,
         )
-        self.tecnico = Usuario.objects.create_user(
+        self.tecnico = criar_usuario_com_perfil(
             username='tecnico_notif', email='tecnico_notif@ergogroup.test',
             password='senha-teste-123', nome_completo='Tecnico Notif',
-            tipo_usuario=TipoUsuario.TECNICO,
+            perfil=Perfil.TECNICO,
         )
-        self.outro_tecnico = Usuario.objects.create_user(
+        self.outro_tecnico = criar_usuario_com_perfil(
             username='outro_tecnico_notif', email='outro_tecnico_notif@ergogroup.test',
             password='senha-teste-123', nome_completo='Outro Tecnico Notif',
-            tipo_usuario=TipoUsuario.TECNICO,
+            perfil=Perfil.TECNICO,
         )
-        self.administrativo = Usuario.objects.create_user(
+        self.administrativo = criar_usuario_com_perfil(
             username='administrativo_notif', email='administrativo_notif@ergogroup.test',
             password='senha-teste-123', nome_completo='Administrativo Notif',
-            tipo_usuario=TipoUsuario.ADMINISTRATIVO,
+            perfil=Perfil.ADMINISTRATIVO,
         )
 
     def test_criacao_contrato_segmenta_por_acesso_a_valores(self):
@@ -327,18 +330,18 @@ class NotificacoesEmailTestCase(APITestCase):
 
 class ExclusaoProtegidaTestCase(APITestCase):
     def setUp(self):
-        self.gestor = Usuario.objects.create_user(
+        self.gestor = criar_usuario_com_perfil(
             username='gestor_exclusao', email='gestor.exclusao@ergogroup.test',
             password='senha-teste-123', nome_completo='Gestor Exclusao',
-            tipo_usuario=TipoUsuario.DIRETOR,
+            perfil=Perfil.DIRETOR,
         )
-        self.tecnico = Usuario.objects.create_user(
+        self.tecnico = criar_usuario_com_perfil(
             username='tecnico_exclusao', email='tecnico.exclusao@ergogroup.test',
             password='senha-teste-123', nome_completo='Tecnico Exclusao',
-            tipo_usuario=TipoUsuario.TECNICO,
+            perfil=Perfil.TECNICO,
         )
         self.cliente = Cliente.objects.create(nome='Cliente Exclusao')
-        self.catalogo = Catalogo.objects.create(nome='Catalogo Exclusao')
+        self.catalogo = Catalogo.objects.create(setor=setor_padrao(), nome='Catalogo Exclusao')
         self.ordem_servico = OrdemServico.objects.create(
             cliente=self.cliente, data_venda=timezone.localdate(), valor=0,
         )

@@ -5,50 +5,47 @@ from rest_framework.test import APITestCase
 
 from apps.clientes.models import Cliente
 from apps.contas.models import Usuario
-from apps.contas.models.choices import TipoUsuario
+from apps.organizacoes.apoio_testes import SETOR_E_FUNCAO, Perfil, criar_usuario, setor_padrao
+from apps.organizacoes.models import Funcao, Setor
 from apps.ordens_servico.models import OrdemServico, Servico, Tarefa
-from apps.organizacoes.permissoes import (
-    PERMISSOES_POR_TIPO_USUARIO, Permissao, permissoes_do_usuario, tem_permissao,
-)
+from apps.organizacoes.permissoes import Permissao, permissoes_do_usuario, tem_permissao
 
 
-def criar_usuario(tipo, **extra):
-    return Usuario.objects.create_user(
-        username=f'{tipo}_{Usuario.objects.count()}', email=f'{tipo}{Usuario.objects.count()}@ergogroup.test',
-        password='senha-teste-123', nome_completo=f'Usuario {tipo}', tipo_usuario=tipo, **extra,
-    )
+def vinculo(perfil):
+    nome_setor, nome_funcao = SETOR_E_FUNCAO[perfil]
+    return {'setor': Setor.objects.get(nome=nome_setor).id, 'funcao': Funcao.objects.get(nome=nome_funcao).id}
 
 
 class CatalogoDePermissoesTestCase(APITestCase):
-    def test_todo_tipo_de_usuario_tem_permissoes_mapeadas(self):
-        self.assertEqual(set(PERMISSOES_POR_TIPO_USUARIO), set(TipoUsuario))
+    def test_usuario_sem_vinculo_nao_tem_permissoes(self):
+        self.assertEqual(permissoes_do_usuario(criar_usuario(None)), frozenset())
 
     def test_diretor_e_gestor_comercial_tem_todas(self):
-        for tipo in (TipoUsuario.DIRETOR, TipoUsuario.GESTOR_COMERCIAL):
+        for tipo in (Perfil.DIRETOR, Perfil.GESTOR_COMERCIAL):
             self.assertEqual(permissoes_do_usuario(criar_usuario(tipo)), frozenset(Permissao))
 
     def test_superusuario_tem_todas(self):
-        usuario = criar_usuario(TipoUsuario.TECNICO, is_superuser=True)
+        usuario = criar_usuario(Perfil.TECNICO, is_superuser=True)
         self.assertEqual(permissoes_do_usuario(usuario), frozenset(Permissao))
 
     def test_usuario_inativo_nao_tem_permissoes(self):
-        usuario = criar_usuario(TipoUsuario.DIRETOR, is_active=False)
+        usuario = criar_usuario(Perfil.DIRETOR, is_active=False)
         self.assertEqual(permissoes_do_usuario(usuario), frozenset())
 
     def test_tecnico_nao_ve_todas_as_os_nem_valores(self):
-        tecnico = criar_usuario(TipoUsuario.TECNICO)
+        tecnico = criar_usuario(Perfil.TECNICO)
         self.assertFalse(tem_permissao(tecnico, Permissao.OS_VER_TODAS))
         self.assertFalse(tem_permissao(tecnico, Permissao.FINANCEIRO_VER_VALORES))
 
     def test_administrativo_nao_ve_valores(self):
-        for tipo in (TipoUsuario.ADMINISTRATIVO, TipoUsuario.GESTOR_ADMINISTRATIVO, TipoUsuario.SUB_GESTOR_TECNICO):
+        for tipo in (Perfil.ADMINISTRATIVO, Perfil.GESTOR_ADMINISTRATIVO, Perfil.SUB_GESTOR_TECNICO):
             self.assertFalse(tem_permissao(criar_usuario(tipo), Permissao.FINANCEIRO_VER_VALORES))
 
 
 class GestorComercialComoDiretorTestCase(APITestCase):
     def test_gestor_comercial_muda_status_de_tarefa_de_outra_pessoa(self):
-        gestor_comercial = criar_usuario(TipoUsuario.GESTOR_COMERCIAL)
-        tecnico = criar_usuario(TipoUsuario.TECNICO)
+        gestor_comercial = criar_usuario(Perfil.GESTOR_COMERCIAL)
+        tecnico = criar_usuario(Perfil.TECNICO)
         ordem = OrdemServico.objects.create(
             cliente=Cliente.objects.create(nome='Cliente'), data_venda=timezone.localdate(), valor=0,
         )
@@ -64,21 +61,23 @@ class GestorComercialComoDiretorTestCase(APITestCase):
 
 class EdicaoDoProprioCadastroTestCase(APITestCase):
     def setUp(self):
-        self.tecnico = criar_usuario(TipoUsuario.TECNICO)
+        self.tecnico = criar_usuario(Perfil.TECNICO)
         self.client.force_authenticate(user=self.tecnico)
         self.url = reverse('usuarios-detail', args=[self.tecnico.id])
 
-    def test_tecnico_nao_consegue_virar_diretor(self):
-        self.client.patch(self.url, {'tipo_usuario': TipoUsuario.DIRETOR})
+    def test_tecnico_nao_consegue_se_vincular_a_diretoria(self):
+        self.client.patch(self.url, {'vinculos': [vinculo(Perfil.DIRETOR)]}, format='json')
 
-        self.tecnico.refresh_from_db()
-        self.assertEqual(self.tecnico.tipo_usuario, TipoUsuario.TECNICO)
+        self.assertEqual(
+            list(self.tecnico.vinculos_setor.values_list('funcao__nome', flat=True)), ['Técnico'],
+        )
+        self.assertFalse(tem_permissao(Usuario.objects.get(pk=self.tecnico.pk), Permissao.OS_VER_TODAS))
 
     def test_tecnico_nao_altera_o_proprio_status(self):
         self.client.patch(self.url, {'ativo': False})
 
         self.tecnico.refresh_from_db()
-        self.assertTrue(self.tecnico.ativo)
+        self.assertTrue(self.tecnico.is_active)
 
     def test_tecnico_edita_o_proprio_nome(self):
         response = self.client.patch(self.url, {'nome_completo': 'Nome Novo'})
@@ -90,28 +89,28 @@ class EdicaoDoProprioCadastroTestCase(APITestCase):
 
 class GestaoDaDiretoriaTestCase(APITestCase):
     def setUp(self):
-        self.gestor_tecnico = criar_usuario(TipoUsuario.GESTOR_TECNICO)
-        self.diretor = criar_usuario(TipoUsuario.DIRETOR)
-        self.tecnico = criar_usuario(TipoUsuario.TECNICO)
+        self.gestor_tecnico = criar_usuario(Perfil.GESTOR_TECNICO)
+        self.diretor = criar_usuario(Perfil.DIRETOR)
+        self.tecnico = criar_usuario(Perfil.TECNICO)
 
     def payload_novo_usuario(self, tipo):
         return {
             'email': f'novo.{tipo}@ergogroup.test', 'username': f'novo_{tipo}', 'nome_completo': 'Novo',
-            'tipo_usuario': tipo, 'ativo': True,
+            'vinculos': [vinculo(tipo)], 'ativo': True,
             'password': 'Senha-forte-123', 'password_confirmacao': 'Senha-forte-123',
         }
 
     def test_gestor_nao_diretoria_cria_tecnico(self):
         self.client.force_authenticate(user=self.gestor_tecnico)
 
-        response = self.client.post(reverse('usuarios-list'), self.payload_novo_usuario(TipoUsuario.TECNICO))
+        response = self.client.post(reverse('usuarios-list'), self.payload_novo_usuario(Perfil.TECNICO), format='json')
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     def test_gestor_nao_diretoria_nao_cria_diretor(self):
         self.client.force_authenticate(user=self.gestor_tecnico)
 
-        response = self.client.post(reverse('usuarios-list'), self.payload_novo_usuario(TipoUsuario.DIRETOR))
+        response = self.client.post(reverse('usuarios-list'), self.payload_novo_usuario(Perfil.DIRETOR), format='json')
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         self.assertFalse(Usuario.objects.filter(email='novo.diretor@ergogroup.test').exists())
@@ -120,12 +119,14 @@ class GestaoDaDiretoriaTestCase(APITestCase):
         self.client.force_authenticate(user=self.gestor_tecnico)
 
         response = self.client.patch(
-            reverse('usuarios-detail', args=[self.tecnico.id]), {'tipo_usuario': TipoUsuario.GESTOR_COMERCIAL},
+            reverse('usuarios-detail', args=[self.tecnico.id]),
+            {'vinculos': [vinculo(Perfil.GESTOR_COMERCIAL)]}, format='json',
         )
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        self.tecnico.refresh_from_db()
-        self.assertEqual(self.tecnico.tipo_usuario, TipoUsuario.TECNICO)
+        self.assertEqual(
+            list(self.tecnico.vinculos_setor.values_list('funcao__nome', flat=True)), ['Técnico'],
+        )
 
     def test_gestor_nao_diretoria_nao_desativa_nem_exclui_diretor(self):
         self.client.force_authenticate(user=self.gestor_tecnico)
@@ -136,12 +137,12 @@ class GestaoDaDiretoriaTestCase(APITestCase):
         self.assertEqual(desativar.status_code, status.HTTP_403_FORBIDDEN)
         self.assertEqual(excluir.status_code, status.HTTP_403_FORBIDDEN)
         self.diretor.refresh_from_db()
-        self.assertTrue(self.diretor.ativo)
+        self.assertTrue(self.diretor.is_active)
 
     def test_diretor_cria_diretor(self):
         self.client.force_authenticate(user=self.diretor)
 
-        response = self.client.post(reverse('usuarios-list'), self.payload_novo_usuario(TipoUsuario.DIRETOR))
+        response = self.client.post(reverse('usuarios-list'), self.payload_novo_usuario(Perfil.DIRETOR), format='json')
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
@@ -155,7 +156,7 @@ class RegistroDeCobrancaTestCase(APITestCase):
         self.url = reverse('ordens-servico-registrar-cobranca', args=[self.ordem.id])
 
     def test_financeiro_registra_cobranca(self):
-        self.client.force_authenticate(user=criar_usuario(TipoUsuario.FINANCEIRO))
+        self.client.force_authenticate(user=criar_usuario(Perfil.FINANCEIRO))
 
         response = self.client.patch(self.url, {'numero_nf': 123})
 
@@ -164,7 +165,7 @@ class RegistroDeCobrancaTestCase(APITestCase):
         self.assertTrue(self.ordem.cobranca_realizada)
 
     def test_comercial_nao_registra_cobranca(self):
-        self.client.force_authenticate(user=criar_usuario(TipoUsuario.COMERCIAL))
+        self.client.force_authenticate(user=criar_usuario(Perfil.COMERCIAL))
 
         response = self.client.patch(self.url, {'numero_nf': 123})
 
@@ -173,7 +174,7 @@ class RegistroDeCobrancaTestCase(APITestCase):
         self.assertFalse(self.ordem.cobranca_realizada)
 
     def test_edicao_generica_da_os_ignora_campos_de_cobranca(self):
-        self.client.force_authenticate(user=criar_usuario(TipoUsuario.FINANCEIRO))
+        self.client.force_authenticate(user=criar_usuario(Perfil.FINANCEIRO))
 
         self.client.patch(
             reverse('ordens-servico-detail', args=[self.ordem.id]),
@@ -187,7 +188,7 @@ class RegistroDeCobrancaTestCase(APITestCase):
     def test_tecnico_nao_registra_cobranca_de_os_operacional(self):
         from apps.catalogo.models import CatalogoOperacional
         from apps.ordens_servico.models import OrdemServicoOperacional
-        tecnico = criar_usuario(TipoUsuario.TECNICO)
+        tecnico = criar_usuario(Perfil.TECNICO)
         oso = OrdemServicoOperacional.objects.create(
             cliente=self.cliente, responsavel=tecnico, revisao_cliente=True, status='finalizada',
             catalogo_operacional=CatalogoOperacional.objects.create(nome='Revisão'),
@@ -212,7 +213,7 @@ class OcultacaoDeValoresTestCase(APITestCase):
         self.detalhe = reverse('ordens-servico-detail', args=[self.ordem.id])
 
     def test_administrativo_nao_recebe_valores_na_lista_nem_no_detalhe(self):
-        self.client.force_authenticate(user=criar_usuario(TipoUsuario.ADMINISTRATIVO))
+        self.client.force_authenticate(user=criar_usuario(Perfil.ADMINISTRATIVO))
 
         lista = self.client.get(reverse('ordens-servico-list'))
         detalhe = self.client.get(self.detalhe)
@@ -223,14 +224,14 @@ class OcultacaoDeValoresTestCase(APITestCase):
             self.assertNotIn(campo, detalhe.data)
 
     def test_financeiro_recebe_valores(self):
-        self.client.force_authenticate(user=criar_usuario(TipoUsuario.FINANCEIRO))
+        self.client.force_authenticate(user=criar_usuario(Perfil.FINANCEIRO))
 
         detalhe = self.client.get(self.detalhe)
 
         self.assertEqual(detalhe.data['valor'], '1500.00')
 
     def test_edicao_sem_permissao_nao_zera_o_valor(self):
-        self.client.force_authenticate(user=criar_usuario(TipoUsuario.ADMINISTRATIVO))
+        self.client.force_authenticate(user=criar_usuario(Perfil.ADMINISTRATIVO))
 
         # O formulário do frontend reenvia valor e forma de pagamento mesmo sem exibi-los.
         response = self.client.patch(self.detalhe, {
@@ -244,7 +245,7 @@ class OcultacaoDeValoresTestCase(APITestCase):
         self.assertEqual(self.ordem.observacao, 'ajuste')
 
     def test_criacao_sem_permissao_aceita_o_valor(self):
-        self.client.force_authenticate(user=criar_usuario(TipoUsuario.ADMINISTRATIVO))
+        self.client.force_authenticate(user=criar_usuario(Perfil.ADMINISTRATIVO))
 
         response = self.client.post(reverse('ordens-servico-list'), {
             'cliente': self.ordem.cliente_id, 'data_venda': str(timezone.localdate()), 'valor': '800.00',
@@ -257,7 +258,7 @@ class OcultacaoDeValoresTestCase(APITestCase):
 
 class VisibilidadeDeServicosTestCase(APITestCase):
     def setUp(self):
-        self.tecnico = criar_usuario(TipoUsuario.TECNICO)
+        self.tecnico = criar_usuario(Perfil.TECNICO)
         ordem = OrdemServico.objects.create(
             cliente=Cliente.objects.create(nome='Cliente Visibilidade'), data_venda=timezone.localdate(), valor=0,
         )
@@ -265,7 +266,7 @@ class VisibilidadeDeServicosTestCase(APITestCase):
         self.outro = Servico.objects.create(ordem_servico=ordem, descricao='de outro')
         Tarefa.objects.create(servico=self.meu, responsavel=self.tecnico)
         Tarefa.objects.create(servico=self.meu, responsavel=self.tecnico)
-        Tarefa.objects.create(servico=self.outro, responsavel=criar_usuario(TipoUsuario.TECNICO))
+        Tarefa.objects.create(servico=self.outro, responsavel=criar_usuario(Perfil.TECNICO))
 
     def ids(self, response):
         itens = response.data['results'] if isinstance(response.data, dict) else response.data
@@ -281,7 +282,7 @@ class VisibilidadeDeServicosTestCase(APITestCase):
         self.assertEqual(detalhe_de_outro.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_gestor_tecnico_ve_todos(self):
-        self.client.force_authenticate(user=criar_usuario(TipoUsuario.GESTOR_TECNICO))
+        self.client.force_authenticate(user=criar_usuario(Perfil.GESTOR_TECNICO))
 
         response = self.client.get(reverse('servicos-list'))
 
@@ -290,8 +291,8 @@ class VisibilidadeDeServicosTestCase(APITestCase):
 
 class DistribuicaoDeTarefasTestCase(APITestCase):
     def setUp(self):
-        self.tecnico = criar_usuario(TipoUsuario.TECNICO)
-        self.outro_tecnico = criar_usuario(TipoUsuario.TECNICO)
+        self.tecnico = criar_usuario(Perfil.TECNICO)
+        self.outro_tecnico = criar_usuario(Perfil.TECNICO)
         ordem = OrdemServico.objects.create(
             cliente=Cliente.objects.create(nome='Cliente Tarefas'), data_venda=timezone.localdate(), valor=0,
         )
@@ -309,7 +310,7 @@ class DistribuicaoDeTarefasTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_administrativo_nao_cria_tarefa(self):
-        self.client.force_authenticate(user=criar_usuario(TipoUsuario.ADMINISTRATIVO))
+        self.client.force_authenticate(user=criar_usuario(Perfil.ADMINISTRATIVO))
 
         response = self.client.post(reverse('tarefas-list'), {
             'servico': self.servico.id, 'responsavel': self.tecnico.id,
@@ -318,7 +319,7 @@ class DistribuicaoDeTarefasTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_subgestor_tecnico_cria_e_reatribui_tarefa(self):
-        self.client.force_authenticate(user=criar_usuario(TipoUsuario.SUB_GESTOR_TECNICO))
+        self.client.force_authenticate(user=criar_usuario(Perfil.SUB_GESTOR_TECNICO))
 
         criacao = self.client.post(reverse('tarefas-list'), {
             'servico': self.servico.id, 'responsavel': self.tecnico.id,
@@ -359,7 +360,7 @@ class EscritaPorPermissaoTestCase(APITestCase):
     def setUp(self):
         from apps.catalogo.models import Catalogo
         self.cliente = Cliente.objects.create(nome='Cliente Escrita')
-        self.catalogo = Catalogo.objects.create(nome='PGR')
+        self.catalogo = Catalogo.objects.create(setor=setor_padrao(), nome='PGR')
         self.ordem = OrdemServico.objects.create(cliente=self.cliente, data_venda=timezone.localdate(), valor=0)
         self.servico = Servico.objects.create(ordem_servico=self.ordem, descricao='servico')
 
@@ -367,47 +368,47 @@ class EscritaPorPermissaoTestCase(APITestCase):
         self.client.force_authenticate(user=criar_usuario(tipo))
 
     def test_tecnico_nao_cria_os(self):
-        self.como(TipoUsuario.TECNICO)
+        self.como(Perfil.TECNICO)
         response = self.client.post(reverse('ordens-servico-list'), {
             'cliente': self.cliente.id, 'data_venda': str(timezone.localdate()),
         })
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_somente_diretoria_exclui_os(self):
-        self.como(TipoUsuario.COMERCIAL)
+        self.como(Perfil.COMERCIAL)
         negado = self.client.delete(reverse('ordens-servico-detail', args=[self.ordem.id]))
-        self.como(TipoUsuario.DIRETOR)
+        self.como(Perfil.DIRETOR)
         permitido = self.client.delete(reverse('ordens-servico-detail', args=[self.ordem.id]))
 
         self.assertEqual(negado.status_code, status.HTTP_403_FORBIDDEN)
         self.assertEqual(permitido.status_code, status.HTTP_204_NO_CONTENT)
 
     def test_subgestor_tecnico_exclui_servico(self):
-        self.como(TipoUsuario.SUB_GESTOR_TECNICO)
+        self.como(Perfil.SUB_GESTOR_TECNICO)
         response = self.client.delete(reverse('servicos-detail', args=[self.servico.id]))
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
     def test_financeiro_nao_altera_catalogo(self):
-        self.como(TipoUsuario.FINANCEIRO)
+        self.como(Perfil.FINANCEIRO)
         response = self.client.patch(reverse('catalogos-detail', args=[self.catalogo.id]), {'nome': 'Outro'})
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_comercial_altera_catalogo(self):
-        self.como(TipoUsuario.COMERCIAL)
+        self.como(Perfil.COMERCIAL)
         response = self.client.patch(reverse('catalogos-detail', args=[self.catalogo.id]), {'nome': 'Outro'})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_tecnico_continua_cadastrando_clientes(self):
-        self.como(TipoUsuario.TECNICO)
+        self.como(Perfil.TECNICO)
         response = self.client.post(reverse('clientes-list'), {'nome': 'Cliente Novo'})
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     def test_administrativo_nao_gerencia_catalogo_operacional(self):
-        self.como(TipoUsuario.ADMINISTRATIVO)
+        self.como(Perfil.ADMINISTRATIVO)
         response = self.client.post(reverse('catalogos-operacionais-list'), {'nome': 'Revisão'})
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_tecnico_continua_vendo_a_auditoria(self):
-        self.como(TipoUsuario.TECNICO)
+        self.como(Perfil.TECNICO)
         response = self.client.get(reverse('auditoria-registros-list'))
         self.assertEqual(response.status_code, status.HTTP_200_OK)

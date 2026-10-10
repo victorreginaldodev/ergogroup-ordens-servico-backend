@@ -6,7 +6,7 @@ from rest_framework.test import APITestCase
 
 from apps.clientes.models import Cliente
 from apps.contas.models import Usuario
-from apps.contas.models.choices import TipoUsuario
+from apps.organizacoes.apoio_testes import Perfil, criar_usuario_com_perfil, setor_padrao
 from apps.ordens_servico.models import OrdemServico, Prioridade
 from apps.ordens_servico.models import Servico
 from apps.catalogo.models.catalogo import Catalogo, Complexidade
@@ -18,10 +18,10 @@ from apps.ordens_servico.models.ordem_servico_operacional import StatusOrdemServ
 
 
 PERFIS_SEM_VALORES = [
-    TipoUsuario.SUB_GESTOR_TECNICO,
-    TipoUsuario.TECNICO,
-    TipoUsuario.GESTOR_ADMINISTRATIVO,
-    TipoUsuario.ADMINISTRATIVO,
+    Perfil.SUB_GESTOR_TECNICO,
+    Perfil.TECNICO,
+    Perfil.GESTOR_ADMINISTRATIVO,
+    Perfil.ADMINISTRATIVO,
 ]
 
 
@@ -30,22 +30,22 @@ class AnaliseTestCase(APITestCase):
         self.hoje = timezone.localdate()
 
         self.usuarios = {
-            tipo: Usuario.objects.create_user(
+            tipo: criar_usuario_com_perfil(
                 username=f'usuario_{tipo}',
                 email=f'{tipo}@ergogroup.test',
                 password='senha-teste-123',
                 nome_completo=f'Usuario {tipo}',
-                tipo_usuario=tipo,
+                perfil=tipo,
             )
-            for tipo in TipoUsuario.values
+            for tipo in Perfil.values
         }
-        self.tecnico = self.usuarios[TipoUsuario.TECNICO]
-        self.outro_tecnico = Usuario.objects.create_user(
+        self.tecnico = self.usuarios[Perfil.TECNICO]
+        self.outro_tecnico = criar_usuario_com_perfil(
             username='outro_tecnico',
             email='outro_tecnico@ergogroup.test',
             password='senha-teste-123',
             nome_completo='Outro Tecnico',
-            tipo_usuario=TipoUsuario.TECNICO,
+            perfil=Perfil.TECNICO,
         )
 
         self.cliente = Cliente.objects.create(nome='Cliente Financeiro')
@@ -66,7 +66,7 @@ class AnaliseTestCase(APITestCase):
         )
 
         # Cadeia OS -> Servico -> Tarefa para indicadores de produtividade/tempo.
-        self.catalogo = Catalogo.objects.create(nome='Catalogo Teste')
+        self.catalogo = Catalogo.objects.create(setor=setor_padrao(), nome='Catalogo Teste')
         self.os_chain = OrdemServico.objects.create(
             cliente=self.cliente,
             data_venda=self.hoje - timedelta(days=5),
@@ -169,7 +169,7 @@ class AnaliseTestCase(APITestCase):
 
         # Segundo catalogo/catalogo operacional, para provar que os agrupamentos por
         # catalogo (percentual, tempo medio, cancelamento) realmente discriminam grupos.
-        self.catalogo_secundario = Catalogo.objects.create(nome='Catalogo Secundario')
+        self.catalogo_secundario = Catalogo.objects.create(setor=setor_padrao(), nome='Catalogo Secundario')
         self.catalogo_operacional_secundario = CatalogoOperacional.objects.create(
             nome='Catalogo Operacional Secundario', horas_estimadas=Decimal('1.00'), complexidade=Complexidade.BAIXA,
         )

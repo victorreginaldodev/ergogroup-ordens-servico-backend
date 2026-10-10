@@ -2,19 +2,19 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from apps.contas.models.choices import TipoUsuario
+from apps.organizacoes.apoio_testes import Perfil, criar_usuario
 from apps.organizacoes.models import Funcao, MembroSetor, Organizacao, Setor
 from apps.organizacoes.permissoes import Permissao
-from apps.organizacoes.tests_permissoes import criar_usuario
 
 
 class EstruturaBaseTestCase(APITestCase):
     def setUp(self):
         self.ergogroup = Organizacao.objects.get(nome='Ergogroup')
-        self.diretor = criar_usuario(TipoUsuario.DIRETOR)
-        self.tecnico = criar_usuario(TipoUsuario.TECNICO)
+        self.diretor = criar_usuario(Perfil.DIRETOR)
+        self.tecnico = criar_usuario(Perfil.TECNICO)
         self.ergonomia = Setor.objects.create(organizacao=self.ergogroup, nome='Ergonomia')
         self.gestor_execucao = Funcao.objects.create(organizacao=self.ergogroup, nome='Gestor de Execução')
+        self.gestor_execucao.setores.add(self.ergonomia)
         self.gestor_execucao.definir_permissoes([Permissao.TAREFAS_DISTRIBUIR, Permissao.SERVICOS_VER_SETOR])
 
 
@@ -23,7 +23,7 @@ class FuncaoApiTestCase(EstruturaBaseTestCase):
         self.client.force_authenticate(user=self.diretor)
 
         response = self.client.post(reverse('funcoes-list'), {
-            'organizacao': self.ergogroup.id, 'nome': 'Financeiro Sênior',
+            'organizacao': self.ergogroup.id, 'setores': [self.ergonomia.id], 'nome': 'Financeiro Sênior',
             'permissoes': [Permissao.FINANCEIRO_VER_VALORES, Permissao.FINANCEIRO_REGISTRAR_COBRANCA],
         }, format='json')
 
@@ -37,7 +37,7 @@ class FuncaoApiTestCase(EstruturaBaseTestCase):
         self.client.force_authenticate(user=self.diretor)
 
         response = self.client.post(reverse('funcoes-list'), {
-            'organizacao': self.ergogroup.id, 'nome': 'Inventada', 'permissoes': ['aprovar.orcamento'],
+            'organizacao': self.ergogroup.id, 'setores': [self.ergonomia.id], 'nome': 'Inventada', 'permissoes': ['aprovar.orcamento'],
         }, format='json')
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -117,13 +117,16 @@ class MembroSetorApiTestCase(EstruturaBaseTestCase):
 
     def test_usuario_pode_estar_em_varios_setores(self):
         medicina = Setor.objects.create(organizacao=self.ergogroup, nome='Medicina')
+        self.gestor_execucao.setores.add(medicina)
         MembroSetor.objects.create(usuario=self.tecnico, setor=self.ergonomia, funcao=self.gestor_execucao)
         self.client.force_authenticate(user=self.diretor)
 
         response = self.client.post(reverse('membros-setor-list'), self.payload(setor=medicina.id))
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(self.tecnico.vinculos_setor.count(), 2)
+        self.assertEqual(
+            self.tecnico.vinculos_setor.filter(setor__in=[self.ergonomia, medicina]).count(), 2,
+        )
 
     def test_funcao_de_outra_organizacao_e_rejeitada(self):
         outra = Organizacao.objects.create(nome='Outra Empresa')

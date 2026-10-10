@@ -1,18 +1,14 @@
 import importlib
 
-from django.apps import apps
 from django.test import TestCase
 from django.utils import timezone
 
 from apps.catalogo.models import Catalogo
 from apps.clientes.models import Cliente
-from apps.contas.models.choices import TipoUsuario
 from apps.ordens_servico.models import OrdemServico, Servico
-from apps.organizacoes.models import Funcao, MembroSetor, Setor
-from apps.organizacoes.permissoes import (
-    PERMISSOES_POR_TIPO_USUARIO, Permissao, permissoes_do_usuario, tem_permissao,
-)
-from apps.organizacoes.tests_permissoes import criar_usuario
+from apps.organizacoes.apoio_testes import SETOR_E_FUNCAO, Perfil, criar_usuario
+from apps.organizacoes.models import Funcao, Setor
+from apps.organizacoes.permissoes import Permissao, tem_permissao
 
 migracao = importlib.import_module('apps.organizacoes.migrations.0013_cria_setores_funcoes_e_vinculos_iniciais')
 
@@ -24,40 +20,20 @@ class MigracaoInicialTestCase(TestCase):
             {'Diretoria', 'Comercial', 'Segurança do Trabalho', 'Financeiro', 'Administrativo'},
         )
 
-    def test_funcoes_concedem_o_mesmo_que_o_tipo_de_usuario(self):
-        for tipo, (_, nome_funcao, _) in migracao.MAPEAMENTO.items():
+    def test_cria_as_funcoes_com_as_permissoes_do_mapeamento(self):
+        for _, nome_funcao, permissoes in migracao.MAPEAMENTO.values():
             funcao = Funcao.objects.get(nome=nome_funcao)
-            self.assertEqual(set(funcao.codigos_permissao), set(PERMISSOES_POR_TIPO_USUARIO[tipo]), tipo)
+            self.assertEqual(set(funcao.codigos_permissao), set(permissoes), nome_funcao)
 
-    def test_vincula_cada_usuario_ao_setor_da_sua_area_sem_mudar_o_acesso(self):
-        usuarios = {tipo: criar_usuario(tipo) for tipo in TipoUsuario}
-        acesso_antes = {tipo: permissoes_do_usuario(u) for tipo, u in usuarios.items()}
-
-        migracao.criar_estrutura_e_vincular(apps, None)
-
-        for tipo, usuario in usuarios.items():
-            nome_setor, nome_funcao, _ = migracao.MAPEAMENTO[tipo]
-            vinculo = MembroSetor.objects.get(usuario=usuario)
-            self.assertEqual((vinculo.setor.nome, vinculo.funcao.nome), (nome_setor, nome_funcao))
-            usuario.__dict__.pop('_perfil_de_acesso', None)
-            self.assertEqual(permissoes_do_usuario(usuario), acesso_antes[tipo], tipo)
-
-    def test_rodar_de_novo_nao_duplica(self):
-        criar_usuario(TipoUsuario.TECNICO)
-        migracao.criar_estrutura_e_vincular(apps, None)
-        migracao.criar_estrutura_e_vincular(apps, None)
-
-        self.assertEqual(MembroSetor.objects.count(), 1)
-        self.assertEqual(Setor.objects.count(), 5)
+    def test_perfis_de_teste_seguem_o_mapeamento_da_migracao(self):
+        for tipo, (nome_setor, nome_funcao, _) in migracao.MAPEAMENTO.items():
+            self.assertEqual(SETOR_E_FUNCAO[tipo], (nome_setor, nome_funcao))
 
 
 class DiretoriaAtuaEmTodosOsSetoresTestCase(TestCase):
     def setUp(self):
-        self.diretor = criar_usuario(TipoUsuario.DIRETOR)
-        self.gestor_tecnico = criar_usuario(TipoUsuario.GESTOR_TECNICO)
-        migracao.criar_estrutura_e_vincular(apps, None)
-        for usuario in (self.diretor, self.gestor_tecnico):
-            usuario.__dict__.pop('_perfil_de_acesso', None)
+        self.diretor = criar_usuario(Perfil.DIRETOR)
+        self.gestor_tecnico = criar_usuario(Perfil.GESTOR_TECNICO)
         self.seguranca = Setor.objects.get(nome='Segurança do Trabalho')
         self.servico = Servico.objects.create(
             ordem_servico=OrdemServico.objects.create(
